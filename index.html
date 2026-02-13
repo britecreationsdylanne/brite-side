@@ -968,6 +968,168 @@
             }
             .header h1 { font-size: 22px; }
         }
+
+        /* ============================================
+           DRAFTS & PUBLISHED SECTIONS
+           ============================================ */
+        .drafts-section {
+            max-width: 1000px;
+            margin: 30px auto 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 35px 40px;
+            backdrop-filter: blur(10px);
+        }
+        .drafts-section h2 {
+            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .drafts-section .section-subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .drafts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .draft-card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .draft-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            border-color: #018181;
+        }
+        .draft-card h4 {
+            color: #018181;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .draft-card p {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .draft-card .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .draft-card:hover .delete-btn { opacity: 0.7; }
+        .draft-card .delete-btn:hover { opacity: 1; }
+        .drafts-empty {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+        }
+        .drafts-empty .icon { font-size: 32px; margin-bottom: 8px; }
+
+        .published-card {
+            background: #2d3748;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .published-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        }
+        .published-card .card-header {
+            height: 80px;
+            background: #272d3f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            opacity: 0.4;
+        }
+        .published-card .card-body {
+            padding: 16px;
+        }
+        .published-card .badge {
+            display: inline-block;
+            background: #272d3f;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .published-card p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+        .published-card .view-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: #018181;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .published-card .view-btn:hover { background: #016666; }
+        .published-card .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        .published-card:hover .delete-btn { opacity: 0.7; }
+
+        .btn-save-draft {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-save-draft:hover { background: #047857; }
     </style>
 </head>
 <body>
@@ -1183,6 +1345,7 @@
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
+                <button class="btn-save-draft" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
                 <button class="btn" onclick="goToStep(6)">Next &rarr;</button>
             </div>
         </div>
@@ -1245,6 +1408,7 @@
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(6)">&larr; Back</button>
+                <button class="btn-save-draft" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
                 <button class="btn btn-orange" onclick="goToStep(8)">Send Newsletter &rarr;</button>
             </div>
         </div>
@@ -1324,6 +1488,32 @@
 
     </div><!-- /.container -->
 
+    <!-- ============================================
+         SAVED DRAFTS SECTION
+         ============================================ -->
+    <div class="drafts-section" id="draftsSection">
+        <h2>Saved Drafts</h2>
+        <p class="section-subtitle">Resume an in-progress newsletter</p>
+        <div class="drafts-grid" id="draftsGrid"></div>
+        <div class="drafts-empty" id="draftsEmpty">
+            <div class="icon">&#128221;</div>
+            <p>No drafts in progress. Drafts save automatically as you work.</p>
+        </div>
+    </div>
+
+    <!-- ============================================
+         PAST NEWSLETTERS SECTION
+         ============================================ -->
+    <div class="drafts-section" id="publishedSection">
+        <h2>Past Newsletters</h2>
+        <p class="section-subtitle">Previously sent editions of The BriteSide</p>
+        <div class="drafts-grid" id="publishedGrid"></div>
+        <div class="drafts-empty" id="publishedEmpty">
+            <div class="icon">&#128232;</div>
+            <p>No published newsletters yet. They'll appear here after sending.</p>
+        </div>
+    </div>
+
     <!-- ====================================================
          JAVASCRIPT
          ==================================================== -->
@@ -1388,6 +1578,8 @@
         renderMonthGrid();
         fetchAllEmployees();
         initAuthUser();
+        loadDrafts();
+        loadPublishedNewsletters();
     });
 
     function initAuthUser() {
@@ -2218,6 +2410,8 @@
         .then(function(data) {
             sendingArea.style.display = 'none';
             showSuccessScreen(recipients.length);
+            // Auto-publish draft after successful send
+            publishDraft();
         })
         .catch(function(err) {
             sendingArea.style.display = 'none';
@@ -2269,6 +2463,255 @@
 
     function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    /* ============================================================
+       DRAFT SAVE / LOAD / DELETE
+       ============================================================ */
+    function saveDraft() {
+        if (!selectedMonth) return;
+        collectCurrentStepData();
+        var userEmail = (window.AUTH_USER && window.AUTH_USER.email) || 'unknown';
+        fetch(API_BASE + '/api/save-draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                month: selectedMonth,
+                year: new Date().getFullYear(),
+                currentStep: currentStep,
+                joke: joke,
+                jokeOptions: jokeOptions,
+                selectedJokeIndex: selectedJokeIndex,
+                birthdays: birthdays,
+                spotlight: spotlight,
+                updates: updates,
+                specialSection: specialSection,
+                subject: subject,
+                savedBy: userEmail
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            console.log('[Draft] Saved:', data);
+            loadDrafts();
+        })
+        .catch(function(err) { console.error('[Draft] Save failed:', err); });
+    }
+
+    function showSaveConfirm(btn) {
+        var orig = btn.textContent;
+        btn.textContent = 'Saved!';
+        btn.style.background = '#22c55e';
+        setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
+    }
+
+    function loadDrafts() {
+        fetch(API_BASE + '/api/list-drafts')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success && data.drafts && data.drafts.length > 0) {
+                var grid = document.getElementById('draftsGrid');
+                document.getElementById('draftsEmpty').style.display = 'none';
+                grid.innerHTML = '';
+                data.drafts.forEach(function(d) {
+                    var monthCap = d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '?';
+                    var savedBy = d.lastSavedBy || 'unknown';
+                    var savedAt = d.lastSavedAt ? new Date(d.lastSavedAt).toLocaleString('en-US', {
+                        timeZone: 'America/Chicago', month: 'short', day: 'numeric',
+                        hour: 'numeric', minute: '2-digit', hour12: true
+                    }) : '';
+                    var card = document.createElement('div');
+                    card.className = 'draft-card';
+                    card.innerHTML =
+                        '<button class="delete-btn" onclick="event.stopPropagation();if(confirm(\'Delete draft for ' + monthCap + ' ' + d.year + '?\'))deleteDraft(\'' + d.filename + '\')">&times;</button>' +
+                        '<h4>' + monthCap + ' ' + d.year + '</h4>' +
+                        '<p>Step ' + (d.currentStep || '?') + ' of 8</p>' +
+                        '<p>By: ' + escapeHtml(savedBy) + '</p>' +
+                        '<p>' + savedAt + ' CT</p>';
+                    card.onclick = function() { resumeDraft(d.filename); };
+                    grid.appendChild(card);
+                });
+            } else {
+                document.getElementById('draftsEmpty').style.display = 'block';
+                document.getElementById('draftsGrid').innerHTML = '';
+            }
+        })
+        .catch(function(err) { console.error('[Drafts] Load failed:', err); });
+    }
+
+    function resumeDraft(filename) {
+        fetch(API_BASE + '/api/load-draft?file=' + encodeURIComponent(filename))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (!data.success || !data.draft) { alert('Failed to load draft'); return; }
+            var d = data.draft;
+
+            // Restore state
+            selectedMonth = d.month || '';
+            selectedMonthNum = MONTH_NAMES.indexOf(selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1));
+            joke = d.joke || '';
+            jokeOptions = d.jokeOptions || [];
+            selectedJokeIndex = d.selectedJokeIndex != null ? d.selectedJokeIndex : -1;
+            birthdays = d.birthdays || [];
+            spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
+            updates = d.updates || [{ title: '', body: '' }, { title: '', body: '' }];
+            specialSection = d.specialSection || { enabled: false, title: '', body: '' };
+            subject = d.subject || '';
+
+            // Restore UI - month selection
+            var monthCards = document.querySelectorAll('.month-card');
+            for (var i = 0; i < monthCards.length; i++) {
+                monthCards[i].classList.remove('selected');
+                if (monthCards[i].getAttribute('data-month') === selectedMonth.toLowerCase() ||
+                    monthCards[i].textContent.toLowerCase().indexOf(selectedMonth.toLowerCase()) !== -1) {
+                    monthCards[i].classList.add('selected');
+                }
+            }
+            document.getElementById('step1NextBtn').disabled = !selectedMonth;
+
+            // Restore joke
+            if (joke) {
+                document.getElementById('step2NextBtn').disabled = false;
+            }
+
+            // Restore update fields
+            if (updates[0]) {
+                document.getElementById('update1Title').value = updates[0].title || '';
+                document.getElementById('update1Body').value = updates[0].body || '';
+            }
+            if (updates[1]) {
+                document.getElementById('update2Title').value = updates[1].title || '';
+                document.getElementById('update2Body').value = updates[1].body || '';
+            }
+
+            // Restore special section
+            if (specialSection.enabled) {
+                document.getElementById('specialSectionToggle').checked = true;
+                document.getElementById('specialSectionFields').classList.add('visible');
+                document.getElementById('specialSectionTitle').value = specialSection.title || '';
+                document.getElementById('specialSectionBody').value = specialSection.body || '';
+            }
+
+            // Restore subject
+            if (subject) {
+                document.getElementById('subjectLineInput').value = subject;
+            }
+
+            // Navigate to saved step
+            var step = d.currentStep || 1;
+            if (step === 3) renderBirthdayList();
+            if (step === 7) generatePreview();
+            if (step === 8) renderRecipientList();
+            showStep(step);
+        })
+        .catch(function(err) {
+            console.error('[Draft] Load failed:', err);
+            alert('Error loading draft');
+        });
+    }
+
+    function deleteDraft(filename) {
+        fetch(API_BASE + '/api/delete-draft', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file: filename })
+        })
+        .then(function() { loadDrafts(); })
+        .catch(function(err) { console.error('[Draft] Delete failed:', err); });
+    }
+
+    function publishDraft() {
+        var year = new Date().getFullYear();
+        var userPrefix = ((window.AUTH_USER && window.AUTH_USER.email) || 'unknown').split('@')[0].replace(/\./g, '-');
+        fetch(API_BASE + '/api/publish-draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file: 'drafts/' + selectedMonth.toLowerCase() + '-' + year + '-' + userPrefix + '.json' })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                loadDrafts();
+                loadPublishedNewsletters();
+            }
+        })
+        .catch(function(err) { console.error('[Publish] Failed:', err); });
+    }
+
+    /* ============================================================
+       PUBLISHED NEWSLETTERS
+       ============================================================ */
+    function loadPublishedNewsletters() {
+        fetch(API_BASE + '/api/list-published')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success && data.newsletters && data.newsletters.length > 0) {
+                var grid = document.getElementById('publishedGrid');
+                document.getElementById('publishedEmpty').style.display = 'none';
+                grid.innerHTML = '';
+                data.newsletters.forEach(function(n) {
+                    var monthCap = n.month ? n.month.charAt(0).toUpperCase() + n.month.slice(1) : '?';
+                    var savedBy = n.lastSavedBy || 'unknown';
+                    var savedAt = n.lastSavedAt ? new Date(n.lastSavedAt).toLocaleString('en-US', {
+                        timeZone: 'America/Chicago', month: 'short', day: 'numeric',
+                        hour: 'numeric', minute: '2-digit', hour12: true
+                    }) : '';
+                    var card = document.createElement('div');
+                    card.className = 'published-card';
+                    card.innerHTML =
+                        '<button class="delete-btn" onclick="event.stopPropagation();if(confirm(\'Delete this published newsletter?\'))deletePublished(\'' + n.filename + '\')">&times;</button>' +
+                        '<div class="card-header">&#128232;</div>' +
+                        '<div class="card-body">' +
+                            '<span class="badge">' + monthCap + ' ' + n.year + '</span>' +
+                            '<p>' + escapeHtml(savedBy) + ' &middot; ' + savedAt + ' CT</p>' +
+                            '<button class="view-btn" onclick="event.stopPropagation();viewPublished(\'' + n.filename + '\')">View Newsletter</button>' +
+                        '</div>';
+                    grid.appendChild(card);
+                });
+            } else {
+                document.getElementById('publishedEmpty').style.display = 'block';
+                document.getElementById('publishedGrid').innerHTML = '';
+            }
+        })
+        .catch(function(err) { console.error('[Published] Load failed:', err); });
+    }
+
+    function viewPublished(filename) {
+        fetch(API_BASE + '/api/load-published?file=' + encodeURIComponent(filename))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (!data.success || !data.draft) { alert('Failed to load newsletter'); return; }
+            var d = data.draft;
+
+            // Restore state from published data
+            selectedMonth = d.month || '';
+            selectedMonthNum = MONTH_NAMES.indexOf(selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1));
+            joke = d.joke || '';
+            birthdays = d.birthdays || [];
+            spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
+            updates = d.updates || [{ title: '', body: '' }, { title: '', body: '' }];
+            specialSection = d.specialSection || { enabled: false, title: '', body: '' };
+            subject = d.subject || '';
+
+            if (subject) document.getElementById('subjectLineInput').value = subject;
+
+            // Go directly to preview
+            generatePreview();
+            showStep(7);
+        })
+        .catch(function(err) {
+            alert('Error loading published newsletter');
+        });
+    }
+
+    function deletePublished(filename) {
+        fetch(API_BASE + '/api/delete-published', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file: filename })
+        })
+        .then(function() { loadPublishedNewsletters(); })
+        .catch(function(err) { console.error('[Published] Delete failed:', err); });
     }
 
     </script>

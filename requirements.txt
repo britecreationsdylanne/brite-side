@@ -15,6 +15,9 @@ anthropic>=0.18.0
 # Email (SendGrid)
 sendgrid>=6.10.0
 
+# Google Cloud Storage (drafts)
+google-cloud-storage>=2.14.0
+
 # Timezone
 pytz>=2024.1
 

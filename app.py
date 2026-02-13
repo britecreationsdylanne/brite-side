@@ -47,6 +47,7 @@ from config.briteside_config import (
     AI_PROMPTS,
     EMAIL_TEMPLATE_CONFIG,
     SENDGRID_CONFIG,
+    GCS_CONFIG,
 )
 
 
@@ -103,6 +104,21 @@ try:
     print("[OK] Claude initialized")
 except Exception as e:
     print(f"[WARNING] Claude not available: {e}")
+
+
+# ============================================================================
+# INITIALIZE GOOGLE CLOUD STORAGE
+# ============================================================================
+
+GCS_DRAFTS_BUCKET = GCS_CONFIG['drafts_bucket']
+gcs_client = None
+
+try:
+    from google.cloud import storage as gcs_storage
+    gcs_client = gcs_storage.Client()
+    print("[OK] GCS initialized")
+except Exception as e:
+    print(f"[WARNING] GCS not available: {e}")
 
 
 # ============================================================================
@@ -542,28 +558,75 @@ def render_email():
                     )
             updates_html = '\n'.join(update_items)
 
-        # Build spotlight HTML
+        # Build spotlight HTML (frontend sends null if no spotlight selected)
+        if not spotlight:
+            spotlight = {}
         spotlight_name = spotlight.get('name', '')
         spotlight_title = spotlight.get('title', '')
-        spotlight_department = spotlight.get('department', '')
         spotlight_blurb = spotlight.get('blurb', '')
 
-        # Build special section HTML
+        # Build special section HTML (frontend sends null if disabled)
+        if not special_section:
+            special_section = {}
         special_title = special_section.get('title', '')
         special_body = special_section.get('body', '')
+
+        # Build spotlight image HTML
+        spotlight_image_url = spotlight.get('image_url', '') if spotlight else ''
+        spotlight_image_html = ''
+        if spotlight_image_url:
+            spotlight_image_html = (
+                f'<img src="{spotlight_image_url}" width="120" alt="{spotlight_name}" '
+                f'style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block;" '
+                f'class="mobile-img-full">'
+            )
+
+        # Build individual update fields
+        update_1_title = ''
+        update_1_body = ''
+        update_2_title = ''
+        update_2_body = ''
+        if updates:
+            if len(updates) >= 1:
+                u1 = updates[0]
+                if isinstance(u1, dict):
+                    update_1_title = u1.get('title', '')
+                    update_1_body = u1.get('body', '')
+            if len(updates) >= 2:
+                u2 = updates[1]
+                if isinstance(u2, dict):
+                    update_2_title = u2.get('title', '')
+                    update_2_body = u2.get('body', '')
+
+        # Conditional display values
+        birthday_display = 'table-row' if birthdays else 'none'
+        update_2_display = 'table-row' if (update_2_title or update_2_body) else 'none'
+        special_display = 'table-row' if (special_title or special_body) else 'none'
+
+        # Preheader text (short preview text for email clients)
+        preheader = f"The BriteSide - {month} {year}"
+        if joke:
+            preheader = joke[:100]
 
         # Replace placeholders in template
         html = html.replace('{{MONTH}}', str(month))
         html = html.replace('{{YEAR}}', str(year))
+        html = html.replace('{{PREHEADER}}', str(preheader))
         html = html.replace('{{JOKE}}', str(joke))
-        html = html.replace('{{BIRTHDAY_ROWS}}', birthday_html)
+        html = html.replace('{{BIRTHDAY_DISPLAY}}', birthday_display)
+        html = html.replace('{{BIRTHDAY_SECTION}}', birthday_html)
+        html = html.replace('{{SPOTLIGHT_IMAGE}}', spotlight_image_html)
         html = html.replace('{{SPOTLIGHT_NAME}}', str(spotlight_name))
         html = html.replace('{{SPOTLIGHT_TITLE}}', str(spotlight_title))
-        html = html.replace('{{SPOTLIGHT_DEPARTMENT}}', str(spotlight_department))
         html = html.replace('{{SPOTLIGHT_BLURB}}', str(spotlight_blurb))
-        html = html.replace('{{UPDATES_LIST}}', updates_html)
+        html = html.replace('{{UPDATE_1_TITLE}}', str(update_1_title))
+        html = html.replace('{{UPDATE_1_BODY}}', str(update_1_body))
+        html = html.replace('{{UPDATE_2_TITLE}}', str(update_2_title))
+        html = html.replace('{{UPDATE_2_BODY}}', str(update_2_body))
+        html = html.replace('{{UPDATE_2_DISPLAY}}', update_2_display)
         html = html.replace('{{SPECIAL_TITLE}}', str(special_title))
         html = html.replace('{{SPECIAL_BODY}}', str(special_body))
+        html = html.replace('{{SPECIAL_SECTION_DISPLAY}}', special_display)
 
         safe_print(f"[API] Email template rendered ({len(html)} chars)")
 
@@ -657,6 +720,203 @@ def send_newsletter():
 
 
 # ============================================================================
+# DRAFT SAVE / LOAD ROUTES
+# ============================================================================
+
+@app.route('/api/save-draft', methods=['POST'])
+def save_draft():
+    """Save newsletter draft to GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        data = request.json
+        month = data.get('month', 'unknown').lower()
+        year = data.get('year', datetime.now(CHICAGO_TZ).year)
+        saved_by = data.get('savedBy', 'unknown').split('@')[0].replace('.', '-')
+        blob_name = f"drafts/{month}-{year}-{saved_by}.json"
+
+        draft = {
+            'month': month,
+            'year': year,
+            'currentStep': data.get('currentStep'),
+            'joke': data.get('joke'),
+            'jokeOptions': data.get('jokeOptions'),
+            'selectedJokeIndex': data.get('selectedJokeIndex'),
+            'birthdays': data.get('birthdays'),
+            'spotlight': data.get('spotlight'),
+            'updates': data.get('updates'),
+            'specialSection': data.get('specialSection'),
+            'subject': data.get('subject'),
+            'lastSavedBy': data.get('savedBy', 'unknown'),
+            'lastSavedAt': datetime.now(CHICAGO_TZ).isoformat(),
+        }
+
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(json.dumps(draft), content_type='application/json')
+        safe_print(f"[DRAFT] Saved {blob_name}")
+        return jsonify({'success': True, 'file': blob_name})
+
+    except Exception as e:
+        safe_print(f"[DRAFT SAVE ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/list-drafts', methods=['GET'])
+def list_drafts():
+    """List all saved drafts from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True, 'drafts': []})
+    try:
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blobs = bucket.list_blobs(prefix='drafts/')
+        drafts = []
+        for blob in blobs:
+            if not blob.name.endswith('.json'):
+                continue
+            data = json.loads(blob.download_as_text())
+            drafts.append({
+                'month': data.get('month'),
+                'year': data.get('year'),
+                'currentStep': data.get('currentStep'),
+                'lastSavedBy': data.get('lastSavedBy'),
+                'lastSavedAt': data.get('lastSavedAt'),
+                'filename': blob.name,
+            })
+        drafts.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
+        return jsonify({'success': True, 'drafts': drafts})
+    except Exception as e:
+        safe_print(f"[DRAFT LIST ERROR] {str(e)}")
+        return jsonify({'success': True, 'drafts': []})
+
+
+@app.route('/api/load-draft', methods=['GET'])
+def load_draft():
+    """Load a specific draft from GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        filename = request.args.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(filename)
+        data = json.loads(blob.download_as_text())
+        return jsonify({'success': True, 'draft': data})
+    except Exception as e:
+        safe_print(f"[DRAFT LOAD ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/delete-draft', methods=['DELETE'])
+def delete_draft():
+    """Delete a draft from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True})
+    try:
+        filename = request.json.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(filename)
+        if blob.exists():
+            blob.delete()
+        safe_print(f"[DRAFT] Deleted {filename}")
+        return jsonify({'success': True})
+    except Exception as e:
+        safe_print(f"[DRAFT DELETE ERROR] {str(e)}")
+        return jsonify({'success': True})
+
+
+@app.route('/api/publish-draft', methods=['POST'])
+def publish_draft():
+    """Move draft to published in GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        filename = request.json.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        source_blob = bucket.blob(filename)
+        if not source_blob.exists():
+            return jsonify({'success': False, 'error': 'Draft not found'}), 404
+        published_name = filename.replace('drafts/', 'published/', 1)
+        bucket.copy_blob(source_blob, bucket, published_name)
+        source_blob.delete()
+        safe_print(f"[DRAFT] Published {filename} -> {published_name}")
+        return jsonify({'success': True, 'file': published_name})
+    except Exception as e:
+        safe_print(f"[DRAFT PUBLISH ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/list-published', methods=['GET'])
+def list_published():
+    """List all published newsletters from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True, 'newsletters': []})
+    try:
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blobs = list(bucket.list_blobs(prefix='published/'))
+        newsletters = []
+        for blob in blobs:
+            if blob.name.endswith('.json'):
+                data = json.loads(blob.download_as_text())
+                newsletters.append({
+                    'filename': blob.name,
+                    'month': data.get('month'),
+                    'year': data.get('year'),
+                    'lastSavedBy': data.get('lastSavedBy'),
+                    'lastSavedAt': data.get('lastSavedAt'),
+                })
+        newsletters.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
+        return jsonify({'success': True, 'newsletters': newsletters})
+    except Exception as e:
+        safe_print(f"[PUBLISHED LIST ERROR] {str(e)}")
+        return jsonify({'success': True, 'newsletters': []})
+
+
+@app.route('/api/load-published', methods=['GET'])
+def load_published():
+    """Load a specific published newsletter from GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        filename = request.args.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(filename)
+        if not blob.exists():
+            return jsonify({'success': False, 'error': 'Not found'}), 404
+        data = json.loads(blob.download_as_text())
+        return jsonify({'success': True, 'draft': data})
+    except Exception as e:
+        safe_print(f"[PUBLISHED LOAD ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/delete-published', methods=['DELETE'])
+def delete_published():
+    """Delete a published newsletter from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True})
+    try:
+        filename = request.json.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(filename)
+        if blob.exists():
+            blob.delete()
+        return jsonify({'success': True})
+    except Exception as e:
+        safe_print(f"[PUBLISHED DELETE ERROR] {str(e)}")
+        return jsonify({'success': True})
+
+
+# ============================================================================
 # STATIC FILE SERVING
 # ============================================================================
 
@@ -686,6 +946,7 @@ if __name__ == '__main__':
     print(f"{'='*60}")
     print(f"  Claude:   {'Available' if claude_client else 'Not available'}")
     print(f"  SendGrid: {'Available' if SENDGRID_AVAILABLE else 'Not available'}")
+    print(f"  GCS:      {'Available' if gcs_client else 'Not available'}")
     print(f"  OAuth:    {'Configured' if not is_local_dev() else 'Skipped (local dev)'}")
     print(f"{'='*60}\n")
 

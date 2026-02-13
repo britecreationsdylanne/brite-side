@@ -121,3 +121,13 @@ SENDGRID_CONFIG = {
     "from_email": "newsletter@brite.co",
     "from_name": "The BriteSide",
 }
+
+# ──────────────────────────────────────────
+# Google Cloud Storage Configuration
+# ──────────────────────────────────────────
+
+GCS_CONFIG = {
+    "drafts_bucket": "brite-side-drafts",
+    "drafts_prefix": "drafts/",
+    "published_prefix": "published/",
+}
