@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The BriteSide — Internal Newsletter</title>
+    <!-- BritePulse SDK -->
+    <script src="https://britepulse-api-29820647719.us-central1.run.app/sdk.js"
+            data-api-key="pk_19ae847f-1641-4d40-ad73-30ba88aa8ce9_9d7e23d74b9141eb8b7c4fe9c1651d1c"
+            data-api-url="https://britepulse-api-29820647719.us-central1.run.app"
+            data-widget-position="bottom-right"
+            data-capture-errors="true"
+            data-capture-network-errors="true"
+            defer></script>
+    <style>
+        /* ============================================
+           RESET & BASE
+           ============================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #018181 0%, #272d3f 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ============================================
+           CONTAINER
+           ============================================ */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: visible;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            background: #272d3f;
+            color: white;
+            padding: 32px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 16px 16px 0 0;
+            position: relative;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-logo {
+            width: 44px;
+            height: 44px;
+            background: #018181;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
+            flex-shrink: 0;
+        }
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .header h1 .sparkle {
+            color: #FE8916;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            color: rgba(255,255,255,0.55);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .start-over-btn {
+            background: #FE8916;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .start-over-btn:hover { background: #e57a0e; }
+        .header-user-greeting {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            font-weight: 500;
+        }
+
+        /* ============================================
+           PROGRESS BAR
+           ============================================ */
+        .progress-container {
+            margin: 0 40px 20px 40px;
+            padding-top: 20px;
+        }
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .progress-step-text {
+            font-weight: 600;
+            color: #018181;
+        }
+        .progress-label {
+            color: #6b7280;
+        }
+        .progress {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: #018181;
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease;
+            border-radius: 4px;
+        }
+
+        /* ============================================
+           STEPS
+           ============================================ */
+        .step {
+            padding: 40px;
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .step h2 {
+            color: #272d3f;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .step > p.step-description {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            background: #018181;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #016666;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(1,129,129,0.3);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: #6b7280;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .btn-orange {
+            background: #FE8916;
+        }
+        .btn-orange:hover {
+            background: #e57a0e;
+        }
+        .btn-green {
+            background: #059669;
+        }
+        .btn-green:hover {
+            background: #047857;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-small {
+            background: #018181;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-small:hover { background: #016666; }
+        .btn-small:disabled { background: #ccc; cursor: not-allowed; }
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================
+           LOADING / SPINNER
+           ============================================ */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #018181;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        /* ============================================
+           FORM ELEMENTS
+           ============================================ */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #272d3f;
+            font-size: 14px;
+        }
+        .form-group textarea,
+        .form-group input[type="text"],
+        .form-group input[type="url"],
+        .form-group input[type="email"],
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group textarea:focus,
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #018181;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-group .helper-text {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        /* ============================================
+           STEP 1: MONTH GRID
+           ============================================ */
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 24px 0;
+        }
+        .month-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .month-card:hover {
+            border-color: #018181;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(1,129,129,0.12);
+        }
+        .month-card.selected {
+            background: #018181;
+            border-color: #018181;
+            color: white;
+        }
+        .month-card .month-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .month-card .month-emoji {
+            font-size: 24px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .birthday-count-badge {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 8px 20px;
+            background: #FFF8F0;
+            border: 2px solid #FE8916;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #272d3f;
+        }
+
+        /* ============================================
+           STEP 2: JOKE CARDS
+           ============================================ */
+        .theme-selector {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .theme-selector .form-group {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 0;
+        }
+        .joke-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .joke-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 18px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .joke-card:hover {
+            border-color: #018181;
+            background: #fafafa;
+        }
+        .joke-card.selected {
+            border-color: #018181;
+            background: #F0FAFA;
+            box-shadow: 0 0 0 3px rgba(1,129,129,0.15);
+        }
+        .joke-number {
+            background: #018181;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .joke-text {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .custom-joke-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #018181;
+        }
+        .custom-joke-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #018181;
+        }
+        .custom-joke-area {
+            display: none;
+            margin-top: 12px;
+        }
+        .custom-joke-area.visible {
+            display: block;
+        }
+
+        /* ============================================
+           STEP 3: BIRTHDAY CARDS
+           ============================================ */
+        .birthday-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .birthday-card {
+            background: #FFF8F0;
+            border: 2px solid #f3e8d8;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .birthday-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        .birthday-info {
+            flex: 1;
+        }
+        .birthday-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: #272d3f;
+            margin-bottom: 2px;
+        }
+        .birthday-meta {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+        .birthday-message-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 44px;
+            transition: border-color 0.2s;
+        }
+        .birthday-message-input:focus {
+            outline: none;
+            border-color: #018181;
+        }
+        .no-birthdays {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        .no-birthdays .no-birthday-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .no-birthdays .no-birthday-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #272d3f;
+            margin-bottom: 8px;
+        }
+        .no-birthdays .no-birthday-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* ============================================
+           STEP 4: SPOTLIGHT
+           ============================================ */
+        .spotlight-employee-info {
+            background: #F0FAFA;
+            border: 2px solid #cce7e7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .spotlight-employee-info.visible {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .spotlight-avatar {
+            width: 56px;
+            height: 56px;
+            background: #018181;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+        .spotlight-details h3 {
+            font-size: 18px;
+            color: #272d3f;
+            margin-bottom: 2px;
+        }
+        .spotlight-details .spotlight-role {
+            font-size: 14px;
+            color: #018181;
+            font-weight: 500;
+        }
+        .spotlight-details .spotlight-dept {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .spotlight-optional-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .ai-blurb-container {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+            display: none;
+        }
+        .ai-blurb-container.visible {
+            display: block;
+        }
+        .ai-blurb-container h4 {
+            font-size: 14px;
+            color: #018181;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* ============================================
+           STEP 5: UPDATES
+           ============================================ */
+        .update-block {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .update-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .update-block-header h3 {
+            font-size: 16px;
+            color: #272d3f;
+        }
+        .remove-update-btn {
+            background: none;
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .remove-update-btn:hover {
+            background: #dc3545;
+            color: white;
+        }
+        .add-update-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #018181;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 0;
+            transition: color 0.2s;
+        }
+        .add-update-link:hover {
+            color: #016666;
+            text-decoration: underline;
+        }
+
+        /* ============================================
+           STEP 6: SPECIAL SECTION
+           ============================================ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 0;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #ccc;
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: #018181;
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        .toggle-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #272d3f;
+        }
+        .toggle-helper {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+        .special-section-fields {
+            display: none;
+            margin-top: 16px;
+            padding: 24px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+        }
+        .special-section-fields.visible {
+            display: block;
+        }
+
+        /* ============================================
+           STEP 7: PREVIEW
+           ============================================ */
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .subject-line-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px 18px;
+        }
+        .subject-line-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+        .subject-line-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: 600;
+            color: #272d3f;
+            font-family: inherit;
+            outline: none;
+        }
+        .subject-line-edit {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .subject-line-edit:hover { opacity: 1; }
+        .preview-frame {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        .preview-frame iframe {
+            width: 100%;
+            min-height: 600px;
+            border: none;
+            display: block;
+        }
+        .preview-loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #6b7280;
+        }
+
+        /* ============================================
+           STEP 8: SEND
+           ============================================ */
+        .recipient-section {
+            margin-bottom: 24px;
+        }
+        .recipient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .recipient-count {
+            font-size: 14px;
+            color: #018181;
+            font-weight: 600;
+        }
+        .select-all-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .select-all-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #018181;
+        }
+        .select-all-row label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #272d3f;
+            cursor: pointer;
+        }
+        .recipient-list {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 8px 0;
+        }
+        .recipient-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+        .recipient-item:hover {
+            background: #f9fafb;
+        }
+        .recipient-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #018181;
+            flex-shrink: 0;
+        }
+        .recipient-name {
+            font-weight: 600;
+            color: #272d3f;
+        }
+        .recipient-email {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .manual-recipient-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 16px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+        }
+        .manual-recipient-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .manual-recipient-row input:focus {
+            outline: none;
+            border-color: #018181;
+        }
+
+        /* ============================================
+           SUCCESS SCREEN
+           ============================================ */
+        .success-screen {
+            display: none;
+            text-align: center;
+            padding: 80px 40px;
+        }
+        .success-screen.visible {
+            display: block;
+        }
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            display: block;
+            animation: successPop 0.5s ease;
+        }
+        @keyframes successPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .success-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #272d3f;
+            margin-bottom: 8px;
+        }
+        .success-subtitle {
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 32px;
+        }
+        .confetti-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .confetti-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: confettiBounce 0.6s ease infinite alternate;
+        }
+        .confetti-dot:nth-child(1) { background: #018181; animation-delay: 0s; }
+        .confetti-dot:nth-child(2) { background: #FE8916; animation-delay: 0.1s; }
+        .confetti-dot:nth-child(3) { background: #059669; animation-delay: 0.2s; }
+        .confetti-dot:nth-child(4) { background: #3b82f6; animation-delay: 0.3s; }
+        .confetti-dot:nth-child(5) { background: #ec4899; animation-delay: 0.4s; }
+        .confetti-dot:nth-child(6) { background: #f59e0b; animation-delay: 0.5s; }
+        .confetti-dot:nth-child(7) { background: #018181; animation-delay: 0.6s; }
+        @keyframes confettiBounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-16px); }
+        }
+
+        /* ============================================
+           ALERTS & INFO BOXES
+           ============================================ */
+        .info-box {
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        .info-box.info {
+            background: #F0FAFA;
+            border: 2px solid #cce7e7;
+            color: #018181;
+        }
+        .info-box.warning {
+            background: #FFF8F0;
+            border: 2px solid #fde8cd;
+            color: #b45309;
+        }
+        .info-box.error {
+            background: #fef2f2;
+            border: 2px solid #fca5a5;
+            color: #dc3545;
+        }
+        .info-box.success {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            color: #059669;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+                padding: 24px 20px;
+            }
+            .header-left {
+                flex-direction: column;
+            }
+            .header-right {
+                position: static;
+            }
+            .step { padding: 24px 20px; }
+            .progress-container { margin: 0 20px 16px 20px; }
+            .month-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+            .month-card { padding: 14px 10px; }
+            .spotlight-optional-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .month-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .header h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- =============== HEADER =============== -->
+        <div class="header">
+            <div class="header-left">
+                <div class="header-logo">B</div>
+                <div class="header-title-group">
+                    <h1>The BriteSide <span class="sparkle">&#10022;</span></h1>
+                    <div class="subtitle">Internal Monthly Newsletter</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="header-user-greeting" id="headerUserGreeting"></span>
+                <button class="start-over-btn" onclick="startOver()">Start Over</button>
+            </div>
+        </div>
+
+        <!-- =============== PROGRESS BAR =============== -->
+        <div class="progress-container">
+            <div class="progress-text">
+                <span class="progress-step-text" id="progressStepText">Step 1 of 8</span>
+                <span class="progress-label" id="progressLabel">Select Month</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width: 12.5%"></div>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 1: SELECT MONTH
+             ================================================ -->
+        <div id="step1" class="step active">
+            <h2>Select Month</h2>
+            <p class="step-description">Choose the month for this edition of The BriteSide.</p>
+
+            <div id="monthGrid" class="month-grid"></div>
+
+            <div id="birthdayCountArea" style="text-align: center; display: none;">
+                <span class="birthday-count-badge" id="birthdayCountBadge"></span>
+            </div>
+
+            <div class="buttons">
+                <button id="step1NextBtn" class="btn" disabled onclick="goToStep(2)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 2: INTRO JOKE
+             ================================================ -->
+        <div id="step2" class="step">
+            <h2>Intro Joke</h2>
+            <p class="step-description">Every BriteSide needs a good opener. Pick a theme and generate some jokes, or write your own.</p>
+
+            <div class="theme-selector">
+                <div class="form-group">
+                    <label>Joke Theme</label>
+                    <select id="jokeThemeSelect">
+                        <option value="jewelry">Jewelry</option>
+                        <option value="weddings">Weddings</option>
+                        <option value="watches">Watches</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="general office humor">General Office Humor</option>
+                    </select>
+                </div>
+                <button class="btn" id="generateJokesBtn" onclick="generateJokes()">Generate Jokes</button>
+            </div>
+
+            <div id="jokeCardsArea" class="joke-cards" style="display: none;"></div>
+
+            <div id="jokeLoadingArea" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Crafting some gems...</p>
+                </div>
+            </div>
+
+            <label class="custom-joke-toggle">
+                <input type="checkbox" id="customJokeToggle" onchange="toggleCustomJoke()">
+                Write My Own
+            </label>
+
+            <div id="customJokeArea" class="custom-joke-area">
+                <div class="form-group">
+                    <label>Your Custom Joke</label>
+                    <textarea id="customJokeInput" rows="3" placeholder="Write something witty..."></textarea>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(1)">&larr; Back</button>
+                <button id="step2NextBtn" class="btn" disabled onclick="goToStep(3)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 3: BIRTHDAY SHOUTOUTS
+             ================================================ -->
+        <div id="step3" class="step">
+            <h2 id="birthdayHeader">Birthday Shoutouts</h2>
+            <p class="step-description" id="birthdayDescription">Celebrate this month's birthday stars!</p>
+
+            <div id="birthdayListArea"></div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Back</button>
+                <button class="btn" onclick="goToStep(4)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 4: EMPLOYEE SPOTLIGHT
+             ================================================ -->
+        <div id="step4" class="step">
+            <h2>Employee Spotlight &#11088;</h2>
+            <p class="step-description">Shine the spotlight on someone special this month.</p>
+
+            <div class="form-group">
+                <label>Select Employee</label>
+                <select id="spotlightEmployeeSelect" onchange="onSpotlightEmployeeChange()">
+                    <option value="">-- Choose an employee --</option>
+                </select>
+            </div>
+
+            <div class="spotlight-employee-info" id="spotlightEmployeeInfo">
+                <div class="spotlight-avatar" id="spotlightAvatar"></div>
+                <div class="spotlight-details">
+                    <h3 id="spotlightName"></h3>
+                    <div class="spotlight-role" id="spotlightRole"></div>
+                    <div class="spotlight-dept" id="spotlightDept"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Fun Facts</label>
+                <textarea id="spotlightFunFacts" rows="3" placeholder="What makes this person shine? e.g., 'Collects vintage watches, makes the best coffee, once met a celebrity...'"></textarea>
+                <div class="helper-text">These will be woven into the spotlight blurb.</div>
+            </div>
+
+            <div class="spotlight-optional-row">
+                <div class="form-group">
+                    <label>Image URL (optional)</label>
+                    <input type="url" id="spotlightImageUrl" placeholder="https://example.com/photo.jpg">
+                </div>
+                <div class="form-group">
+                    <label>Video URL (optional)</label>
+                    <input type="url" id="spotlightVideoUrl" placeholder="https://youtube.com/watch?v=...">
+                </div>
+            </div>
+
+            <button class="btn-small btn-orange" id="aiSpotlightBtn" onclick="generateSpotlight()" style="margin-bottom: 12px;">AI Write Spotlight</button>
+
+            <div class="ai-blurb-container" id="spotlightBlurbContainer">
+                <h4>Generated Spotlight Blurb</h4>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <textarea id="spotlightBlurb" rows="4" placeholder="The AI-generated blurb will appear here. You can edit it."></textarea>
+                </div>
+            </div>
+
+            <div id="spotlightLoadingArea" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Writing a spotlight that sparkles...</p>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(3)">&larr; Back</button>
+                <button id="step4NextBtn" class="btn" onclick="goToStep(5)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 5: COMPANY UPDATES
+             ================================================ -->
+        <div id="step5" class="step">
+            <h2>Company Updates</h2>
+            <p class="step-description">Share what's new at BriteCo this month.</p>
+
+            <div class="update-block" id="updateBlock1">
+                <div class="update-block-header">
+                    <h3>Update #1</h3>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="update1Title" placeholder="Update title...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Body</label>
+                    <textarea id="update1Body" rows="4" placeholder="What's the update?..."></textarea>
+                </div>
+            </div>
+
+            <div class="update-block" id="updateBlock2">
+                <div class="update-block-header">
+                    <h3>Update #2</h3>
+                    <button class="remove-update-btn" onclick="toggleUpdate2(false)">Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="update2Title" placeholder="Update title...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Body</label>
+                    <textarea id="update2Body" rows="4" placeholder="What's the update?..."></textarea>
+                </div>
+            </div>
+
+            <div id="addUpdateLink" class="add-update-link" style="display: none;" onclick="toggleUpdate2(true)">
+                + Add Another Update
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
+                <button class="btn" onclick="goToStep(6)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 6: SPECIAL SECTION (OPTIONAL)
+             ================================================ -->
+        <div id="step6" class="step">
+            <h2>Special Section</h2>
+            <p class="step-description">Got something extra to share? Add an optional special section.</p>
+
+            <div class="toggle-row">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="specialSectionToggle" onchange="toggleSpecialSection()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="toggle-label">Include a special section?</div>
+                    <div class="toggle-helper" id="specialToggleHelper">Skip this if there's nothing extra this month.</div>
+                </div>
+            </div>
+
+            <div class="special-section-fields" id="specialSectionFields">
+                <div class="form-group">
+                    <label>Section Title</label>
+                    <input type="text" id="specialSectionTitle" placeholder="e.g., Team Outing Recap, Holiday Schedule...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Section Content</label>
+                    <textarea id="specialSectionBody" rows="5" placeholder="Write the content for this section..."></textarea>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
+                <button class="btn btn-green" onclick="goToStep(7)">Preview Newsletter &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 7: PREVIEW EMAIL
+             ================================================ -->
+        <div id="step7" class="step">
+            <h2>Preview Newsletter</h2>
+            <p class="step-description">Review how the newsletter will look in everyone's inbox.</p>
+
+            <div class="subject-line-row">
+                <span class="subject-line-label">Subject:</span>
+                <input type="text" class="subject-line-input" id="subjectLineInput">
+                <button class="subject-line-edit" title="Edit subject line" onclick="document.getElementById('subjectLineInput').focus();">&#9998;</button>
+            </div>
+
+            <div class="preview-frame" id="previewFrame">
+                <div class="preview-loading" id="previewLoading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Rendering your newsletter...</p>
+                </div>
+                <iframe id="previewIframe" style="display: none;"></iframe>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(6)">&larr; Back</button>
+                <button class="btn btn-orange" onclick="goToStep(8)">Send Newsletter &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 8: SEND NEWSLETTER
+             ================================================ -->
+        <div id="step8" class="step">
+            <h2>Send Newsletter</h2>
+            <p class="step-description" id="sendStepDescription">Choose who gets this month's BriteSide.</p>
+
+            <!-- SEND FORM -->
+            <div id="sendFormArea">
+                <div class="recipient-section">
+                    <div class="recipient-header">
+                        <h3>Recipients</h3>
+                        <span class="recipient-count" id="recipientCountLabel">0 selected</span>
+                    </div>
+
+                    <div class="select-all-row" onclick="toggleSelectAll()">
+                        <input type="checkbox" id="selectAllCheckbox">
+                        <label for="selectAllCheckbox">Select All Employees</label>
+                    </div>
+
+                    <div class="recipient-list" id="recipientList"></div>
+
+                    <div class="manual-recipient-row">
+                        <input type="email" id="manualRecipientInput" placeholder="Add external email address...">
+                        <button class="btn-small" onclick="addManualRecipient()">Add</button>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(7)">&larr; Back</button>
+                    <button class="btn btn-green" id="sendBtn" disabled onclick="sendNewsletter()">
+                        Send to 0 recipients
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUCCESS SCREEN -->
+            <div class="success-screen" id="successScreen">
+                <div class="confetti-bar">
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                </div>
+                <span class="success-icon">&#127881;</span>
+                <div class="success-title" id="successTitle">Newsletter Sent!</div>
+                <div class="success-subtitle" id="successSubtitle"></div>
+                <div class="confetti-bar">
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                    <div class="confetti-dot"></div>
+                </div>
+                <div class="buttons" style="justify-content: center; margin-top: 40px;">
+                    <button class="btn" onclick="startOver()">Done &mdash; Start Fresh</button>
+                </div>
+            </div>
+
+            <!-- SENDING INDICATOR -->
+            <div id="sendingArea" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Sending the BriteSide to your team...</p>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.container -->
+
+    <!-- ====================================================
+         JAVASCRIPT
+         ==================================================== -->
+    <script>
+    /* ============================================================
+       STATE
+       ============================================================ */
+    const API_BASE = window.location.origin;
+    let currentStep = 1;
+    const totalSteps = 8;
+
+    const STEP_LABELS = [
+        '', // index 0 unused
+        'Select Month',
+        'Intro Joke',
+        'Birthday Shoutouts',
+        'Employee Spotlight',
+        'Company Updates',
+        'Special Section',
+        'Preview Newsletter',
+        'Send Newsletter'
+    ];
+
+    const MONTH_NAMES = [
+        '', 'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    const MONTH_EMOJIS = [
+        '', '&#10052;', '&#10084;', '&#127800;', '&#127793;', '&#127804;', '&#9728;',
+        '&#127774;', '&#127958;', '&#127810;', '&#127875;', '&#127808;', '&#127876;'
+    ];
+
+    let selectedMonth = '';
+    let selectedMonthNum = 0;
+    let joke = '';
+    let jokeOptions = [];
+    let selectedJokeIndex = -1;
+    let birthdays = [];
+    let spotlight = {
+        employee: null,
+        fun_facts: '',
+        blurb: '',
+        image_url: '',
+        video_url: ''
+    };
+    let updates = [
+        { title: '', body: '' },
+        { title: '', body: '' }
+    ];
+    let showUpdate2 = true;
+    let specialSection = { enabled: false, title: '', body: '' };
+    let subject = '';
+    let renderedHTML = '';
+    let allEmployees = [];
+    let manualRecipients = [];
+
+    /* ============================================================
+       INITIALIZATION
+       ============================================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+        renderMonthGrid();
+        fetchAllEmployees();
+        initAuthUser();
+    });
+
+    function initAuthUser() {
+        var greetingEl = document.getElementById('headerUserGreeting');
+        if (window.AUTH_USER && window.AUTH_USER.name) {
+            greetingEl.textContent = 'Hi, ' + window.AUTH_USER.name;
+        }
+        // Set BritePulse user for feedback attribution
+        if (window.AUTH_USER && window.BritePulse) {
+            window.BritePulse.getInstance()?.setUser({
+                email: window.AUTH_USER.email,
+                id: window.AUTH_USER.email
+            });
+        }
+    }
+
+    function fetchAllEmployees() {
+        fetch(API_BASE + '/api/employees')
+            .then(function(res) {
+                if (!res.ok) throw new Error('Failed to fetch employees');
+                return res.json();
+            })
+            .then(function(data) {
+                allEmployees = data.employees || data || [];
+                populateSpotlightDropdown();
+            })
+            .catch(function(err) {
+                console.error('Error fetching employees:', err);
+            });
+    }
+
+    /* ============================================================
+       NAVIGATION
+       ============================================================ */
+    function goToStep(step) {
+        if (step < 1 || step > totalSteps) return;
+
+        // Before leaving current step, gather data
+        collectCurrentStepData();
+
+        // Special actions when entering a step
+        if (step === 3) {
+            renderBirthdayList();
+        }
+        if (step === 7) {
+            generatePreview();
+        }
+        if (step === 8) {
+            renderRecipientList();
+        }
+
+        showStep(step);
+    }
+
+    function showStep(step) {
+        // Hide all steps
+        for (var i = 1; i <= totalSteps; i++) {
+            var el = document.getElementById('step' + i);
+            if (el) el.classList.remove('active');
+        }
+
+        // Show target step
+        var targetStep = document.getElementById('step' + step);
+        if (targetStep) targetStep.classList.add('active');
+
+        currentStep = step;
+        updateProgressBar();
+
+        // Scroll to top of container
+        document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function updateProgressBar() {
+        var pct = (currentStep / totalSteps) * 100;
+        document.getElementById('progressBar').style.width = pct + '%';
+        document.getElementById('progressStepText').textContent = 'Step ' + currentStep + ' of ' + totalSteps;
+        document.getElementById('progressLabel').textContent = STEP_LABELS[currentStep] || '';
+    }
+
+    function collectCurrentStepData() {
+        switch (currentStep) {
+            case 2:
+                collectJokeData();
+                break;
+            case 3:
+                collectBirthdayData();
+                break;
+            case 4:
+                collectSpotlightData();
+                break;
+            case 5:
+                collectUpdatesData();
+                break;
+            case 6:
+                collectSpecialSectionData();
+                break;
+            case 7:
+                subject = document.getElementById('subjectLineInput').value;
+                break;
+        }
+    }
+
+    function startOver() {
+        if (!confirm('Start over? All unsaved progress will be lost.')) return;
+
+        selectedMonth = '';
+        selectedMonthNum = 0;
+        joke = '';
+        jokeOptions = [];
+        selectedJokeIndex = -1;
+        birthdays = [];
+        spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
+        updates = [{ title: '', body: '' }, { title: '', body: '' }];
+        showUpdate2 = true;
+        specialSection = { enabled: false, title: '', body: '' };
+        subject = '';
+        renderedHTML = '';
+        manualRecipients = [];
+
+        // Reset UI elements
+        document.getElementById('step1NextBtn').disabled = true;
+        document.getElementById('step2NextBtn').disabled = true;
+        document.getElementById('birthdayCountArea').style.display = 'none';
+        document.getElementById('jokeCardsArea').style.display = 'none';
+        document.getElementById('jokeCardsArea').innerHTML = '';
+        document.getElementById('customJokeToggle').checked = false;
+        document.getElementById('customJokeArea').classList.remove('visible');
+        document.getElementById('customJokeInput').value = '';
+        document.getElementById('jokeThemeSelect').selectedIndex = 0;
+        document.getElementById('spotlightEmployeeSelect').selectedIndex = 0;
+        document.getElementById('spotlightEmployeeInfo').classList.remove('visible');
+        document.getElementById('spotlightFunFacts').value = '';
+        document.getElementById('spotlightImageUrl').value = '';
+        document.getElementById('spotlightVideoUrl').value = '';
+        document.getElementById('spotlightBlurb').value = '';
+        document.getElementById('spotlightBlurbContainer').classList.remove('visible');
+        document.getElementById('update1Title').value = '';
+        document.getElementById('update1Body').value = '';
+        document.getElementById('update2Title').value = '';
+        document.getElementById('update2Body').value = '';
+        document.getElementById('updateBlock2').style.display = 'block';
+        document.getElementById('addUpdateLink').style.display = 'none';
+        document.getElementById('specialSectionToggle').checked = false;
+        document.getElementById('specialSectionFields').classList.remove('visible');
+        document.getElementById('specialSectionTitle').value = '';
+        document.getElementById('specialSectionBody').value = '';
+        document.getElementById('sendFormArea').style.display = 'block';
+        document.getElementById('successScreen').classList.remove('visible');
+        document.getElementById('sendingArea').style.display = 'none';
+        document.getElementById('sendStepDescription').textContent = "Choose who gets this month's BriteSide.";
+
+        renderMonthGrid();
+        showStep(1);
+    }
+
+    /* ============================================================
+       STEP 1: MONTH SELECTION
+       ============================================================ */
+    function renderMonthGrid() {
+        var grid = document.getElementById('monthGrid');
+        var html = '';
+        for (var i = 1; i <= 12; i++) {
+            var isSelected = selectedMonthNum === i ? ' selected' : '';
+            html += '<div class="month-card' + isSelected + '" data-month="' + i + '" onclick="selectMonth(' + i + ')">';
+            html += '<span class="month-emoji">' + MONTH_EMOJIS[i] + '</span>';
+            html += '<span class="month-name">' + MONTH_NAMES[i] + '</span>';
+            html += '</div>';
+        }
+        grid.innerHTML = html;
+    }
+
+    function selectMonth(monthNum) {
+        selectedMonthNum = monthNum;
+        selectedMonth = MONTH_NAMES[monthNum];
+
+        // Update visual selection
+        var cards = document.querySelectorAll('.month-card');
+        cards.forEach(function(card) {
+            card.classList.remove('selected');
+            if (parseInt(card.getAttribute('data-month')) === monthNum) {
+                card.classList.add('selected');
+            }
+        });
+
+        // Enable next button
+        document.getElementById('step1NextBtn').disabled = false;
+
+        // Set subject line default
+        var year = new Date().getFullYear();
+        subject = 'The BriteSide \u2014 ' + selectedMonth + ' ' + year;
+        document.getElementById('subjectLineInput').value = subject;
+
+        // Fetch birthday count
+        fetchBirthdayCount(monthNum);
+    }
+
+    function fetchBirthdayCount(monthNum) {
+        var countArea = document.getElementById('birthdayCountArea');
+        var badge = document.getElementById('birthdayCountBadge');
+        countArea.style.display = 'block';
+        badge.textContent = 'Loading birthdays...';
+
+        fetch(API_BASE + '/api/employees/birthdays?month=' + monthNum)
+            .then(function(res) {
+                if (!res.ok) throw new Error('Failed to fetch birthdays');
+                return res.json();
+            })
+            .then(function(data) {
+                birthdays = (data.birthdays || data || []).map(function(b) {
+                    return {
+                        name: b.name,
+                        department: b.department,
+                        birthday_day: b.birthday_day,
+                        message: ''
+                    };
+                });
+                var count = birthdays.length;
+                if (count === 0) {
+                    badge.textContent = 'No birthdays in ' + MONTH_NAMES[monthNum];
+                } else if (count === 1) {
+                    badge.innerHTML = '&#127874; 1 birthday this month!';
+                } else {
+                    badge.innerHTML = '&#127874; ' + count + ' birthdays this month!';
+                }
+            })
+            .catch(function(err) {
+                console.error('Error fetching birthdays:', err);
+                badge.textContent = 'Could not load birthdays';
+                birthdays = [];
+            });
+    }
+
+    /* ============================================================
+       STEP 2: INTRO JOKE
+       ============================================================ */
+    function generateJokes() {
+        var theme = document.getElementById('jokeThemeSelect').value;
+        var cardsArea = document.getElementById('jokeCardsArea');
+        var loadingArea = document.getElementById('jokeLoadingArea');
+
+        cardsArea.style.display = 'none';
+        cardsArea.innerHTML = '';
+        loadingArea.style.display = 'block';
+        jokeOptions = [];
+        selectedJokeIndex = -1;
+
+        // Uncheck custom joke toggle
+        document.getElementById('customJokeToggle').checked = false;
+        document.getElementById('customJokeArea').classList.remove('visible');
+
+        fetch(API_BASE + '/api/generate-joke', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                month: selectedMonth,
+                month_num: selectedMonthNum,
+                theme: theme
+            })
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Failed to generate jokes');
+            return res.json();
+        })
+        .then(function(data) {
+            loadingArea.style.display = 'none';
+
+            // Parse jokes — expect data.jokes as an array or data.text with numbered jokes
+            if (data.jokes && Array.isArray(data.jokes)) {
+                jokeOptions = data.jokes;
+            } else if (data.text) {
+                jokeOptions = parseJokesFromText(data.text);
+            } else if (typeof data === 'string') {
+                jokeOptions = parseJokesFromText(data);
+            } else {
+                jokeOptions = ['No jokes returned. Try a different theme!'];
+            }
+
+            renderJokeCards();
+        })
+        .catch(function(err) {
+            loadingArea.style.display = 'none';
+            console.error('Error generating jokes:', err);
+            cardsArea.style.display = 'block';
+            cardsArea.innerHTML = '<div class="info-box error">Failed to generate jokes. Please try again.</div>';
+        });
+    }
+
+    function parseJokesFromText(text) {
+        // Try to parse numbered jokes like "1. ...", "2. ...", "3. ..."
+        var lines = text.split('\n').filter(function(l) { return l.trim().length > 0; });
+        var jokes = [];
+        var currentJoke = '';
+
+        lines.forEach(function(line) {
+            var trimmed = line.trim();
+            var match = trimmed.match(/^(\d+)[.)]\s*/);
+            if (match) {
+                if (currentJoke) jokes.push(currentJoke.trim());
+                currentJoke = trimmed.replace(/^(\d+)[.)]\s*/, '');
+            } else {
+                currentJoke += ' ' + trimmed;
+            }
+        });
+        if (currentJoke) jokes.push(currentJoke.trim());
+
+        if (jokes.length === 0) {
+            jokes = [text.trim()];
+        }
+
+        return jokes;
+    }
+
+    function renderJokeCards() {
+        var cardsArea = document.getElementById('jokeCardsArea');
+        var html = '';
+
+        jokeOptions.forEach(function(jokeText, idx) {
+            var sel = selectedJokeIndex === idx ? ' selected' : '';
+            html += '<div class="joke-card' + sel + '" data-idx="' + idx + '" onclick="selectJoke(' + idx + ')">';
+            html += '<div class="joke-number">' + (idx + 1) + '</div>';
+            html += '<div class="joke-text">' + escapeHtml(jokeText) + '</div>';
+            html += '</div>';
+        });
+
+        cardsArea.innerHTML = html;
+        cardsArea.style.display = 'block';
+    }
+
+    function selectJoke(idx) {
+        selectedJokeIndex = idx;
+        joke = jokeOptions[idx];
+
+        // Uncheck custom joke
+        document.getElementById('customJokeToggle').checked = false;
+        document.getElementById('customJokeArea').classList.remove('visible');
+
+        // Update visual selection
+        var cards = document.querySelectorAll('.joke-card');
+        cards.forEach(function(card) {
+            card.classList.remove('selected');
+            if (parseInt(card.getAttribute('data-idx')) === idx) {
+                card.classList.add('selected');
+            }
+        });
+
+        updateStep2NextButton();
+    }
+
+    function toggleCustomJoke() {
+        var isChecked = document.getElementById('customJokeToggle').checked;
+        var area = document.getElementById('customJokeArea');
+
+        if (isChecked) {
+            area.classList.add('visible');
+            // Deselect generated jokes
+            selectedJokeIndex = -1;
+            var cards = document.querySelectorAll('.joke-card');
+            cards.forEach(function(card) { card.classList.remove('selected'); });
+        } else {
+            area.classList.remove('visible');
+        }
+
+        updateStep2NextButton();
+    }
+
+    function collectJokeData() {
+        var isCustom = document.getElementById('customJokeToggle').checked;
+        if (isCustom) {
+            joke = document.getElementById('customJokeInput').value.trim();
+        } else if (selectedJokeIndex >= 0 && jokeOptions[selectedJokeIndex]) {
+            joke = jokeOptions[selectedJokeIndex];
+        }
+    }
+
+    function updateStep2NextButton() {
+        var isCustom = document.getElementById('customJokeToggle').checked;
+        var customText = document.getElementById('customJokeInput').value.trim();
+        var hasJoke = selectedJokeIndex >= 0 || (isCustom && customText.length > 0);
+        document.getElementById('step2NextBtn').disabled = !hasJoke;
+    }
+
+    // Listen for custom joke input changes
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.id === 'customJokeInput') {
+            updateStep2NextButton();
+        }
+    });
+
+    /* ============================================================
+       STEP 3: BIRTHDAY SHOUTOUTS
+       ============================================================ */
+    function renderBirthdayList() {
+        var area = document.getElementById('birthdayListArea');
+        var header = document.getElementById('birthdayHeader');
+        var desc = document.getElementById('birthdayDescription');
+
+        header.innerHTML = selectedMonth + ' Birthdays &#127874;';
+        desc.textContent = "Celebrate this month's birthday stars! Add a personal note if you'd like.";
+
+        if (birthdays.length === 0) {
+            area.innerHTML =
+                '<div class="no-birthdays">' +
+                '<span class="no-birthday-icon">&#127874;</span>' +
+                '<div class="no-birthday-title">No birthdays in ' + selectedMonth + '!</div>' +
+                '<div class="no-birthday-text">We\'ll celebrate next month. For now, keep being brilliant.</div>' +
+                '</div>';
+            return;
+        }
+
+        var html = '<div class="birthday-list">';
+        birthdays.forEach(function(b, idx) {
+            var dayStr = selectedMonth.substring(0, 3) + ' ' + b.birthday_day;
+            html += '<div class="birthday-card">';
+            html += '<div class="birthday-icon">&#127874;</div>';
+            html += '<div class="birthday-info">';
+            html += '<div class="birthday-name">' + escapeHtml(b.name) + '</div>';
+            html += '<div class="birthday-meta">' + escapeHtml(b.department) + ' &middot; ' + dayStr + '</div>';
+            html += '<textarea class="birthday-message-input" data-idx="' + idx + '" placeholder="Add a personal note..." rows="2">' + escapeHtml(b.message || '') + '</textarea>';
+            html += '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        area.innerHTML = html;
+    }
+
+    function collectBirthdayData() {
+        var inputs = document.querySelectorAll('.birthday-message-input');
+        inputs.forEach(function(input) {
+            var idx = parseInt(input.getAttribute('data-idx'));
+            if (birthdays[idx]) {
+                birthdays[idx].message = input.value.trim();
+            }
+        });
+    }
+
+    /* ============================================================
+       STEP 4: EMPLOYEE SPOTLIGHT
+       ============================================================ */
+    function populateSpotlightDropdown() {
+        var select = document.getElementById('spotlightEmployeeSelect');
+        // Keep the first placeholder option
+        var html = '<option value="">-- Choose an employee --</option>';
+        allEmployees.forEach(function(emp, idx) {
+            html += '<option value="' + idx + '">' + escapeHtml(emp.name) + ' (' + escapeHtml(emp.department) + ')</option>';
+        });
+        select.innerHTML = html;
+    }
+
+    function onSpotlightEmployeeChange() {
+        var select = document.getElementById('spotlightEmployeeSelect');
+        var idx = select.value;
+        var infoBox = document.getElementById('spotlightEmployeeInfo');
+
+        if (idx === '' || idx === null) {
+            spotlight.employee = null;
+            infoBox.classList.remove('visible');
+            return;
+        }
+
+        var emp = allEmployees[parseInt(idx)];
+        spotlight.employee = emp;
+
+        // Show info card
+        infoBox.classList.add('visible');
+        document.getElementById('spotlightName').textContent = emp.name;
+        document.getElementById('spotlightRole').textContent = emp.title || '';
+        document.getElementById('spotlightDept').textContent = emp.department || '';
+
+        // Avatar initials
+        var initials = emp.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase();
+        document.getElementById('spotlightAvatar').textContent = initials;
+    }
+
+    function generateSpotlight() {
+        if (!spotlight.employee) {
+            alert('Please select an employee first.');
+            return;
+        }
+
+        var funFacts = document.getElementById('spotlightFunFacts').value.trim();
+        var loadingArea = document.getElementById('spotlightLoadingArea');
+        var blurbContainer = document.getElementById('spotlightBlurbContainer');
+
+        loadingArea.style.display = 'block';
+        blurbContainer.classList.remove('visible');
+
+        fetch(API_BASE + '/api/generate-spotlight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: spotlight.employee.name,
+                title: spotlight.employee.title || '',
+                department: spotlight.employee.department || '',
+                fun_facts: funFacts
+            })
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Failed to generate spotlight');
+            return res.json();
+        })
+        .then(function(data) {
+            loadingArea.style.display = 'none';
+            var blurb = data.blurb || data.text || data.spotlight || '';
+            document.getElementById('spotlightBlurb').value = blurb;
+            blurbContainer.classList.add('visible');
+        })
+        .catch(function(err) {
+            loadingArea.style.display = 'none';
+            console.error('Error generating spotlight:', err);
+            alert('Failed to generate spotlight. Please try again.');
+        });
+    }
+
+    function collectSpotlightData() {
+        spotlight.fun_facts = document.getElementById('spotlightFunFacts').value.trim();
+        spotlight.blurb = document.getElementById('spotlightBlurb').value.trim();
+        spotlight.image_url = document.getElementById('spotlightImageUrl').value.trim();
+        spotlight.video_url = document.getElementById('spotlightVideoUrl').value.trim();
+
+        // Also capture employee from dropdown if not yet set
+        var select = document.getElementById('spotlightEmployeeSelect');
+        var idx = select.value;
+        if (idx !== '' && idx !== null) {
+            spotlight.employee = allEmployees[parseInt(idx)];
+        }
+    }
+
+    /* ============================================================
+       STEP 5: COMPANY UPDATES
+       ============================================================ */
+    function toggleUpdate2(show) {
+        showUpdate2 = show;
+        document.getElementById('updateBlock2').style.display = show ? 'block' : 'none';
+        document.getElementById('addUpdateLink').style.display = show ? 'none' : 'inline-flex';
+        if (!show) {
+            document.getElementById('update2Title').value = '';
+            document.getElementById('update2Body').value = '';
+        }
+    }
+
+    function collectUpdatesData() {
+        updates[0].title = document.getElementById('update1Title').value.trim();
+        updates[0].body = document.getElementById('update1Body').value.trim();
+        if (showUpdate2) {
+            updates[1].title = document.getElementById('update2Title').value.trim();
+            updates[1].body = document.getElementById('update2Body').value.trim();
+        } else {
+            updates[1] = { title: '', body: '' };
+        }
+    }
+
+    /* ============================================================
+       STEP 6: SPECIAL SECTION
+       ============================================================ */
+    function toggleSpecialSection() {
+        var isEnabled = document.getElementById('specialSectionToggle').checked;
+        var fields = document.getElementById('specialSectionFields');
+        var helper = document.getElementById('specialToggleHelper');
+
+        specialSection.enabled = isEnabled;
+
+        if (isEnabled) {
+            fields.classList.add('visible');
+            helper.textContent = 'Great \u2014 fill in the details below.';
+        } else {
+            fields.classList.remove('visible');
+            helper.textContent = "Skip this if there's nothing extra this month.";
+        }
+    }
+
+    function collectSpecialSectionData() {
+        var isEnabled = document.getElementById('specialSectionToggle').checked;
+        specialSection.enabled = isEnabled;
+        if (isEnabled) {
+            specialSection.title = document.getElementById('specialSectionTitle').value.trim();
+            specialSection.body = document.getElementById('specialSectionBody').value.trim();
+        } else {
+            specialSection.title = '';
+            specialSection.body = '';
+        }
+    }
+
+    /* ============================================================
+       STEP 7: PREVIEW
+       ============================================================ */
+    function generatePreview() {
+        // Collect all data first
+        collectCurrentStepData();
+
+        var previewLoading = document.getElementById('previewLoading');
+        var previewIframe = document.getElementById('previewIframe');
+
+        previewLoading.style.display = 'block';
+        previewIframe.style.display = 'none';
+
+        // Build the payload
+        var payload = buildNewsletterPayload();
+
+        fetch(API_BASE + '/api/render-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Failed to render email');
+            return res.json();
+        })
+        .then(function(data) {
+            renderedHTML = data.html || data.rendered_html || '';
+            previewLoading.style.display = 'none';
+            previewIframe.style.display = 'block';
+            previewIframe.srcdoc = renderedHTML;
+
+            // Auto-resize iframe after content loads
+            previewIframe.onload = function() {
+                try {
+                    var iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
+                    var height = iframeDoc.documentElement.scrollHeight || iframeDoc.body.scrollHeight;
+                    previewIframe.style.height = Math.max(height + 40, 600) + 'px';
+                } catch(e) {
+                    previewIframe.style.height = '800px';
+                }
+            };
+        })
+        .catch(function(err) {
+            previewLoading.style.display = 'none';
+            console.error('Error rendering preview:', err);
+            previewIframe.style.display = 'block';
+            previewIframe.srcdoc = '<div style="padding:40px;font-family:sans-serif;text-align:center;color:#dc3545;">' +
+                '<h2>Preview Error</h2><p>Could not render the newsletter preview. Please go back and check your content, or try again.</p>' +
+                '<p style="color:#999;font-size:13px;">' + escapeHtml(err.message) + '</p></div>';
+        });
+    }
+
+    function buildNewsletterPayload() {
+        // Build the updates array, filtering empty ones
+        var activeUpdates = [];
+        if (updates[0].title || updates[0].body) {
+            activeUpdates.push(updates[0]);
+        }
+        if (showUpdate2 && (updates[1].title || updates[1].body)) {
+            activeUpdates.push(updates[1]);
+        }
+
+        // Build birthday data
+        var birthdayData = birthdays.map(function(b) {
+            return {
+                name: b.name,
+                department: b.department,
+                birthday_day: b.birthday_day,
+                message: b.message || ''
+            };
+        });
+
+        // Build spotlight data
+        var spotlightData = null;
+        if (spotlight.employee) {
+            spotlightData = {
+                name: spotlight.employee.name,
+                title: spotlight.employee.title || '',
+                department: spotlight.employee.department || '',
+                fun_facts: spotlight.fun_facts,
+                blurb: spotlight.blurb,
+                image_url: spotlight.image_url,
+                video_url: spotlight.video_url
+            };
+        }
+
+        // Build special section
+        var specialData = null;
+        if (specialSection.enabled && (specialSection.title || specialSection.body)) {
+            specialData = {
+                title: specialSection.title,
+                body: specialSection.body
+            };
+        }
+
+        return {
+            month: selectedMonth,
+            month_num: selectedMonthNum,
+            year: new Date().getFullYear(),
+            joke: joke,
+            birthdays: birthdayData,
+            spotlight: spotlightData,
+            updates: activeUpdates,
+            special_section: specialData,
+            subject: subject
+        };
+    }
+
+    /* ============================================================
+       STEP 8: SEND
+       ============================================================ */
+    function renderRecipientList() {
+        var listEl = document.getElementById('recipientList');
+        var html = '';
+
+        // All employees
+        allEmployees.forEach(function(emp, idx) {
+            html += '<div class="recipient-item">';
+            html += '<input type="checkbox" class="emp-checkbox" data-idx="' + idx + '" data-email="' + escapeAttr(emp.email) + '" onchange="updateRecipientCount()">';
+            html += '<span class="recipient-name">' + escapeHtml(emp.name) + '</span>';
+            html += '<span class="recipient-email">' + escapeHtml(emp.email) + '</span>';
+            html += '</div>';
+        });
+
+        // Manual recipients
+        manualRecipients.forEach(function(email, idx) {
+            html += '<div class="recipient-item">';
+            html += '<input type="checkbox" class="manual-checkbox" data-manual-idx="' + idx + '" data-email="' + escapeAttr(email) + '" checked onchange="updateRecipientCount()">';
+            html += '<span class="recipient-name">Manual</span>';
+            html += '<span class="recipient-email">' + escapeHtml(email) + '</span>';
+            html += '</div>';
+        });
+
+        listEl.innerHTML = html;
+        document.getElementById('selectAllCheckbox').checked = false;
+        updateRecipientCount();
+    }
+
+    function toggleSelectAll() {
+        var selectAllCb = document.getElementById('selectAllCheckbox');
+        // Toggle the checkbox itself if clicked outside the input
+        var isChecked = !selectAllCb.checked;
+        selectAllCb.checked = isChecked;
+
+        var checkboxes = document.querySelectorAll('.emp-checkbox, .manual-checkbox');
+        checkboxes.forEach(function(cb) {
+            cb.checked = isChecked;
+        });
+        updateRecipientCount();
+    }
+
+    // Handle the checkbox click directly so we don't double-toggle
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.id === 'selectAllCheckbox') {
+            var isChecked = e.target.checked;
+            var checkboxes = document.querySelectorAll('.emp-checkbox, .manual-checkbox');
+            checkboxes.forEach(function(cb) {
+                cb.checked = isChecked;
+            });
+            updateRecipientCount();
+        }
+    });
+
+    function addManualRecipient() {
+        var input = document.getElementById('manualRecipientInput');
+        var email = input.value.trim();
+        if (!email || !isValidEmail(email)) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+
+        // Check for duplicates
+        var allEmails = allEmployees.map(function(e) { return e.email.toLowerCase(); });
+        var manualLower = manualRecipients.map(function(e) { return e.toLowerCase(); });
+
+        if (allEmails.indexOf(email.toLowerCase()) !== -1 || manualLower.indexOf(email.toLowerCase()) !== -1) {
+            alert('This email is already in the recipient list.');
+            return;
+        }
+
+        manualRecipients.push(email);
+        input.value = '';
+        renderRecipientList();
+
+        // Check the newly added manual recipient
+        var manualCbs = document.querySelectorAll('.manual-checkbox');
+        if (manualCbs.length > 0) {
+            manualCbs[manualCbs.length - 1].checked = true;
+        }
+        updateRecipientCount();
+    }
+
+    function updateRecipientCount() {
+        var checked = getSelectedRecipientEmails();
+        var count = checked.length;
+        var label = document.getElementById('recipientCountLabel');
+        var btn = document.getElementById('sendBtn');
+
+        label.textContent = count + ' selected';
+        btn.textContent = 'Send to ' + count + ' recipient' + (count !== 1 ? 's' : '');
+        btn.disabled = count === 0;
+    }
+
+    function getSelectedRecipientEmails() {
+        var emails = [];
+        var checkboxes = document.querySelectorAll('.emp-checkbox:checked, .manual-checkbox:checked');
+        checkboxes.forEach(function(cb) {
+            var email = cb.getAttribute('data-email');
+            if (email) emails.push(email);
+        });
+        return emails;
+    }
+
+    function sendNewsletter() {
+        var recipients = getSelectedRecipientEmails();
+        if (recipients.length === 0) {
+            alert('Please select at least one recipient.');
+            return;
+        }
+
+        // Get current subject
+        subject = document.getElementById('subjectLineInput').value.trim() || subject;
+
+        var sendFormArea = document.getElementById('sendFormArea');
+        var sendingArea = document.getElementById('sendingArea');
+
+        sendFormArea.style.display = 'none';
+        sendingArea.style.display = 'block';
+
+        fetch(API_BASE + '/api/send-newsletter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipients: recipients,
+                subject: subject,
+                html: renderedHTML,
+                month: selectedMonth,
+                month_num: selectedMonthNum,
+                year: new Date().getFullYear()
+            })
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Failed to send newsletter');
+            return res.json();
+        })
+        .then(function(data) {
+            sendingArea.style.display = 'none';
+            showSuccessScreen(recipients.length);
+        })
+        .catch(function(err) {
+            sendingArea.style.display = 'none';
+            sendFormArea.style.display = 'block';
+            console.error('Error sending newsletter:', err);
+            alert('Failed to send newsletter: ' + err.message + '\nPlease try again.');
+        });
+    }
+
+    function showSuccessScreen(recipientCount) {
+        var sendFormArea = document.getElementById('sendFormArea');
+        var successScreen = document.getElementById('successScreen');
+        var sendStepDesc = document.getElementById('sendStepDescription');
+
+        sendFormArea.style.display = 'none';
+        sendStepDesc.style.display = 'none';
+
+        document.getElementById('successTitle').textContent = 'Newsletter Sent!';
+        document.getElementById('successSubtitle').textContent =
+            'The BriteSide was delivered to ' + recipientCount + ' ' +
+            (recipientCount === 1 ? 'person' : 'people') + '. Nice work!';
+
+        successScreen.classList.add('visible');
+
+        // Hide progress bar for celebration
+        document.getElementById('progressStepText').textContent = 'Complete!';
+        document.getElementById('progressLabel').textContent = 'Newsletter delivered';
+        document.getElementById('progressBar').style.width = '100%';
+    }
+
+    /* ============================================================
+       UTILITY FUNCTIONS
+       ============================================================ */
+    function escapeHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#39;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
+    }
+
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    </script>
+</body>
+</html>

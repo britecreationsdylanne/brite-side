@@ -1,0 +1,27 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/the-briteside', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/the-briteside']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'the-briteside'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/the-briteside'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},SENDGRID_API_KEY=${_SENDGRID_API_KEY},SENDGRID_FROM_EMAIL=${_SENDGRID_FROM_EMAIL},SENDGRID_FROM_NAME=${_SENDGRID_FROM_NAME},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET},FLASK_SECRET_KEY=${_FLASK_SECRET_KEY}'
+
+images:
+  - 'gcr.io/$PROJECT_ID/the-briteside'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
