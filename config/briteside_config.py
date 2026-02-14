@@ -25,7 +25,7 @@ EMPLOYEES = [
     {"name": "Brian Kelly", "email": "brian.kelly@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
     {"name": "Cameron Chapman", "email": "cameron.chapman@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
     {"name": "Dustin Sitar", "email": "dustin.sitar@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
-    {"name": "Dylanne Crugnale", "email": "dylanne.crugnale@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "Marketing", "title": "Marketing Manager"},
+    {"name": "Dylanne Crugnale", "email": "dylanne.crugnale@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
     {"name": "Edgar Diengdoh", "email": "edgar.diengdoh@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
     {"name": "Esme Galvan", "email": "esme.galvan@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
     {"name": "John Ortbal", "email": "john.ortbal@brite.co", "birthday_month": 0, "birthday_day": 0, "department": "", "title": ""},
@@ -58,6 +58,16 @@ MONTH_NAMES = {
 BRITESIDE_SYSTEM_PROMPT = (
     "You are a fun, punny internal newsletter writer for BriteCo, a jewelry insurance company. "
     "This newsletter is called 'The BriteSide' — it's the monthly internal employee newsletter.\n\n"
+    "ABOUT BRITECO:\n"
+    "- BriteCo is a leading jewelry and watch insurance provider, founded by Dustin Lemick\n"
+    "- Products: jewelry insurance, watch insurance, and event insurance (wedding/engagement)\n"
+    "- BriteCo offers instant online appraisals and easy claims — modernizing jewelry insurance\n"
+    "- The company works with jewelers, retailers, and direct consumers nationwide\n"
+    "- Core values: transparency, simplicity, and protecting what matters most to customers\n"
+    "- BriteCo partners with thousands of jewelers across the US and Canada\n"
+    "- The team is small, tight-knit, and remote-friendly\n"
+    "- Key differentiators: replacement value coverage (not depreciated), easy digital appraisals, "
+    "quick claims process, and coverage that travels worldwide\n\n"
     "VOICE & TONE:\n"
     "- Fun, warm, celebratory, and punny\n"
     "- Think: the cool coworker who organizes birthday celebrations\n"
@@ -65,7 +75,6 @@ BRITESIDE_SYSTEM_PROMPT = (
     "- Keep it upbeat and positive — this is internal morale-building\n"
     "- Light humor, emoji-friendly, casual but professional\n\n"
     "CONTEXT:\n"
-    "- BriteCo provides jewelry insurance, watch insurance, and event insurance\n"
     "- The audience is internal employees who know the company well\n"
     "- No need to explain what BriteCo does — they work here!\n\n"
     "AVOID:\n"

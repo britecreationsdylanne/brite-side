@@ -1262,7 +1262,7 @@
         }
         .team-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 60px;
+            grid-template-columns: 1fr 1fr 60px;
             gap: 10px;
             padding: 12px 16px;
             align-items: center;
@@ -1274,8 +1274,7 @@
         .team-row:hover { background: rgba(255,255,255,0.04); }
         .team-row .name { font-weight: 600; color: white; }
         .team-row .email { color: rgba(255,255,255,0.5); font-size: 12px; }
-        .team-row .dept { color: rgba(255,255,255,0.6); }
-        .team-row .title-col { color: rgba(255,255,255,0.6); }
+        .team-row .dept { color: rgba(255,255,255,0.5); font-size: 12px; }
         .team-remove-btn {
             background: transparent;
             border: 1px solid rgba(220,53,69,0.5);
@@ -1309,7 +1308,7 @@
             .team-row {
                 grid-template-columns: 1fr 1fr 60px;
             }
-            .team-row .dept, .team-row .title-col { display: none; }
+            .team-row { grid-template-columns: 1fr 60px; }
             .team-section { padding: 24px 20px; }
         }
     </style>
@@ -1383,6 +1382,10 @@
             </div>
 
             <div id="jokeCardsArea" class="joke-cards" style="display: none;"></div>
+
+            <div id="jokeRegenerateArea" style="display: none; text-align: center; margin-top: 8px;">
+                <button class="btn btn-secondary" onclick="generateJokes()" style="font-size: 13px; padding: 8px 18px;">Regenerate</button>
+            </div>
 
             <div id="jokeLoadingArea" style="display: none;">
                 <div class="loading">
@@ -1726,6 +1729,7 @@
                     <option value="briteside-email-minimal.html">Modern Minimal</option>
                     <option value="briteside-email-magazine.html">Magazine Style</option>
                     <option value="briteside-email-teal.html">Teal Background</option>
+                    <option value="briteside-email-teal-white.html">All Teal + White</option>
                 </select>
             </div>
 
@@ -2302,6 +2306,7 @@
         cardsArea.style.display = 'none';
         cardsArea.innerHTML = '';
         loadingArea.style.display = 'block';
+        document.getElementById('jokeRegenerateArea').style.display = 'none';
         jokeOptions = [];
         selectedJokeIndex = -1;
 
@@ -2388,6 +2393,7 @@
 
         cardsArea.innerHTML = html;
         cardsArea.style.display = 'block';
+        document.getElementById('jokeRegenerateArea').style.display = 'block';
     }
 
     function selectJoke(idx) {
@@ -3294,8 +3300,6 @@
             html += '<div class="team-row">';
             html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
             html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
-            html += '<div class="dept">' + escapeHtml(emp.department || '-') + '</div>';
-            html += '<div class="title-col">' + escapeHtml(emp.title || '-') + '</div>';
             html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + escapeAttr(emp.email) + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
             html += '</div>';
         });

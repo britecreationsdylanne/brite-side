@@ -25,7 +25,6 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
   .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
   .mobile-stack { display: block !important; width: 100% !important; }
   .mobile-center { text-align: center !important; }
-  .mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }
   .header-title { font-size: 28px !important; line-height: 34px !important; }
   .joke-text { font-size: 16px !important; line-height: 24px !important; }
   .section-heading { font-size: 20px !important; }
@@ -46,24 +45,21 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <div style="display: none; max-height: 0px; overflow: hidden;">{{PREHEADER}}</div>
 <div style="display: none; max-height: 0px; overflow: hidden;">&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
 
-<div role="article" aria-roledescription="email" aria-label="The BriteSide Newsletter" lang="en" style="font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #31D7CA;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #31D7CA;">
+<tr>
+<td align="center" style="padding: 0;">
 
-<!-- Top Spacer -->
-<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 640px;" class="mobile-full">
-<tr><td style="height: 24px;">&nbsp;</td></tr>
-</table>
-
-<!-- Main Container -->
-<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 640px; border-radius: 16px; overflow: hidden; background-color: #ffffff;" class="mobile-full">
+<!-- Email Container -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="640" class="mobile-full" style="max-width: 640px; width: 100%;">
 
 <!-- ============================================ -->
 <!-- HEADER                                       -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #272D3F; padding: 0;">
+<td style="background-color: #31D7CA; padding: 0;">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
-<td align="center" style="padding: 32px 40px 10px 40px;">
+<td align="center" style="padding: 36px 40px 10px 40px;">
 <a href="https://brite.co" target="_blank">
 <img src="/static/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block;">
 </a>
@@ -76,35 +72,29 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 <tr>
 <td align="center" style="padding: 0 40px 8px 40px;">
-<p style="margin: 0; font-size: 14px; font-weight: 600; color: #31D7CA; text-transform: uppercase; letter-spacing: 3px;">{{MONTH}} {{YEAR}}</p>
+<p style="margin: 0; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 3px; opacity: 0.85;">{{MONTH}} {{YEAR}}</p>
 </td>
 </tr>
-<!-- Teal accent line -->
 <tr>
-<td align="center" class="mobile-padding" style="padding: 0 140px 28px 140px;">
+<td align="center" class="mobile-padding" style="padding: 0 140px 32px 140px;">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr><td style="height: 3px; background: linear-gradient(90deg, transparent, #31D7CA, transparent); font-size:1px;">&nbsp;</td></tr>
+<tr><td style="height: 2px; background-color: #ffffff; opacity: 0.4; font-size:1px;">&nbsp;</td></tr>
 </table>
 </td>
 </tr>
 </table>
 </td>
-</tr>
-
-<!-- Teal accent bar -->
-<tr>
-<td style="height: 4px; background-color: #31D7CA; font-size: 1px; line-height: 1px;">&nbsp;</td>
 </tr>
 
 <!-- ============================================ -->
 <!-- INTRO JOKE                                   -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #ffffff; padding: 32px 40px;" class="mobile-padding">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; background-color: #eefcfb; overflow: hidden;">
+<td style="background-color: #31D7CA; padding: 0 40px 8px 40px;" class="mobile-padding">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; background-color: rgba(255,255,255,0.15); overflow: hidden;">
 <tr>
 <td style="padding: 28px 32px; text-align: center;" class="card-padding">
-<p style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 28px; color: #272D3F; font-style: italic;" class="joke-text">{{JOKE}}</p>
+<p style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 28px; color: #ffffff; font-style: italic;" class="joke-text">{{JOKE}}</p>
 </td>
 </tr>
 </table>
@@ -118,25 +108,25 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="display: {{BIRTHDAY_DISPLAY}};">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
-<td style="padding: 8px 40px 0 40px;" class="mobile-padding">
+<td style="padding: 20px 40px 0 40px;" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr><td style="height: 2px; background-color: #31D7CA; font-size:1px; border-radius:1px;">&nbsp;</td></tr>
+<tr><td style="height: 1px; background-color: #ffffff; opacity: 0.3; font-size:1px;">&nbsp;</td></tr>
 </table>
 </td>
 </tr>
 <tr>
-<td style="padding: 28px 40px 8px 40px;" class="mobile-padding">
-<h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #272D3F; text-align: center;" class="section-heading">Happy Birthday!</h2>
+<td style="padding: 24px 40px 8px 40px;" class="mobile-padding">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; text-align: center;" class="section-heading">Happy Birthday!</h2>
 </td>
 </tr>
 <tr>
 <td style="padding: 4px 40px 8px 40px; text-align: center;" class="mobile-padding">
-<p style="margin: 0; font-size: 14px; color: #6b7280;">Wishing our teammates a sparkling birthday this month!</p>
+<p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.8);">Wishing our teammates a sparkling birthday this month!</p>
 </td>
 </tr>
 <tr>
-<td style="padding: 12px 40px 28px 40px;" class="mobile-padding">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 460px;">
+<td style="padding: 12px 40px 24px 40px;" class="mobile-padding">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 460px; color: #ffffff;">
 {{BIRTHDAY_SECTION}}
 </table>
 </td>
@@ -149,23 +139,23 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <!-- EMPLOYEE SPOTLIGHT                           -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #ffffff; padding: 0;">
+<td style="background-color: #31D7CA; padding: 0;">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
 <td style="padding: 8px 40px 0 40px;" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr><td style="height: 2px; background-color: #31D7CA; font-size:1px; border-radius:1px;">&nbsp;</td></tr>
+<tr><td style="height: 1px; background-color: #ffffff; opacity: 0.3; font-size:1px;">&nbsp;</td></tr>
 </table>
 </td>
 </tr>
 <tr>
-<td style="padding: 28px 40px 6px 40px;" class="mobile-padding">
-<h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #272D3F; text-align: center;" class="section-heading">Employee Spotlight</h2>
+<td style="padding: 24px 40px 6px 40px;" class="mobile-padding">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; text-align: center;" class="section-heading">Employee Spotlight</h2>
 </td>
 </tr>
 <tr>
 <td style="padding: 20px 40px 32px 40px;" class="mobile-padding">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; border: 2px solid #d4f0f0; overflow: hidden;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; background-color: rgba(255,255,255,0.15); overflow: hidden;">
 <tr>
 <td style="padding: 28px 28px; text-align: center;" class="card-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -174,17 +164,17 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 <tr>
 <td align="center" style="padding: 0 0 4px 0;">
-<p style="margin: 0; font-size: 22px; font-weight: 700; color: #272D3F;">{{SPOTLIGHT_NAME}}</p>
+<p style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">{{SPOTLIGHT_NAME}}</p>
 </td>
 </tr>
 <tr>
 <td align="center" style="padding: 0 0 14px 0;">
-<p style="margin: 0; font-size: 13px; font-weight: 600; color: #31D7CA; text-transform: uppercase; letter-spacing: 0.5px;">{{SPOTLIGHT_TITLE}}</p>
+<p style="margin: 0; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">{{SPOTLIGHT_TITLE}}</p>
 </td>
 </tr>
 <tr>
 <td>
-<p style="margin: 0; font-size: 15px; line-height: 25px; color: #4b4b4b; text-align: center;">{{SPOTLIGHT_BLURB}}</p>
+<p style="margin: 0; font-size: 15px; line-height: 25px; color: #ffffff; text-align: center;">{{SPOTLIGHT_BLURB}}</p>
 </td>
 </tr>
 </table>
@@ -201,18 +191,18 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <!-- COMPANY UPDATES                              -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #ffffff; padding: 0;">
+<td style="background-color: #31D7CA; padding: 0;">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
 <td style="padding: 8px 40px 0 40px;" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr><td style="height: 2px; background-color: #31D7CA; font-size:1px; border-radius:1px;">&nbsp;</td></tr>
+<tr><td style="height: 1px; background-color: #ffffff; opacity: 0.3; font-size:1px;">&nbsp;</td></tr>
 </table>
 </td>
 </tr>
 <tr>
-<td style="padding: 28px 40px 12px 40px;" class="mobile-padding">
-<h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #272D3F; text-align: center;" class="section-heading">Company Updates</h2>
+<td style="padding: 24px 40px 12px 40px;" class="mobile-padding">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; text-align: center;" class="section-heading">Company Updates</h2>
 </td>
 </tr>
 <!-- Update 1 -->
@@ -220,9 +210,9 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="padding: 12px 40px 16px 40px;" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 10px; overflow: hidden;">
 <tr>
-<td style="border-left: 4px solid #31D7CA; padding: 18px 22px; background-color: #f0fbfa;" class="card-padding">
-<p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #272D3F;">{{UPDATE_1_TITLE}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 24px; color: #4b4b4b;">{{UPDATE_1_BODY}}</p>
+<td style="border-left: 4px solid #ffffff; padding: 18px 22px; background-color: rgba(255,255,255,0.12);" class="card-padding">
+<p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #ffffff;">{{UPDATE_1_TITLE}}</p>
+<p style="margin: 0; font-size: 15px; line-height: 24px; color: rgba(255,255,255,0.9);">{{UPDATE_1_BODY}}</p>
 </td>
 </tr>
 </table>
@@ -233,9 +223,9 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="padding: 0 40px 16px 40px; display: {{UPDATE_2_DISPLAY}};" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 10px; overflow: hidden;">
 <tr>
-<td style="border-left: 4px solid #FC883A; padding: 18px 22px; background-color: #f0fbfa;" class="card-padding">
-<p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #272D3F;">{{UPDATE_2_TITLE}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 24px; color: #4b4b4b;">{{UPDATE_2_BODY}}</p>
+<td style="border-left: 4px solid #ffffff; padding: 18px 22px; background-color: rgba(255,255,255,0.12);" class="card-padding">
+<p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #ffffff;">{{UPDATE_2_TITLE}}</p>
+<p style="margin: 0; font-size: 15px; line-height: 24px; color: rgba(255,255,255,0.9);">{{UPDATE_2_BODY}}</p>
 </td>
 </tr>
 </table>
@@ -246,9 +236,9 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="padding: 0 40px 32px 40px; display: {{UPDATE_3_DISPLAY}};" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 10px; overflow: hidden;">
 <tr>
-<td style="border-left: 4px solid #31D7CA; padding: 18px 22px; background-color: #f0fbfa;" class="card-padding">
-<p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #272D3F;">{{UPDATE_3_TITLE}}</p>
-<p style="margin: 0; font-size: 15px; line-height: 24px; color: #4b4b4b;">{{UPDATE_3_BODY}}</p>
+<td style="border-left: 4px solid #ffffff; padding: 18px 22px; background-color: rgba(255,255,255,0.12);" class="card-padding">
+<p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #ffffff;">{{UPDATE_3_TITLE}}</p>
+<p style="margin: 0; font-size: 15px; line-height: 24px; color: rgba(255,255,255,0.9);">{{UPDATE_3_BODY}}</p>
 </td>
 </tr>
 </table>
@@ -267,14 +257,14 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <tr>
 <td style="padding: 8px 40px 0 40px;" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr><td style="height: 2px; background-color: #31D7CA; font-size:1px; border-radius:1px;">&nbsp;</td></tr>
+<tr><td style="height: 1px; background-color: #ffffff; opacity: 0.3; font-size:1px;">&nbsp;</td></tr>
 </table>
 </td>
 </tr>
 <tr>
-<td style="padding: 28px 40px 32px 40px;" class="mobile-padding">
-<h2 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 700; color: #272D3F; text-align: center;" class="section-heading">{{SPECIAL_TITLE}}</h2>
-<p style="margin: 0; font-size: 15px; line-height: 25px; color: #4b4b4b; text-align: center;">{{SPECIAL_BODY}}</p>
+<td style="padding: 24px 40px 32px 40px;" class="mobile-padding">
+<h2 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 700; color: #ffffff; text-align: center;" class="section-heading">{{SPECIAL_TITLE}}</h2>
+<p style="margin: 0; font-size: 15px; line-height: 25px; color: rgba(255,255,255,0.9); text-align: center;">{{SPECIAL_BODY}}</p>
 </td>
 </tr>
 </table>
@@ -285,34 +275,31 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <!-- FOOTER                                       -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #272D3F; padding: 0;">
+<td style="padding: 8px 40px 0 40px;" class="mobile-padding">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr>
-<td style="height: 4px; background-color: #31D7CA; font-size: 1px; line-height: 1px;">&nbsp;</td>
+<tr><td style="height: 1px; background-color: #ffffff; opacity: 0.3; font-size:1px;">&nbsp;</td></tr>
+</table>
+</td>
 </tr>
 <tr>
-<td align="center" style="padding: 28px 40px 10px 40px;">
+<td align="center" style="padding: 24px 40px 10px 40px;">
 <a href="https://brite.co" target="_blank">
 <img src="/static/briteco-logo-white.png" width="80" alt="BriteCo" style="width: 80px; height: auto; display: block;">
 </a>
 </td>
 </tr>
 <tr>
-<td align="center" style="padding: 0 40px 24px 40px;">
-<p style="margin: 0; font-size: 12px; color: #7DA3AF;">This is an internal newsletter for the BriteCo team.</p>
-</td>
-</tr>
-</table>
+<td align="center" style="padding: 0 40px 32px 40px;">
+<p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">This is an internal newsletter for the BriteCo team.</p>
 </td>
 </tr>
 
 </table>
+<!-- /Email Container -->
 
-<!-- Bottom Spacer -->
-<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 640px;" class="mobile-full">
-<tr><td style="height: 24px;">&nbsp;</td></tr>
+</td>
+</tr>
 </table>
 
-</div>
 </body>
 </html>

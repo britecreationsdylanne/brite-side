@@ -675,6 +675,7 @@ def render_email():
             'briteside-email-minimal.html',
             'briteside-email-magazine.html',
             'briteside-email-teal.html',
+            'briteside-email-teal-white.html',
         ]
         if template_file not in allowed_templates:
             template_file = 'briteside-email.html'
