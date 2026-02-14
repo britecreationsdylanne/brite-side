@@ -41,7 +41,7 @@ from backend.integrations.claude_client import ClaudeClient
 
 # Import config
 from config.briteside_config import (
-    EMPLOYEES,
+    EMPLOYEES as CONFIG_EMPLOYEES,
     MONTH_NAMES,
     BRITESIDE_SYSTEM_PROMPT,
     AI_PROMPTS,
@@ -49,6 +49,9 @@ from config.briteside_config import (
     SENDGRID_CONFIG,
     GCS_CONFIG,
 )
+
+# Mutable employee list (starts from config, can be updated at runtime via GCS)
+EMPLOYEES = list(CONFIG_EMPLOYEES)
 
 
 # ============================================================================
@@ -119,6 +122,52 @@ try:
     print("[OK] GCS initialized")
 except Exception as e:
     print(f"[WARNING] GCS not available: {e}")
+
+
+# ============================================================================
+# EMPLOYEE LIST MANAGEMENT (GCS-backed)
+# ============================================================================
+
+EMPLOYEES_GCS_KEY = 'config/employees.json'
+
+
+def load_employees_from_gcs():
+    """Load employee list from GCS if available, otherwise use config defaults."""
+    global EMPLOYEES
+    if not gcs_client:
+        return
+    try:
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(EMPLOYEES_GCS_KEY)
+        if blob.exists():
+            data = json.loads(blob.download_as_text())
+            EMPLOYEES.clear()
+            EMPLOYEES.extend(data)
+            print(f"[OK] Loaded {len(EMPLOYEES)} employees from GCS")
+        else:
+            # First run: save config defaults to GCS
+            save_employees_to_gcs()
+            print(f"[OK] Initialized GCS employees from config ({len(EMPLOYEES)})")
+    except Exception as e:
+        print(f"[WARNING] Could not load employees from GCS: {e}")
+
+
+def save_employees_to_gcs():
+    """Persist current employee list to GCS."""
+    if not gcs_client:
+        return False
+    try:
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(EMPLOYEES_GCS_KEY)
+        blob.upload_from_string(json.dumps(EMPLOYEES, indent=2), content_type='application/json')
+        return True
+    except Exception as e:
+        print(f"[WARNING] Could not save employees to GCS: {e}")
+        return False
+
+
+# Load employees from GCS on startup
+load_employees_from_gcs()
 
 
 # ============================================================================
@@ -341,6 +390,105 @@ def get_birthdays():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/employees/add', methods=['POST'])
+def add_employee():
+    """Add a new employee to the list"""
+    try:
+        data = request.json
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip()
+
+        if not name:
+            return jsonify({"success": False, "error": "Employee name is required"}), 400
+        if not email:
+            return jsonify({"success": False, "error": "Employee email is required"}), 400
+
+        # Check for duplicates
+        for emp in EMPLOYEES:
+            if emp['email'].lower() == email.lower():
+                return jsonify({"success": False, "error": f"Employee with email {email} already exists"}), 409
+
+        new_employee = {
+            "name": name,
+            "email": email,
+            "birthday_month": data.get('birthday_month', 0),
+            "birthday_day": data.get('birthday_day', 0),
+            "department": data.get('department', ''),
+            "title": data.get('title', ''),
+        }
+
+        EMPLOYEES.append(new_employee)
+        EMPLOYEES.sort(key=lambda e: e['name'].lower())
+        save_employees_to_gcs()
+
+        safe_print(f"[API] Added employee: {name} ({email})")
+        return jsonify({"success": True, "employee": new_employee, "total": len(EMPLOYEES)})
+
+    except Exception as e:
+        safe_print(f"[API] Error adding employee: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/employees/remove', methods=['DELETE'])
+def remove_employee():
+    """Remove an employee from the list"""
+    try:
+        data = request.json
+        email = data.get('email', '').strip().lower()
+
+        if not email:
+            return jsonify({"success": False, "error": "Employee email is required"}), 400
+
+        original_count = len(EMPLOYEES)
+        EMPLOYEES[:] = [emp for emp in EMPLOYEES if emp['email'].lower() != email]
+
+        if len(EMPLOYEES) == original_count:
+            return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
+
+        save_employees_to_gcs()
+
+        safe_print(f"[API] Removed employee: {email}")
+        return jsonify({"success": True, "total": len(EMPLOYEES)})
+
+    except Exception as e:
+        safe_print(f"[API] Error removing employee: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/employees/update', methods=['PUT'])
+def update_employee():
+    """Update an employee's details"""
+    try:
+        data = request.json
+        email = data.get('email', '').strip().lower()
+
+        if not email:
+            return jsonify({"success": False, "error": "Employee email is required"}), 400
+
+        for emp in EMPLOYEES:
+            if emp['email'].lower() == email:
+                if 'name' in data:
+                    emp['name'] = data['name'].strip()
+                if 'department' in data:
+                    emp['department'] = data['department'].strip()
+                if 'title' in data:
+                    emp['title'] = data['title'].strip()
+                if 'birthday_month' in data:
+                    emp['birthday_month'] = data['birthday_month']
+                if 'birthday_day' in data:
+                    emp['birthday_day'] = data['birthday_day']
+
+                save_employees_to_gcs()
+                safe_print(f"[API] Updated employee: {emp['name']} ({email})")
+                return jsonify({"success": True, "employee": emp})
+
+        return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
+
+    except Exception as e:
+        safe_print(f"[API] Error updating employee: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ============================================================================
 # ROUTES - AI GENERATION
 # ============================================================================
@@ -518,10 +666,22 @@ def render_email():
         updates = data.get('updates', [])
         special_section = data.get('special_section', {})
 
-        safe_print(f"[API] Rendering email template for {month} {year}")
+        # Template selection (default to classic)
+        template_file = data.get('template', 'briteside-email.html')
+        allowed_templates = [
+            'briteside-email.html',
+            'briteside-email-bold.html',
+            'briteside-email-playful.html',
+            'briteside-email-minimal.html',
+            'briteside-email-magazine.html',
+        ]
+        if template_file not in allowed_templates:
+            template_file = 'briteside-email.html'
+
+        safe_print(f"[API] Rendering email template '{template_file}' for {month} {year}")
 
         # Read the email template
-        template_path = os.path.join(os.path.dirname(__file__), EMAIL_TEMPLATE_CONFIG['template_file'])
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
         try:
             with open(template_path, 'r', encoding='utf-8') as f:
                 html = f.read()
@@ -607,6 +767,10 @@ def render_email():
         preheader = f"The BriteSide - {month} {year}"
         if joke:
             preheader = joke[:100]
+
+        # Make logo paths absolute so they work in iframe previews and email clients
+        base_url = request.host_url.rstrip('/')
+        html = html.replace('/static/briteco-logo-white.png', f'{base_url}/static/briteco-logo-white.png')
 
         # Replace placeholders in template
         html = html.replace('{{MONTH}}', str(month))

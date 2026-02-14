@@ -1130,6 +1130,153 @@
             transition: background 0.2s;
         }
         .btn-save-draft:hover { background: #047857; }
+
+        .btn-ai-rewrite {
+            background: transparent;
+            color: #018181;
+            border: 1.5px solid #018181;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 6px;
+        }
+        .btn-ai-rewrite:hover {
+            background: #018181;
+            color: white;
+        }
+        .btn-ai-rewrite:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ============================================
+           MANAGE TEAM SECTION
+           ============================================ */
+        .team-section {
+            max-width: 1000px;
+            margin: 30px auto 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 35px 40px;
+            backdrop-filter: blur(10px);
+        }
+        .team-section h2 {
+            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .team-section .section-subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .team-add-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+        .team-add-form .form-col label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px;
+        }
+        .team-add-form input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .team-add-form input::placeholder { color: rgba(255,255,255,0.35); }
+        .team-add-form input:focus {
+            outline: none;
+            border-color: #31D7CA;
+            background: rgba(255,255,255,0.15);
+        }
+        .team-add-btn {
+            background: #31D7CA;
+            color: #272d3f;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .team-add-btn:hover { background: #28c4b8; }
+        .team-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+        }
+        .team-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 60px;
+            gap: 10px;
+            padding: 12px 16px;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 13px;
+            color: rgba(255,255,255,0.85);
+        }
+        .team-row:last-child { border-bottom: none; }
+        .team-row:hover { background: rgba(255,255,255,0.04); }
+        .team-row .name { font-weight: 600; color: white; }
+        .team-row .email { color: rgba(255,255,255,0.5); font-size: 12px; }
+        .team-row .dept { color: rgba(255,255,255,0.6); }
+        .team-row .title-col { color: rgba(255,255,255,0.6); }
+        .team-remove-btn {
+            background: transparent;
+            border: 1px solid rgba(220,53,69,0.5);
+            color: #dc3545;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .team-remove-btn:hover { background: #dc3545; color: white; border-color: #dc3545; }
+        .team-count {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+            margin-top: 12px;
+        }
+        .manage-team-link {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            cursor: pointer;
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+        .manage-team-link:hover { color: #31D7CA; }
+        @media (max-width: 768px) {
+            .team-add-form {
+                grid-template-columns: 1fr 1fr;
+            }
+            .team-row {
+                grid-template-columns: 1fr 1fr 60px;
+            }
+            .team-row .dept, .team-row .title-col { display: none; }
+            .team-section { padding: 24px 20px; }
+        }
     </style>
 </head>
 <body>
@@ -1145,6 +1292,7 @@
             </div>
             <div class="header-right">
                 <span class="header-user-greeting" id="headerUserGreeting"></span>
+                <a class="manage-team-link" onclick="document.getElementById('teamSection').scrollIntoView({behavior:'smooth'})">Manage Team</a>
                 <button class="start-over-btn" onclick="startOver()">Start Over</button>
             </div>
         </div>
@@ -1268,6 +1416,7 @@
                 <label>Fun Facts</label>
                 <textarea id="spotlightFunFacts" rows="3" placeholder="What makes this person shine? e.g., 'Collects vintage watches, makes the best coffee, once met a celebrity...'"></textarea>
                 <div class="helper-text">These will be woven into the spotlight blurb.</div>
+                <button class="btn-ai-rewrite" onclick="aiRewrite('spotlightFunFacts', 'fun and punny')">AI Rewrite</button>
             </div>
 
             <div class="spotlight-optional-row">
@@ -1287,6 +1436,7 @@
                 <h4>Generated Spotlight Blurb</h4>
                 <div class="form-group" style="margin-bottom: 0;">
                     <textarea id="spotlightBlurb" rows="4" placeholder="The AI-generated blurb will appear here. You can edit it."></textarea>
+                    <button class="btn-ai-rewrite" onclick="aiRewrite('spotlightBlurb', 'warm and engaging')">AI Rewrite</button>
                 </div>
             </div>
 
@@ -1321,6 +1471,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>Body</label>
                     <textarea id="update1Body" rows="4" placeholder="What's the update?..."></textarea>
+                    <button class="btn-ai-rewrite" onclick="aiRewrite('update1Body', 'professional')">AI Rewrite</button>
                 </div>
             </div>
 
@@ -1336,6 +1487,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>Body</label>
                     <textarea id="update2Body" rows="4" placeholder="What's the update?..."></textarea>
+                    <button class="btn-ai-rewrite" onclick="aiRewrite('update2Body', 'professional')">AI Rewrite</button>
                 </div>
             </div>
 
@@ -1370,13 +1522,44 @@
 
             <div class="special-section-fields" id="specialSectionFields">
                 <div class="form-group">
+                    <label>Placement</label>
+                    <select id="specialSectionPlacement">
+                        <option value="after-updates">After Updates</option>
+                        <option value="before-updates">Before Updates</option>
+                        <option value="after-spotlight">After Spotlight</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Section Title</label>
                     <input type="text" id="specialSectionTitle" placeholder="e.g., Team Outing Recap, Holiday Schedule...">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label>Section Content</label>
                     <textarea id="specialSectionBody" rows="5" placeholder="Write the content for this section..."></textarea>
+                    <button class="btn-ai-rewrite" onclick="aiRewrite('specialSectionBody', 'fun and punny')">AI Rewrite</button>
                 </div>
+                <div class="form-group">
+                    <label>Image URL (optional)</label>
+                    <input type="url" id="specialSectionImageUrl" placeholder="https://example.com/image.jpg">
+                </div>
+
+                <div id="specialSection2Block" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                    <div class="form-group">
+                        <label>Section 2 Title</label>
+                        <input type="text" id="specialSection2Title" placeholder="e.g., Fun Team Trivia...">
+                    </div>
+                    <div class="form-group">
+                        <label>Section 2 Content</label>
+                        <textarea id="specialSection2Body" rows="5" placeholder="Write the content for this section..."></textarea>
+                        <button class="btn-ai-rewrite" onclick="aiRewrite('specialSection2Body', 'fun and punny')">AI Rewrite</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Section 2 Image URL (optional)</label>
+                        <input type="url" id="specialSection2ImageUrl" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+
+                <a href="javascript:void(0)" class="add-update-link" id="addSpecialSectionLink" onclick="toggleSpecialSection2(true)">+ Add Another Section</a>
             </div>
 
             <div class="buttons">
@@ -1396,6 +1579,17 @@
                 <span class="subject-line-label">Subject:</span>
                 <input type="text" class="subject-line-input" id="subjectLineInput">
                 <button class="subject-line-edit" title="Edit subject line" onclick="document.getElementById('subjectLineInput').focus();">&#9998;</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label>Email Template</label>
+                <select id="templateSelect" onchange="generatePreview()">
+                    <option value="briteside-email.html">Classic BriteSide</option>
+                    <option value="briteside-email-bold.html">Bold & Vibrant</option>
+                    <option value="briteside-email-playful.html">Playful & Fun</option>
+                    <option value="briteside-email-minimal.html">Modern Minimal</option>
+                    <option value="briteside-email-magazine.html">Magazine Style</option>
+                </select>
             </div>
 
             <div class="preview-frame" id="previewFrame">
@@ -1514,6 +1708,37 @@
         </div>
     </div>
 
+    <!-- ============================================
+         MANAGE TEAM SECTION
+         ============================================ -->
+    <div class="team-section" id="teamSection">
+        <h2>Manage Team</h2>
+        <p class="section-subtitle">Add new hires or remove departing team members</p>
+
+        <div class="team-add-form">
+            <div class="form-col">
+                <label>Name *</label>
+                <input type="text" id="addEmpName" placeholder="Full name">
+            </div>
+            <div class="form-col">
+                <label>Email *</label>
+                <input type="text" id="addEmpEmail" placeholder="email@brite.co">
+            </div>
+            <div class="form-col">
+                <label>Department</label>
+                <input type="text" id="addEmpDept" placeholder="e.g. Marketing">
+            </div>
+            <div class="form-col">
+                <label>Title</label>
+                <input type="text" id="addEmpTitle" placeholder="e.g. Manager">
+            </div>
+            <button class="team-add-btn" onclick="addEmployee()">+ Add</button>
+        </div>
+
+        <div class="team-list" id="teamList"></div>
+        <div class="team-count" id="teamCount"></div>
+    </div>
+
     <!-- ====================================================
          JAVASCRIPT
          ==================================================== -->
@@ -1565,11 +1790,45 @@
         { title: '', body: '' }
     ];
     let showUpdate2 = true;
-    let specialSection = { enabled: false, title: '', body: '' };
+    let specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
+    let specialSections = []; // array to hold multiple special sections
+    let showSpecialSection2 = false;
     let subject = '';
     let renderedHTML = '';
     let allEmployees = [];
     let manualRecipients = [];
+
+    /* ============================================================
+       AI REWRITE
+       ============================================================ */
+    function aiRewrite(textareaId, defaultTone) {
+        var textarea = document.getElementById(textareaId);
+        var content = textarea.value.trim();
+        if (!content) { alert('Write something first, then AI can rewrite it.'); return; }
+
+        var tone = prompt('Rewrite tone? (e.g., fun and punny, professional, warm, concise)', defaultTone || 'fun and punny');
+        if (!tone) return;
+
+        textarea.disabled = true;
+        fetch(API_BASE + '/api/rewrite-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content, tone: tone })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            textarea.disabled = false;
+            if (data.success && data.rewritten) {
+                textarea.value = data.rewritten;
+            } else {
+                alert('AI rewrite failed: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) {
+            textarea.disabled = false;
+            alert('AI rewrite failed: ' + err.message);
+        });
+    }
 
     /* ============================================================
        INITIALIZATION
@@ -1619,6 +1878,11 @@
 
         // Before leaving current step, gather data
         collectCurrentStepData();
+
+        // Auto-save draft silently after step 2
+        if (step > 2 && selectedMonth) {
+            saveDraft();
+        }
 
         // Special actions when entering a step
         if (step === 3) {
@@ -1694,7 +1958,9 @@
         spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
         updates = [{ title: '', body: '' }, { title: '', body: '' }];
         showUpdate2 = true;
-        specialSection = { enabled: false, title: '', body: '' };
+        specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
+        specialSections = [];
+        showSpecialSection2 = false;
         subject = '';
         renderedHTML = '';
         manualRecipients = [];
@@ -1726,6 +1992,13 @@
         document.getElementById('specialSectionFields').classList.remove('visible');
         document.getElementById('specialSectionTitle').value = '';
         document.getElementById('specialSectionBody').value = '';
+        document.getElementById('specialSectionImageUrl').value = '';
+        document.getElementById('specialSectionPlacement').selectedIndex = 0;
+        document.getElementById('specialSection2Title').value = '';
+        document.getElementById('specialSection2Body').value = '';
+        document.getElementById('specialSection2ImageUrl').value = '';
+        document.getElementById('specialSection2Block').style.display = 'none';
+        document.getElementById('addSpecialSectionLink').style.display = 'inline-flex';
         document.getElementById('sendFormArea').style.display = 'block';
         document.getElementById('successScreen').classList.remove('visible');
         document.getElementById('sendingArea').style.display = 'none';
@@ -1846,9 +2119,11 @@
         .then(function(data) {
             loadingArea.style.display = 'none';
 
-            // Parse jokes — expect data.jokes as an array or data.text with numbered jokes
+            // Parse jokes — backend returns data.jokes as string or array
             if (data.jokes && Array.isArray(data.jokes)) {
                 jokeOptions = data.jokes;
+            } else if (data.jokes && typeof data.jokes === 'string') {
+                jokeOptions = parseJokesFromText(data.jokes);
             } else if (data.text) {
                 jokeOptions = parseJokesFromText(data.text);
             } else if (typeof data === 'string') {
@@ -1864,6 +2139,7 @@
             console.error('Error generating jokes:', err);
             cardsArea.style.display = 'block';
             cardsArea.innerHTML = '<div class="info-box error">Failed to generate jokes. Please try again.</div>';
+            alert('AI is not available. You can write your own joke using the \'Write My Own\' toggle below.');
         });
     }
 
@@ -1997,7 +2273,8 @@
             html += '<div class="birthday-info">';
             html += '<div class="birthday-name">' + escapeHtml(b.name) + '</div>';
             html += '<div class="birthday-meta">' + escapeHtml(b.department) + ' &middot; ' + dayStr + '</div>';
-            html += '<textarea class="birthday-message-input" data-idx="' + idx + '" placeholder="Add a personal note..." rows="2">' + escapeHtml(b.message || '') + '</textarea>';
+            html += '<textarea class="birthday-message-input" id="birthdayMsg' + idx + '" data-idx="' + idx + '" placeholder="Add a personal note..." rows="2">' + escapeHtml(b.message || '') + '</textarea>';
+            html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'birthdayMsg' + idx + '\', \'warm and celebratory\')">AI Rewrite</button>';
             html += '</div>';
             html += '</div>';
         });
@@ -2150,15 +2427,43 @@
         }
     }
 
+    function toggleSpecialSection2(show) {
+        showSpecialSection2 = show;
+        document.getElementById('specialSection2Block').style.display = show ? 'block' : 'none';
+        document.getElementById('addSpecialSectionLink').style.display = show ? 'none' : 'inline-flex';
+    }
+
     function collectSpecialSectionData() {
         var isEnabled = document.getElementById('specialSectionToggle').checked;
         specialSection.enabled = isEnabled;
         if (isEnabled) {
             specialSection.title = document.getElementById('specialSectionTitle').value.trim();
             specialSection.body = document.getElementById('specialSectionBody').value.trim();
+            specialSection.image_url = document.getElementById('specialSectionImageUrl').value.trim();
+            specialSection.placement = document.getElementById('specialSectionPlacement').value;
         } else {
             specialSection.title = '';
             specialSection.body = '';
+            specialSection.image_url = '';
+            specialSection.placement = 'after-updates';
+        }
+
+        // Collect additional special sections
+        specialSections = [];
+        if (isEnabled) {
+            specialSections.push({
+                title: specialSection.title,
+                body: specialSection.body,
+                image_url: specialSection.image_url
+            });
+            if (showSpecialSection2) {
+                var s2Title = document.getElementById('specialSection2Title').value.trim();
+                var s2Body = document.getElementById('specialSection2Body').value.trim();
+                var s2Image = document.getElementById('specialSection2ImageUrl').value.trim();
+                if (s2Title || s2Body) {
+                    specialSections.push({ title: s2Title, body: s2Body, image_url: s2Image });
+                }
+            }
         }
     }
 
@@ -2253,9 +2558,15 @@
         if (specialSection.enabled && (specialSection.title || specialSection.body)) {
             specialData = {
                 title: specialSection.title,
-                body: specialSection.body
+                body: specialSection.body,
+                image_url: specialSection.image_url || '',
+                placement: specialSection.placement || 'after-updates'
             };
         }
+
+        // Template selection
+        var templateSelect = document.getElementById('templateSelect');
+        var templateVal = templateSelect ? templateSelect.value : 'briteside-email.html';
 
         return {
             month: selectedMonth,
@@ -2266,7 +2577,9 @@
             spotlight: spotlightData,
             updates: activeUpdates,
             special_section: specialData,
-            subject: subject
+            special_sections: specialSections.length > 0 ? specialSections : null,
+            subject: subject,
+            template: templateVal
         };
     }
 
@@ -2486,6 +2799,7 @@
                 spotlight: spotlight,
                 updates: updates,
                 specialSection: specialSection,
+                specialSections: specialSections,
                 subject: subject,
                 savedBy: userEmail
             })
@@ -2555,7 +2869,8 @@
             birthdays = d.birthdays || [];
             spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
             updates = d.updates || [{ title: '', body: '' }, { title: '', body: '' }];
-            specialSection = d.specialSection || { enabled: false, title: '', body: '' };
+            specialSection = d.specialSection || { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
+            specialSections = d.specialSections || [];
             subject = d.subject || '';
 
             // Restore UI - month selection
@@ -2590,6 +2905,17 @@
                 document.getElementById('specialSectionFields').classList.add('visible');
                 document.getElementById('specialSectionTitle').value = specialSection.title || '';
                 document.getElementById('specialSectionBody').value = specialSection.body || '';
+                document.getElementById('specialSectionImageUrl').value = specialSection.image_url || '';
+                if (specialSection.placement) {
+                    document.getElementById('specialSectionPlacement').value = specialSection.placement;
+                }
+                // Restore second special section if present
+                if (specialSections.length > 1) {
+                    toggleSpecialSection2(true);
+                    document.getElementById('specialSection2Title').value = specialSections[1].title || '';
+                    document.getElementById('specialSection2Body').value = specialSections[1].body || '';
+                    document.getElementById('specialSection2ImageUrl').value = specialSections[1].image_url || '';
+                }
             }
 
             // Restore subject
@@ -2690,7 +3016,8 @@
             birthdays = d.birthdays || [];
             spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
             updates = d.updates || [{ title: '', body: '' }, { title: '', body: '' }];
-            specialSection = d.specialSection || { enabled: false, title: '', body: '' };
+            specialSection = d.specialSection || { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
+            specialSections = d.specialSections || [];
             subject = d.subject || '';
 
             if (subject) document.getElementById('subjectLineInput').value = subject;
@@ -2713,6 +3040,108 @@
         .then(function() { loadPublishedNewsletters(); })
         .catch(function(err) { console.error('[Published] Delete failed:', err); });
     }
+
+    /* ============================================================
+       MANAGE TEAM
+       ============================================================ */
+    function renderTeamList() {
+        var listEl = document.getElementById('teamList');
+        var countEl = document.getElementById('teamCount');
+
+        if (!allEmployees || allEmployees.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);font-size:14px;">No employees loaded</div>';
+            countEl.textContent = '';
+            return;
+        }
+
+        var html = '';
+        allEmployees.forEach(function(emp) {
+            html += '<div class="team-row">';
+            html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
+            html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
+            html += '<div class="dept">' + escapeHtml(emp.department || '-') + '</div>';
+            html += '<div class="title-col">' + escapeHtml(emp.title || '-') + '</div>';
+            html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + escapeAttr(emp.email) + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
+            html += '</div>';
+        });
+
+        listEl.innerHTML = html;
+        countEl.textContent = allEmployees.length + ' team member' + (allEmployees.length !== 1 ? 's' : '');
+    }
+
+    function addEmployee() {
+        var name = document.getElementById('addEmpName').value.trim();
+        var email = document.getElementById('addEmpEmail').value.trim();
+        var dept = document.getElementById('addEmpDept').value.trim();
+        var title = document.getElementById('addEmpTitle').value.trim();
+
+        if (!name || !email) {
+            alert('Name and email are required.');
+            return;
+        }
+
+        fetch(API_BASE + '/api/employees/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, email: email, department: dept, title: title })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                document.getElementById('addEmpName').value = '';
+                document.getElementById('addEmpEmail').value = '';
+                document.getElementById('addEmpDept').value = '';
+                document.getElementById('addEmpTitle').value = '';
+                // Refresh employee list
+                fetchAllEmployees();
+            } else {
+                alert('Error: ' + (data.error || 'Could not add employee'));
+            }
+        })
+        .catch(function(err) { alert('Error adding employee: ' + err.message); });
+    }
+
+    function removeEmployee(email, name) {
+        if (!confirm('Remove ' + name + ' from the team list?')) return;
+
+        fetch(API_BASE + '/api/employees/remove', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                fetchAllEmployees();
+            } else {
+                alert('Error: ' + (data.error || 'Could not remove employee'));
+            }
+        })
+        .catch(function(err) { alert('Error removing employee: ' + err.message); });
+    }
+
+    // Override fetchAllEmployees to also render the team list
+    var _origFetchAllEmployees = fetchAllEmployees;
+    fetchAllEmployees = function() {
+        fetch(API_BASE + '/api/employees')
+            .then(function(res) {
+                if (!res.ok) throw new Error('Failed to fetch employees');
+                return res.json();
+            })
+            .then(function(data) {
+                allEmployees = data.employees || data || [];
+                populateSpotlightDropdown();
+                renderTeamList();
+            })
+            .catch(function(err) {
+                console.error('Error fetching employees:', err);
+            });
+    };
+
+    // Initial render of team list (employees already fetched on DOMContentLoaded)
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(renderTeamList, 1000);
+    });
 
     </script>
 </body>
