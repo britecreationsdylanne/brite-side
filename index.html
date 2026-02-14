@@ -1151,6 +1151,41 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .tone-rewrite-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .tone-select {
+            padding: 5px 10px;
+            border: 1.5px solid #018181;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #272d3f;
+            background: white;
+            cursor: pointer;
+        }
+        .tone-rewrite-btn {
+            background: transparent;
+            color: #018181;
+            border: 1.5px solid #018181;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tone-rewrite-btn:hover {
+            background: #018181;
+            color: white;
+        }
+        .tone-rewrite-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
         /* ============================================
            MANAGE TEAM SECTION
@@ -1467,11 +1502,28 @@
                 <div class="form-group">
                     <label>Title</label>
                     <input type="text" id="update1Title" placeholder="Update title...">
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate1Title">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteInput('update1Title', 'toneUpdate1Title')">AI Rewrite</button>
+                    </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>Body</label>
                     <textarea id="update1Body" rows="4" placeholder="What's the update?..."></textarea>
-                    <button class="btn-ai-rewrite" onclick="aiRewrite('update1Body', 'professional')">AI Rewrite</button>
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate1Body">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update1Body', 'toneUpdate1Body')">AI Rewrite</button>
+                    </div>
                 </div>
             </div>
 
@@ -1483,15 +1535,65 @@
                 <div class="form-group">
                     <label>Title</label>
                     <input type="text" id="update2Title" placeholder="Update title...">
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate2Title">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteInput('update2Title', 'toneUpdate2Title')">AI Rewrite</button>
+                    </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>Body</label>
                     <textarea id="update2Body" rows="4" placeholder="What's the update?..."></textarea>
-                    <button class="btn-ai-rewrite" onclick="aiRewrite('update2Body', 'professional')">AI Rewrite</button>
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate2Body">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update2Body', 'toneUpdate2Body')">AI Rewrite</button>
+                    </div>
                 </div>
             </div>
 
-            <div id="addUpdateLink" class="add-update-link" style="display: none;" onclick="toggleUpdate2(true)">
+            <div class="update-block" id="updateBlock3" style="display: none;">
+                <div class="update-block-header">
+                    <h3>Update #3</h3>
+                    <button class="remove-update-btn" onclick="toggleUpdate3(false)">Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="update3Title" placeholder="Update title...">
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate3Title">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteInput('update3Title', 'toneUpdate3Title')">AI Rewrite</button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Body</label>
+                    <textarea id="update3Body" rows="4" placeholder="What's the update?..."></textarea>
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate3Body">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update3Body', 'toneUpdate3Body')">AI Rewrite</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="addUpdateLink" class="add-update-link" style="display: none;" onclick="addNextUpdate()">
                 + Add Another Update
             </div>
 
@@ -1532,11 +1634,28 @@
                 <div class="form-group">
                     <label>Section Title</label>
                     <input type="text" id="specialSectionTitle" placeholder="e.g., Team Outing Recap, Holiday Schedule...">
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneSpecialTitle">
+                            <option value="fun and punny" selected>Fun & Punny</option>
+                            <option value="professional">Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteInput('specialSectionTitle', 'toneSpecialTitle')">AI Rewrite</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Section Content</label>
                     <textarea id="specialSectionBody" rows="5" placeholder="Write the content for this section..."></textarea>
-                    <button class="btn-ai-rewrite" onclick="aiRewrite('specialSectionBody', 'fun and punny')">AI Rewrite</button>
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneSpecialBody">
+                            <option value="fun and punny" selected>Fun & Punny</option>
+                            <option value="professional">Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('specialSectionBody', 'toneSpecialBody')">AI Rewrite</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Image URL (optional)</label>
@@ -1547,11 +1666,28 @@
                     <div class="form-group">
                         <label>Section 2 Title</label>
                         <input type="text" id="specialSection2Title" placeholder="e.g., Fun Team Trivia...">
+                        <div class="tone-rewrite-row">
+                            <select class="tone-select" id="toneSpecial2Title">
+                                <option value="fun and punny" selected>Fun & Punny</option>
+                                <option value="professional">Professional</option>
+                                <option value="warm and engaging">Warm & Engaging</option>
+                                <option value="concise">Concise</option>
+                            </select>
+                            <button class="tone-rewrite-btn" onclick="aiRewriteInput('specialSection2Title', 'toneSpecial2Title')">AI Rewrite</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Section 2 Content</label>
                         <textarea id="specialSection2Body" rows="5" placeholder="Write the content for this section..."></textarea>
-                        <button class="btn-ai-rewrite" onclick="aiRewrite('specialSection2Body', 'fun and punny')">AI Rewrite</button>
+                        <div class="tone-rewrite-row">
+                            <select class="tone-select" id="toneSpecial2Body">
+                                <option value="fun and punny" selected>Fun & Punny</option>
+                                <option value="professional">Professional</option>
+                                <option value="warm and engaging">Warm & Engaging</option>
+                                <option value="concise">Concise</option>
+                            </select>
+                            <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('specialSection2Body', 'toneSpecial2Body')">AI Rewrite</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Section 2 Image URL (optional)</label>
@@ -1589,6 +1725,7 @@
                     <option value="briteside-email-playful.html">Playful & Fun</option>
                     <option value="briteside-email-minimal.html">Modern Minimal</option>
                     <option value="briteside-email-magazine.html">Magazine Style</option>
+                    <option value="briteside-email-teal.html">Teal Background</option>
                 </select>
             </div>
 
@@ -1787,6 +1924,7 @@
     };
     let updates = [
         { title: '', body: '' },
+        { title: '', body: '' },
         { title: '', body: '' }
     ];
     let showUpdate2 = true;
@@ -1806,10 +1944,12 @@
         var content = textarea.value.trim();
         if (!content) { alert('Write something first, then AI can rewrite it.'); return; }
 
-        var tone = prompt('Rewrite tone? (e.g., fun and punny, professional, warm, concise)', defaultTone || 'fun and punny');
-        if (!tone) return;
-
+        var tone = defaultTone || 'fun and punny';
         textarea.disabled = true;
+        // Find and disable the rewrite button
+        var btn = textarea.parentElement.querySelector('.btn-ai-rewrite, .tone-rewrite-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Rewriting...'; }
+
         fetch(API_BASE + '/api/rewrite-content', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1818,16 +1958,82 @@
         .then(function(res) { return res.json(); })
         .then(function(data) {
             textarea.disabled = false;
+            if (btn) { btn.disabled = false; btn.textContent = 'AI Rewrite'; }
             if (data.success && data.rewritten) {
                 textarea.value = data.rewritten;
+                showRewriteFeedback(textarea, tone);
             } else {
                 alert('AI rewrite failed: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(function(err) {
             textarea.disabled = false;
+            if (btn) { btn.disabled = false; btn.textContent = 'AI Rewrite'; }
             alert('AI rewrite failed: ' + err.message);
         });
+    }
+
+    function aiRewriteWithTone(textareaId, selectId) {
+        var select = document.getElementById(selectId);
+        var tone = select.value;
+        aiRewrite(textareaId, tone);
+    }
+
+    function showRewriteFeedback(textarea, tone) {
+        var existing = textarea.parentElement.querySelector('.rewrite-feedback');
+        if (existing) existing.remove();
+        var fb = document.createElement('div');
+        fb.className = 'rewrite-feedback';
+        fb.innerHTML = '&#10003; Rewritten with <strong>' + tone + '</strong> tone';
+        fb.style.cssText = 'color: #059669; font-size: 13px; margin-top: 6px; animation: fadeIn 0.3s;';
+        textarea.parentElement.appendChild(fb);
+        setTimeout(function() { fb.remove(); }, 4000);
+    }
+
+    function aiRewriteInput(inputId, selectId) {
+        var input = document.getElementById(inputId);
+        var content = input.value.trim();
+        if (!content) { alert('Write something first, then AI can rewrite it.'); return; }
+        var tone = document.getElementById(selectId).value;
+        input.disabled = true;
+        fetch(API_BASE + '/api/rewrite-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content, tone: tone })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            input.disabled = false;
+            if (data.success && data.rewritten) {
+                input.value = data.rewritten.replace(/\n/g, ' ').trim();
+            } else {
+                alert('AI rewrite failed: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) {
+            input.disabled = false;
+            alert('AI rewrite failed: ' + err.message);
+        });
+    }
+
+    function addNextUpdate() {
+        var block2 = document.getElementById('updateBlock2');
+        var block3 = document.getElementById('updateBlock3');
+        if (block2.style.display === 'none') {
+            toggleUpdate2(true);
+        } else if (block3.style.display === 'none') {
+            block3.style.display = 'block';
+            document.getElementById('addUpdateLink').style.display = 'none';
+        }
+    }
+
+    function toggleUpdate3(show) {
+        document.getElementById('updateBlock3').style.display = show ? 'block' : 'none';
+        if (!show) {
+            document.getElementById('update3Title').value = '';
+            document.getElementById('update3Body').value = '';
+            document.getElementById('addUpdateLink').style.display = 'block';
+        }
     }
 
     /* ============================================================
@@ -2299,8 +2505,17 @@
         var select = document.getElementById('spotlightEmployeeSelect');
         // Keep the first placeholder option
         var html = '<option value="">-- Choose an employee --</option>';
-        allEmployees.forEach(function(emp, idx) {
-            html += '<option value="' + idx + '">' + escapeHtml(emp.name) + ' (' + escapeHtml(emp.department) + ')</option>';
+        // Sort by last name for display
+        var sorted = allEmployees.map(function(emp, idx) { return { emp: emp, idx: idx }; });
+        sorted.sort(function(a, b) {
+            var aLast = a.emp.name.split(' ').slice(-1)[0].toLowerCase();
+            var bLast = b.emp.name.split(' ').slice(-1)[0].toLowerCase();
+            return aLast < bLast ? -1 : aLast > bLast ? 1 : 0;
+        });
+        sorted.forEach(function(item) {
+            var label = escapeHtml(item.emp.name);
+            if (item.emp.department) label += ' (' + escapeHtml(item.emp.department) + ')';
+            html += '<option value="' + item.idx + '">' + label + '</option>';
         });
         select.innerHTML = html;
     }
@@ -2390,10 +2605,15 @@
     function toggleUpdate2(show) {
         showUpdate2 = show;
         document.getElementById('updateBlock2').style.display = show ? 'block' : 'none';
-        document.getElementById('addUpdateLink').style.display = show ? 'none' : 'inline-flex';
         if (!show) {
             document.getElementById('update2Title').value = '';
             document.getElementById('update2Body').value = '';
+            toggleUpdate3(false);
+            document.getElementById('addUpdateLink').style.display = 'inline-flex';
+        } else {
+            // Show add link for update 3 if update 3 is not visible
+            var block3 = document.getElementById('updateBlock3');
+            document.getElementById('addUpdateLink').style.display = (block3.style.display === 'none') ? 'inline-flex' : 'none';
         }
     }
 
@@ -2405,6 +2625,15 @@
             updates[1].body = document.getElementById('update2Body').value.trim();
         } else {
             updates[1] = { title: '', body: '' };
+        }
+        // Update 3
+        var block3 = document.getElementById('updateBlock3');
+        if (block3 && block3.style.display !== 'none') {
+            if (!updates[2]) updates[2] = { title: '', body: '' };
+            updates[2].title = document.getElementById('update3Title').value.trim();
+            updates[2].body = document.getElementById('update3Body').value.trim();
+        } else {
+            updates[2] = { title: '', body: '' };
         }
     }
 
@@ -2590,12 +2819,18 @@
         var listEl = document.getElementById('recipientList');
         var html = '';
 
-        // All employees
-        allEmployees.forEach(function(emp, idx) {
+        // Sort employees by last name
+        var sorted = allEmployees.map(function(emp, idx) { return { emp: emp, idx: idx }; });
+        sorted.sort(function(a, b) {
+            var aLast = a.emp.name.split(' ').slice(-1)[0].toLowerCase();
+            var bLast = b.emp.name.split(' ').slice(-1)[0].toLowerCase();
+            return aLast < bLast ? -1 : aLast > bLast ? 1 : 0;
+        });
+        sorted.forEach(function(item) {
             html += '<div class="recipient-item">';
-            html += '<input type="checkbox" class="emp-checkbox" data-idx="' + idx + '" data-email="' + escapeAttr(emp.email) + '" onchange="updateRecipientCount()">';
-            html += '<span class="recipient-name">' + escapeHtml(emp.name) + '</span>';
-            html += '<span class="recipient-email">' + escapeHtml(emp.email) + '</span>';
+            html += '<input type="checkbox" class="emp-checkbox" data-idx="' + item.idx + '" data-email="' + escapeAttr(item.emp.email) + '" onchange="updateRecipientCount()">';
+            html += '<span class="recipient-name">' + escapeHtml(item.emp.name) + '</span>';
+            html += '<span class="recipient-email">' + escapeHtml(item.emp.email) + '</span>';
             html += '</div>';
         });
 

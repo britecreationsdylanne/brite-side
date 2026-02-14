@@ -674,6 +674,7 @@ def render_email():
             'briteside-email-playful.html',
             'briteside-email-minimal.html',
             'briteside-email-magazine.html',
+            'briteside-email-teal.html',
         ]
         if template_file not in allowed_templates:
             template_file = 'briteside-email.html'
@@ -746,6 +747,8 @@ def render_email():
         update_1_body = ''
         update_2_title = ''
         update_2_body = ''
+        update_3_title = ''
+        update_3_body = ''
         if updates:
             if len(updates) >= 1:
                 u1 = updates[0]
@@ -757,10 +760,16 @@ def render_email():
                 if isinstance(u2, dict):
                     update_2_title = u2.get('title', '')
                     update_2_body = u2.get('body', '')
+            if len(updates) >= 3:
+                u3 = updates[2]
+                if isinstance(u3, dict):
+                    update_3_title = u3.get('title', '')
+                    update_3_body = u3.get('body', '')
 
         # Conditional display values
         birthday_display = 'table-row' if birthdays else 'none'
         update_2_display = 'table-row' if (update_2_title or update_2_body) else 'none'
+        update_3_display = 'table-row' if (update_3_title or update_3_body) else 'none'
         special_display = 'table-row' if (special_title or special_body) else 'none'
 
         # Preheader text (short preview text for email clients)
@@ -788,6 +797,9 @@ def render_email():
         html = html.replace('{{UPDATE_2_TITLE}}', str(update_2_title))
         html = html.replace('{{UPDATE_2_BODY}}', str(update_2_body))
         html = html.replace('{{UPDATE_2_DISPLAY}}', update_2_display)
+        html = html.replace('{{UPDATE_3_TITLE}}', str(update_3_title))
+        html = html.replace('{{UPDATE_3_BODY}}', str(update_3_body))
+        html = html.replace('{{UPDATE_3_DISPLAY}}', update_3_display)
         html = html.replace('{{SPECIAL_TITLE}}', str(special_title))
         html = html.replace('{{SPECIAL_BODY}}', str(special_body))
         html = html.replace('{{SPECIAL_SECTION_DISPLAY}}', special_display)
