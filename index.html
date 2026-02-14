@@ -1865,14 +1865,6 @@
                 <label>Email *</label>
                 <input type="text" id="addEmpEmail" placeholder="email@brite.co">
             </div>
-            <div class="form-col">
-                <label>Department</label>
-                <input type="text" id="addEmpDept" placeholder="e.g. Marketing">
-            </div>
-            <div class="form-col">
-                <label>Title</label>
-                <input type="text" id="addEmpTitle" placeholder="e.g. Manager">
-            </div>
             <button class="team-add-btn" onclick="addEmployee()">+ Add</button>
         </div>
 
@@ -3311,9 +3303,6 @@
     function addEmployee() {
         var name = document.getElementById('addEmpName').value.trim();
         var email = document.getElementById('addEmpEmail').value.trim();
-        var dept = document.getElementById('addEmpDept').value.trim();
-        var title = document.getElementById('addEmpTitle').value.trim();
-
         if (!name || !email) {
             alert('Name and email are required.');
             return;
@@ -3322,15 +3311,13 @@
         fetch(API_BASE + '/api/employees/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name, email: email, department: dept, title: title })
+            body: JSON.stringify({ name: name, email: email, department: '', title: '' })
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
             if (data.success) {
                 document.getElementById('addEmpName').value = '';
                 document.getElementById('addEmpEmail').value = '';
-                document.getElementById('addEmpDept').value = '';
-                document.getElementById('addEmpTitle').value = '';
                 // Refresh employee list
                 fetchAllEmployees();
             } else {
