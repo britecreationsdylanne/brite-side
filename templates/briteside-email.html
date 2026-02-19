@@ -100,7 +100,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; border: 2px solid #e8f5f5; overflow: hidden;">
 <tr>
 <td style="padding: 28px 32px; text-align: center;" class="card-padding">
-<p style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 28px; color: #3d3d3d; font-style: italic;" class="joke-text">{{JOKE}}</p>
+<p style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 28px; color: #3d3d3d; font-style: italic;" class="joke-text">{{JOKE_SETUP}}</p>
 </td>
 </tr>
 </table>
@@ -143,6 +143,34 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- ============================================ -->
+<!-- WELCOME NEW HIRES SECTION                    -->
+<!-- ============================================ -->
+<tr>
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{WELCOME_DISPLAY}};">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #31D7CA;">
+<tr>
+<td class="card-padding" style="padding: 24px 28px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="padding-bottom: 14px;">
+<span class="section-heading" style="font-size: 22px; font-weight: 900; color: #31D7CA; letter-spacing: -0.3px;">&#128075; Welcome to the Team!</span>
+</td>
+</tr>
+<tr>
+<td style="font-size: 16px; line-height: 28px; color: #444444;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+{{WELCOME_SECTION}}
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ============================================ -->
 <!-- EMPLOYEE SPOTLIGHT                           -->
 <!-- ============================================ -->
 <tr>
@@ -160,36 +188,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #272D3F; text-align: center;" class="section-heading">Employee Spotlight</h2>
 </td>
 </tr>
-<tr>
-<td style="padding: 20px 40px 32px 40px;" class="mobile-padding">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; border: 2px solid #d4f0f0; overflow: hidden;">
-<tr>
-<td style="padding: 28px 28px; text-align: center;" class="card-padding">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr>
-<td align="center" style="padding: 0 0 16px 0;">{{SPOTLIGHT_IMAGE}}</td>
-</tr>
-<tr>
-<td align="center" style="padding: 0 0 4px 0;">
-<p style="margin: 0; font-size: 22px; font-weight: 700; color: #272D3F;">{{SPOTLIGHT_NAME}}</p>
-</td>
-</tr>
-<tr>
-<td align="center" style="padding: 0 0 14px 0;">
-<p style="margin: 0; font-size: 13px; font-weight: 600; color: #31D7CA; text-transform: uppercase; letter-spacing: 0.5px;">{{SPOTLIGHT_TITLE}}</p>
-</td>
-</tr>
-<tr>
-<td>
-<p style="margin: 0; font-size: 15px; line-height: 25px; color: #4b4b4b; text-align: center;">{{SPOTLIGHT_BLURB}}</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</td>
-</tr>
+{{SPOTLIGHT_SECTION}}
 </table>
 </td>
 </tr>
@@ -198,7 +197,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <!-- COMPANY UPDATES                              -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #ffffff; padding: 0;">
+<td style="background-color: #ffffff; padding: 0; display: {{UPDATES_DISPLAY}};">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
 <td style="padding: 8px 40px 0 40px;" class="mobile-padding">
@@ -220,6 +219,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="border-left: 4px solid #31D7CA; padding: 18px 22px; background-color: #fafcfc;" class="card-padding">
 <p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #272D3F;">{{UPDATE_1_TITLE}}</p>
 <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4b4b4b;">{{UPDATE_1_BODY}}</p>
+{{UPDATE_1_PHOTOS}}
 </td>
 </tr>
 </table>
@@ -233,6 +233,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="border-left: 4px solid #FC883A; padding: 18px 22px; background-color: #fafcfc;" class="card-padding">
 <p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #272D3F;">{{UPDATE_2_TITLE}}</p>
 <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4b4b4b;">{{UPDATE_2_BODY}}</p>
+{{UPDATE_2_PHOTOS}}
 </td>
 </tr>
 </table>
@@ -246,6 +247,33 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="border-left: 4px solid #31D7CA; padding: 18px 22px; background-color: #fafcfc;" class="card-padding">
 <p style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #272D3F;">{{UPDATE_3_TITLE}}</p>
 <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4b4b4b;">{{UPDATE_3_BODY}}</p>
+{{UPDATE_3_PHOTOS}}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ============================================ -->
+<!-- GAME SECTION                                 -->
+<!-- ============================================ -->
+<tr>
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{GAME_DISPLAY}};">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #FE8916;">
+<tr>
+<td class="card-padding" style="padding: 24px 28px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="padding-bottom: 14px;">
+<span class="section-heading" style="font-size: 22px; font-weight: 900; color: #FE8916; letter-spacing: -0.3px;">&#129513; BriteSide Brain Teaser</span>
+</td>
+</tr>
+<tr>
+<td>
+{{GAME_SECTION}}
 </td>
 </tr>
 </table>
@@ -272,6 +300,34 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <td style="padding: 28px 40px 32px 40px;" class="mobile-padding">
 <h2 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 700; color: #272D3F; text-align: center;" class="section-heading">{{SPECIAL_TITLE}}</h2>
 <p style="margin: 0; font-size: 15px; line-height: 25px; color: #4b4b4b; text-align: center;">{{SPECIAL_BODY}}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ============================================ -->
+<!-- JOKE PUNCHLINE                               -->
+<!-- ============================================ -->
+<tr>
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{PUNCHLINE_DISPLAY}};">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #31D7CA;">
+<tr>
+<td class="card-padding" style="padding: 24px 28px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="padding-bottom: 10px;">
+<span style="font-size: 13px; font-weight: 800; color: #31D7CA; text-transform: uppercase; letter-spacing: 2px;">The Punchline...</span>
+</td>
+</tr>
+<tr>
+<td>
+<p class="joke-text" style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; line-height: 32px; color: #272D3F; font-style: italic; font-weight: 400;">
+{{JOKE_PUNCHLINE}}
+</p>
+</td>
+</tr>
+</table>
 </td>
 </tr>
 </table>

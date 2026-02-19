@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The BriteSide — Internal Newsletter</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,5 63,38 98,38 69,59 80,95 50,72 20,95 31,59 2,38 37,38' fill='%23FE8916'/></svg>">
     <!-- BritePulse SDK -->
     <script src="https://britepulse-api-29820647719.us-central1.run.app/sdk.js"
             data-api-key="pk_19ae847f-1641-4d40-ad73-30ba88aa8ce9_9d7e23d74b9141eb8b7c4fe9c1651d1c"
@@ -12,6 +13,7 @@
             data-capture-errors="true"
             data-capture-network-errors="true"
             defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     <style>
         /* ============================================
            RESET & BASE
@@ -687,7 +689,234 @@
         }
 
         /* ============================================
-           STEP 7: PREVIEW
+           STEP 4: WELCOME NEW HIRES
+           ============================================ */
+        .welcome-hire-card {
+            background: #F0FAFA;
+            border: 2px solid #cce7e7;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .welcome-hire-fields {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .welcome-hire-fields .full-width {
+            grid-column: 1 / -1;
+        }
+        .welcome-hire-fields input {
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            width: 100%;
+        }
+        .welcome-hire-fields input:focus {
+            outline: none;
+            border-color: #018181;
+        }
+        .welcome-remove-btn {
+            background: none;
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+        .welcome-remove-btn:hover { background: #dc3545; color: white; }
+
+        /* ============================================
+           SPOTLIGHT BLOCK (multi)
+           ============================================ */
+        .spotlight-block {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .spotlight-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .spotlight-block-header h3 {
+            font-size: 16px;
+            color: #272d3f;
+        }
+
+        /* ============================================
+           CROPPER MODAL
+           ============================================ */
+        .cropper-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cropper-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        .cropper-modal-content h3 {
+            margin-bottom: 16px;
+            color: #272d3f;
+        }
+        .cropper-modal-content img {
+            max-width: 100%;
+            display: block;
+        }
+        .cropper-modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        .cropper-aspect-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+        .cropper-aspect-btn {
+            padding: 6px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .cropper-aspect-btn.active {
+            border-color: #018181;
+            background: #F0FAFA;
+            color: #018181;
+        }
+
+        /* ============================================
+           UPLOAD BUTTON & PREVIEW
+           ============================================ */
+        .upload-area {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .upload-btn-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #018181;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .upload-btn-label:hover { background: #016666; }
+        .upload-preview-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #e5e7eb;
+        }
+        .upload-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ============================================
+           GAME SECTION
+           ============================================ */
+        .game-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .game-type-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .game-type-card:hover { border-color: #018181; background: #fafafa; }
+        .game-type-card.selected { border-color: #018181; background: #F0FAFA; }
+        .game-type-card .game-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+        .game-type-card .game-label { font-size: 13px; font-weight: 600; }
+        .game-preview-area {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        .game-canvas-container {
+            text-align: center;
+            margin: 16px 0;
+        }
+        .game-canvas-container canvas {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            max-width: 100%;
+        }
+
+        /* ============================================
+           RECIPIENT SEARCH
+           ============================================ */
+        .recipient-search {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .recipient-search input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .recipient-search input:focus {
+            outline: none;
+            border-color: #018181;
+        }
+
+        /* ============================================
+           STEP 9: PREVIEW (was 7)
            ============================================ */
         .preview-header {
             display: flex;
@@ -754,7 +983,7 @@
         }
 
         /* ============================================
-           STEP 8: SEND
+           STEP 10: SEND (was 8)
            ============================================ */
         .recipient-section {
             margin-bottom: 24px;
@@ -1334,11 +1563,11 @@
         <!-- =============== PROGRESS BAR =============== -->
         <div class="progress-container">
             <div class="progress-text">
-                <span class="progress-step-text" id="progressStepText">Step 1 of 8</span>
+                <span class="progress-step-text" id="progressStepText">Step 1 of 10</span>
                 <span class="progress-label" id="progressLabel">Select Month</span>
             </div>
             <div class="progress">
-                <div class="progress-bar" id="progressBar" style="width: 12.5%"></div>
+                <div class="progress-bar" id="progressBar" style="width: 10%"></div>
             </div>
         </div>
 
@@ -1401,8 +1630,12 @@
 
             <div id="customJokeArea" class="custom-joke-area">
                 <div class="form-group">
-                    <label>Your Custom Joke</label>
-                    <textarea id="customJokeInput" rows="3" placeholder="Write something witty..."></textarea>
+                    <label>Setup <span style="color:#6b7280;font-weight:400">(the question or opening line)</span></label>
+                    <textarea id="customJokeSetup" rows="2" placeholder="Why did the diamond break up with the ruby?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Punchline <span style="color:#6b7280;font-weight:400">(readers scroll down to see this!)</span></label>
+                    <textarea id="customJokePunchline" rows="2" placeholder="Because it found someone more a-pearl-ing!"></textarea>
                 </div>
             </div>
 
@@ -1428,55 +1661,44 @@
         </div>
 
         <!-- ================================================
-             STEP 4: EMPLOYEE SPOTLIGHT
+             STEP 4: WELCOME NEW HIRES (NEW)
              ================================================ -->
         <div id="step4" class="step">
+            <h2>Welcome New Hires &#128075;</h2>
+            <p class="step-description">Introduce any new team members this month.</p>
+
+            <div class="toggle-row">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="welcomeToggle" onchange="toggleWelcomeSection()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="toggle-label">Any new hires to welcome?</div>
+                    <div class="toggle-helper" id="welcomeToggleHelper">Skip this if no one new joined this month.</div>
+                </div>
+            </div>
+
+            <div id="welcomeHiresArea" style="display: none;">
+                <div id="welcomeHiresList"></div>
+                <a href="javascript:void(0)" class="add-update-link" onclick="addWelcomeHire()">+ Add New Hire</a>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(3)">&larr; Back</button>
+                <button class="btn" onclick="goToStep(5)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 5: EMPLOYEE SPOTLIGHT (was 4)
+             ================================================ -->
+        <div id="step5" class="step">
             <h2>Employee Spotlight &#11088;</h2>
-            <p class="step-description">Shine the spotlight on someone special this month.</p>
+            <p class="step-description">Shine the spotlight on someone special this month. Add up to 3 spotlights.</p>
 
-            <div class="form-group">
-                <label>Select Employee</label>
-                <select id="spotlightEmployeeSelect" onchange="onSpotlightEmployeeChange()">
-                    <option value="">-- Choose an employee --</option>
-                </select>
-            </div>
+            <div id="spotlightsContainer"></div>
 
-            <div class="spotlight-employee-info" id="spotlightEmployeeInfo">
-                <div class="spotlight-avatar" id="spotlightAvatar"></div>
-                <div class="spotlight-details">
-                    <h3 id="spotlightName"></h3>
-                    <div class="spotlight-role" id="spotlightRole"></div>
-                    <div class="spotlight-dept" id="spotlightDept"></div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Fun Facts</label>
-                <textarea id="spotlightFunFacts" rows="3" placeholder="What makes this person shine? e.g., 'Collects vintage watches, makes the best coffee, once met a celebrity...'"></textarea>
-                <div class="helper-text">These will be woven into the spotlight blurb.</div>
-                <button class="btn-ai-rewrite" onclick="aiRewrite('spotlightFunFacts', 'fun and punny')">AI Rewrite</button>
-            </div>
-
-            <div class="spotlight-optional-row">
-                <div class="form-group">
-                    <label>Image URL (optional)</label>
-                    <input type="url" id="spotlightImageUrl" placeholder="https://example.com/photo.jpg">
-                </div>
-                <div class="form-group">
-                    <label>Video URL (optional)</label>
-                    <input type="url" id="spotlightVideoUrl" placeholder="https://youtube.com/watch?v=...">
-                </div>
-            </div>
-
-            <button class="btn-small btn-orange" id="aiSpotlightBtn" onclick="generateSpotlight()" style="margin-bottom: 12px;">AI Write Spotlight</button>
-
-            <div class="ai-blurb-container" id="spotlightBlurbContainer">
-                <h4>Generated Spotlight Blurb</h4>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <textarea id="spotlightBlurb" rows="4" placeholder="The AI-generated blurb will appear here. You can edit it."></textarea>
-                    <button class="btn-ai-rewrite" onclick="aiRewrite('spotlightBlurb', 'warm and engaging')">AI Rewrite</button>
-                </div>
-            </div>
+            <a href="javascript:void(0)" class="add-update-link" id="addSpotlightLink" onclick="addSpotlightBlock()">+ Add Another Spotlight</a>
 
             <div id="spotlightLoadingArea" style="display: none;">
                 <div class="loading">
@@ -1486,18 +1708,30 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(3)">&larr; Back</button>
-                <button id="step4NextBtn" class="btn" onclick="goToStep(5)">Next &rarr;</button>
+                <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
+                <button id="step5NextBtn" class="btn" onclick="goToStep(6)">Next &rarr;</button>
             </div>
         </div>
 
         <!-- ================================================
-             STEP 5: COMPANY UPDATES
+             STEP 6: COMPANY UPDATES (was 5, now skippable)
              ================================================ -->
-        <div id="step5" class="step">
+        <div id="step6" class="step">
             <h2>Company Updates</h2>
             <p class="step-description">Share what's new at BriteCo this month.</p>
 
+            <div class="toggle-row">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="updatesToggle" checked onchange="toggleUpdatesSection()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="toggle-label">Include company updates?</div>
+                    <div class="toggle-helper" id="updatesToggleHelper">Share what's new at BriteCo.</div>
+                </div>
+            </div>
+
+            <div id="updatesFieldsArea">
             <div class="update-block" id="updateBlock1">
                 <div class="update-block-header">
                     <h3>Update #1</h3>
@@ -1527,6 +1761,11 @@
                         </select>
                         <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update1Body', 'toneUpdate1Body')">AI Rewrite</button>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
+                    <div class="update-photos" id="update1Photos"></div>
+                    <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(0)">+ Upload Photo</button>
                 </div>
             </div>
 
@@ -1561,6 +1800,11 @@
                         <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update2Body', 'toneUpdate2Body')">AI Rewrite</button>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
+                    <div class="update-photos" id="update2Photos"></div>
+                    <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(1)">+ Upload Photo</button>
+                </div>
             </div>
 
             <div class="update-block" id="updateBlock3" style="display: none;">
@@ -1594,23 +1838,116 @@
                         <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update3Body', 'toneUpdate3Body')">AI Rewrite</button>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
+                    <div class="update-photos" id="update3Photos"></div>
+                    <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(2)">+ Upload Photo</button>
+                </div>
             </div>
 
             <div id="addUpdateLink" class="add-update-link" style="display: none;" onclick="addNextUpdate()">
                 + Add Another Update
             </div>
+            </div><!-- /updatesFieldsArea -->
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
+                <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
                 <button class="btn-save-draft" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
-                <button class="btn" onclick="goToStep(6)">Next &rarr;</button>
+                <button class="btn" onclick="goToStep(7)">Next &rarr;</button>
             </div>
         </div>
 
         <!-- ================================================
-             STEP 6: SPECIAL SECTION (OPTIONAL)
+             STEP 7: MONTHLY GAME/PUZZLE (NEW)
              ================================================ -->
-        <div id="step6" class="step">
+        <div id="step7" class="step">
+            <h2>Monthly Game &#129513;</h2>
+            <p class="step-description">Add a fun brain teaser for the team. The winner emails Dove for 100 BriteCo Bucks!</p>
+
+            <div class="toggle-row">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="gameToggle" onchange="toggleGameSection()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="toggle-label">Include a game this month?</div>
+                    <div class="toggle-helper" id="gameToggleHelper">Skip if you don't want a brain teaser.</div>
+                </div>
+            </div>
+
+            <div id="gameFieldsArea" style="display: none;">
+                <div class="form-group">
+                    <label>Game Type</label>
+                    <div class="game-type-grid" id="gameTypeGrid">
+                        <div class="game-type-card" data-type="word_scramble" onclick="selectGameType('word_scramble')">
+                            <span class="game-icon">&#128260;</span>
+                            <span class="game-label">Word Scramble</span>
+                        </div>
+                        <div class="game-type-card" data-type="trivia" onclick="selectGameType('trivia')">
+                            <span class="game-icon">&#128161;</span>
+                            <span class="game-label">Trivia Quiz</span>
+                        </div>
+                        <div class="game-type-card" data-type="emoji_rebus" onclick="selectGameType('emoji_rebus')">
+                            <span class="game-icon">&#128513;</span>
+                            <span class="game-label">Emoji Rebus</span>
+                        </div>
+                        <div class="game-type-card" data-type="fill_blank" onclick="selectGameType('fill_blank')">
+                            <span class="game-icon">&#9999;&#65039;</span>
+                            <span class="game-label">Fill in the Blank</span>
+                        </div>
+                        <div class="game-type-card" data-type="hidden_word" onclick="selectGameType('hidden_word')">
+                            <span class="game-icon">&#128270;</span>
+                            <span class="game-label">Hidden Word</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Context / Facts to Use</label>
+                    <textarea id="gameContext" rows="3" placeholder="Enter fun facts, employee info, or BriteCo trivia for the AI to use in the game..."></textarea>
+                    <div class="helper-text">The more specific, the harder it is for AI to solve!</div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <button class="btn" id="generateGameBtn" onclick="generateGame()">Generate Game</button>
+                    <button class="btn btn-secondary" id="regenerateGameBtn" onclick="generateGame()" style="display: none;">Regenerate</button>
+                </div>
+
+                <div id="gameLoadingArea" style="display: none;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Creating a brain teaser...</p>
+                    </div>
+                </div>
+
+                <div id="gamePreviewArea" class="game-preview-area" style="display: none;">
+                    <h4 style="color: #018181; margin-bottom: 12px;">Game Preview</h4>
+                    <div id="gameCanvasContainer" class="game-canvas-container"></div>
+                    <div id="gameTextContent"></div>
+                    <div style="margin-top: 12px; padding: 10px; background: #FFF8F0; border-radius: 8px; border: 1px solid #fde8cd;">
+                        <span style="font-size: 12px; font-weight: 700; color: #b45309;">ANSWER (hidden from newsletter):</span>
+                        <span id="gameAnswerDisplay" style="font-size: 14px; color: #272d3f; font-weight: 600;"></span>
+                    </div>
+                </div>
+
+                <div id="previousGameArea" style="margin-top: 20px; display: none;">
+                    <div class="form-group">
+                        <label>Previous Month's Answer (shown in newsletter)</label>
+                        <input type="text" id="previousGameAnswer" placeholder="Last month's answer...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(6)">&larr; Back</button>
+                <button class="btn" onclick="goToStep(8)">Next &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ================================================
+             STEP 8: SPECIAL SECTION (was 6)
+             ================================================ -->
+        <div id="step8" class="step">
             <h2>Special Section</h2>
             <p class="step-description">Got something extra to share? Add an optional special section.</p>
 
@@ -1702,15 +2039,15 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
-                <button class="btn btn-green" onclick="goToStep(7)">Preview Newsletter &rarr;</button>
+                <button class="btn btn-secondary" onclick="goToStep(7)">&larr; Back</button>
+                <button class="btn btn-green" onclick="goToStep(9)">Preview Newsletter &rarr;</button>
             </div>
         </div>
 
         <!-- ================================================
-             STEP 7: PREVIEW EMAIL
+             STEP 9: PREVIEW EMAIL (was 7)
              ================================================ -->
-        <div id="step7" class="step">
+        <div id="step9" class="step">
             <h2>Preview Newsletter</h2>
             <p class="step-description">Review how the newsletter will look in everyone's inbox.</p>
 
@@ -1742,16 +2079,16 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(6)">&larr; Back</button>
+                <button class="btn btn-secondary" onclick="goToStep(8)">&larr; Back</button>
                 <button class="btn-save-draft" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
-                <button class="btn btn-orange" onclick="goToStep(8)">Send Newsletter &rarr;</button>
+                <button class="btn btn-orange" onclick="goToStep(10)">Send Newsletter &rarr;</button>
             </div>
         </div>
 
         <!-- ================================================
-             STEP 8: SEND NEWSLETTER
+             STEP 10: SEND NEWSLETTER (was 8)
              ================================================ -->
-        <div id="step8" class="step">
+        <div id="step10" class="step">
             <h2>Send Newsletter</h2>
             <p class="step-description" id="sendStepDescription">Choose who gets this month's BriteSide.</p>
 
@@ -1761,6 +2098,10 @@
                     <div class="recipient-header">
                         <h3>Recipients</h3>
                         <span class="recipient-count" id="recipientCountLabel">0 selected</span>
+                    </div>
+
+                    <div class="recipient-search">
+                        <input type="text" id="recipientSearch" placeholder="Search by name or email..." oninput="filterRecipients()">
                     </div>
 
                     <div class="select-all-row" onclick="toggleSelectAll()">
@@ -1777,7 +2118,7 @@
                 </div>
 
                 <div class="buttons">
-                    <button class="btn btn-secondary" onclick="goToStep(7)">&larr; Back</button>
+                    <button class="btn btn-secondary" onclick="goToStep(9)">&larr; Back</button>
                     <button class="btn btn-green" id="sendBtn" disabled onclick="sendNewsletter()">
                         Send to 0 recipients
                     </button>
@@ -1881,18 +2222,20 @@
        ============================================================ */
     const API_BASE = window.location.origin;
     let currentStep = 1;
-    const totalSteps = 8;
+    const totalSteps = 10;
 
     const STEP_LABELS = [
         '', // index 0 unused
-        'Select Month',
-        'Intro Joke',
-        'Birthday Shoutouts',
-        'Employee Spotlight',
-        'Company Updates',
-        'Special Section',
-        'Preview Newsletter',
-        'Send Newsletter'
+        'Select Month',           // 1
+        'Intro Joke',             // 2
+        'Birthday Shoutouts',     // 3
+        'Welcome New Hires',      // 4 (NEW)
+        'Employee Spotlight',     // 5
+        'Company Updates',        // 6
+        'Monthly Game',           // 7 (NEW)
+        'Special Section',        // 8
+        'Preview Newsletter',     // 9
+        'Send Newsletter'         // 10
     ];
 
     const MONTH_NAMES = [
@@ -1911,22 +2254,36 @@
     let jokeOptions = [];
     let selectedJokeIndex = -1;
     let birthdays = [];
-    let spotlight = {
-        employee: null,
-        fun_facts: '',
-        blurb: '',
-        image_url: '',
-        video_url: ''
-    };
+
+    // Welcome new hires
+    let welcomeEnabled = false;
+    let welcomeHires = [];
+
+    // Spotlights (1-3)
+    let spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' }];
+
+    // Legacy single spotlight (for backward compat)
+    let spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
+
     let updates = [
-        { title: '', body: '' },
-        { title: '', body: '' },
-        { title: '', body: '' }
+        { title: '', body: '', photos: [] },
+        { title: '', body: '', photos: [] },
+        { title: '', body: '', photos: [] }
     ];
+    let updatesEnabled = true;
     let showUpdate2 = true;
     let specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
-    let specialSections = []; // array to hold multiple special sections
+    let specialSections = [];
     let showSpecialSection2 = false;
+
+    // Game
+    let gameEnabled = false;
+    let gameType = '';
+    let gameData = null; // parsed AI response
+    let gameImageUrl = '';
+    let gameAnswer = '';
+    let gamePreviousAnswer = '';
+
     let subject = '';
     let renderedHTML = '';
     let allEmployees = [];
@@ -2090,10 +2447,16 @@
         if (step === 3) {
             renderBirthdayList();
         }
+        if (step === 5) {
+            renderSpotlightBlocks();
+        }
         if (step === 7) {
+            loadPreviousGameAnswer();
+        }
+        if (step === 9) {
             generatePreview();
         }
-        if (step === 8) {
+        if (step === 10) {
             renderRecipientList();
         }
 
@@ -2127,24 +2490,14 @@
 
     function collectCurrentStepData() {
         switch (currentStep) {
-            case 2:
-                collectJokeData();
-                break;
-            case 3:
-                collectBirthdayData();
-                break;
-            case 4:
-                collectSpotlightData();
-                break;
-            case 5:
-                collectUpdatesData();
-                break;
-            case 6:
-                collectSpecialSectionData();
-                break;
-            case 7:
-                subject = document.getElementById('subjectLineInput').value;
-                break;
+            case 2: collectJokeData(); break;
+            case 3: collectBirthdayData(); break;
+            case 4: collectWelcomeData(); break;
+            case 5: collectSpotlightsData(); break;
+            case 6: collectUpdatesData(); break;
+            case 7: collectGameData(); break;
+            case 8: collectSpecialSectionData(); break;
+            case 9: subject = document.getElementById('subjectLineInput').value; break;
         }
     }
 
@@ -2157,12 +2510,22 @@
         jokeOptions = [];
         selectedJokeIndex = -1;
         birthdays = [];
+        welcomeEnabled = false;
+        welcomeHires = [];
+        spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' }];
         spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
-        updates = [{ title: '', body: '' }, { title: '', body: '' }];
+        updates = [{ title: '', body: '', photos: [] }, { title: '', body: '', photos: [] }, { title: '', body: '', photos: [] }];
+        updatesEnabled = true;
         showUpdate2 = true;
         specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
         specialSections = [];
         showSpecialSection2 = false;
+        gameEnabled = false;
+        gameType = '';
+        gameData = null;
+        gameImageUrl = '';
+        gameAnswer = '';
+        gamePreviousAnswer = '';
         subject = '';
         renderedHTML = '';
         manualRecipients = [];
@@ -2175,21 +2538,23 @@
         document.getElementById('jokeCardsArea').innerHTML = '';
         document.getElementById('customJokeToggle').checked = false;
         document.getElementById('customJokeArea').classList.remove('visible');
-        document.getElementById('customJokeInput').value = '';
+        document.getElementById('customJokeSetup').value = '';
+        document.getElementById('customJokePunchline').value = '';
         document.getElementById('jokeThemeSelect').selectedIndex = 0;
-        document.getElementById('spotlightEmployeeSelect').selectedIndex = 0;
-        document.getElementById('spotlightEmployeeInfo').classList.remove('visible');
-        document.getElementById('spotlightFunFacts').value = '';
-        document.getElementById('spotlightImageUrl').value = '';
-        document.getElementById('spotlightVideoUrl').value = '';
-        document.getElementById('spotlightBlurb').value = '';
-        document.getElementById('spotlightBlurbContainer').classList.remove('visible');
+        document.getElementById('welcomeToggle').checked = false;
+        document.getElementById('welcomeHiresArea').style.display = 'none';
+        document.getElementById('welcomeHiresList').innerHTML = '';
+        document.getElementById('spotlightsContainer').innerHTML = '';
+        document.getElementById('updatesToggle').checked = true;
+        document.getElementById('updatesFieldsArea').style.display = 'block';
         document.getElementById('update1Title').value = '';
         document.getElementById('update1Body').value = '';
         document.getElementById('update2Title').value = '';
         document.getElementById('update2Body').value = '';
         document.getElementById('updateBlock2').style.display = 'block';
         document.getElementById('addUpdateLink').style.display = 'none';
+        document.getElementById('gameToggle').checked = false;
+        document.getElementById('gameFieldsArea').style.display = 'none';
         document.getElementById('specialSectionToggle').checked = false;
         document.getElementById('specialSectionFields').classList.remove('visible');
         document.getElementById('specialSectionTitle').value = '';
@@ -2428,7 +2793,9 @@
     function collectJokeData() {
         var isCustom = document.getElementById('customJokeToggle').checked;
         if (isCustom) {
-            joke = document.getElementById('customJokeInput').value.trim();
+            var setup = document.getElementById('customJokeSetup').value.trim();
+            var punchline = document.getElementById('customJokePunchline').value.trim();
+            joke = setup + ' | ' + punchline;
         } else if (selectedJokeIndex >= 0 && jokeOptions[selectedJokeIndex]) {
             joke = jokeOptions[selectedJokeIndex];
         }
@@ -2436,14 +2803,19 @@
 
     function updateStep2NextButton() {
         var isCustom = document.getElementById('customJokeToggle').checked;
-        var customText = document.getElementById('customJokeInput').value.trim();
-        var hasJoke = selectedJokeIndex >= 0 || (isCustom && customText.length > 0);
+        var hasCustom = false;
+        if (isCustom) {
+            var setup = document.getElementById('customJokeSetup').value.trim();
+            var punchline = document.getElementById('customJokePunchline').value.trim();
+            hasCustom = setup.length > 0 && punchline.length > 0;
+        }
+        var hasJoke = selectedJokeIndex >= 0 || (isCustom && hasCustom);
         document.getElementById('step2NextBtn').disabled = !hasJoke;
     }
 
     // Listen for custom joke input changes
     document.addEventListener('input', function(e) {
-        if (e.target && e.target.id === 'customJokeInput') {
+        if (e.target && (e.target.id === 'customJokeSetup' || e.target.id === 'customJokePunchline')) {
             updateStep2NextButton();
         }
     });
@@ -2497,13 +2869,58 @@
     }
 
     /* ============================================================
-       STEP 4: EMPLOYEE SPOTLIGHT
+       STEP 4: WELCOME NEW HIRES
+       ============================================================ */
+    function toggleWelcomeSection() {
+        welcomeEnabled = document.getElementById('welcomeToggle').checked;
+        document.getElementById('welcomeHiresArea').style.display = welcomeEnabled ? 'block' : 'none';
+        document.getElementById('welcomeToggleHelper').textContent = welcomeEnabled
+            ? 'Add new team members below.'
+            : 'Skip this if no one new joined this month.';
+        if (welcomeEnabled && welcomeHires.length === 0) {
+            addWelcomeHire();
+        }
+    }
+
+    function addWelcomeHire() {
+        welcomeHires.push({ name: '', role: '', fun_fact: '' });
+        renderWelcomeHires();
+    }
+
+    function removeWelcomeHire(idx) {
+        welcomeHires.splice(idx, 1);
+        renderWelcomeHires();
+    }
+
+    function renderWelcomeHires() {
+        var container = document.getElementById('welcomeHiresList');
+        var html = '';
+        welcomeHires.forEach(function(hire, idx) {
+            html += '<div class="welcome-hire-card" data-idx="' + idx + '">';
+            html += '<div class="welcome-hire-fields">';
+            html += '<input type="text" placeholder="Name" value="' + escapeAttr(hire.name) + '" onchange="welcomeHires[' + idx + '].name=this.value">';
+            html += '<input type="text" placeholder="Role / Title" value="' + escapeAttr(hire.role) + '" onchange="welcomeHires[' + idx + '].role=this.value">';
+            html += '<input type="text" class="full-width" placeholder="Fun fact (optional)" value="' + escapeAttr(hire.fun_fact) + '" onchange="welcomeHires[' + idx + '].fun_fact=this.value">';
+            html += '</div>';
+            html += '<button class="welcome-remove-btn" onclick="removeWelcomeHire(' + idx + ')">Remove</button>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function collectWelcomeData() {
+        // Data is collected via onchange handlers on the inputs
+    }
+
+    /* ============================================================
+       STEP 5: EMPLOYEE SPOTLIGHT (multi, 1-3)
        ============================================================ */
     function populateSpotlightDropdown() {
-        var select = document.getElementById('spotlightEmployeeSelect');
-        // Keep the first placeholder option
+        // This is now called per-block, not globally
+    }
+
+    function getEmployeeOptionsHtml(selectedIdx) {
         var html = '<option value="">-- Choose an employee --</option>';
-        // Sort by last name for display
         var sorted = allEmployees.map(function(emp, idx) { return { emp: emp, idx: idx }; });
         sorted.sort(function(a, b) {
             var aLast = a.emp.name.split(' ').slice(-1)[0].toLowerCase();
@@ -2513,89 +2930,176 @@
         sorted.forEach(function(item) {
             var label = escapeHtml(item.emp.name);
             if (item.emp.department) label += ' (' + escapeHtml(item.emp.department) + ')';
-            html += '<option value="' + item.idx + '">' + label + '</option>';
+            var sel = (selectedIdx !== undefined && item.idx === selectedIdx) ? ' selected' : '';
+            html += '<option value="' + item.idx + '"' + sel + '>' + label + '</option>';
         });
-        select.innerHTML = html;
+        return html;
     }
 
-    function onSpotlightEmployeeChange() {
-        var select = document.getElementById('spotlightEmployeeSelect');
-        var idx = select.value;
-        var infoBox = document.getElementById('spotlightEmployeeInfo');
+    function renderSpotlightBlocks() {
+        var container = document.getElementById('spotlightsContainer');
+        var html = '';
+        spotlights.forEach(function(sp, idx) {
+            var empIdx = sp.employee ? allEmployees.indexOf(sp.employee) : '';
+            if (empIdx === -1 && sp.employee) {
+                // Find by name
+                for (var i = 0; i < allEmployees.length; i++) {
+                    if (allEmployees[i].name === sp.employee.name) { empIdx = i; break; }
+                }
+            }
+            html += '<div class="spotlight-block" data-idx="' + idx + '">';
+            html += '<div class="spotlight-block-header"><h3>Spotlight #' + (idx + 1) + '</h3>';
+            if (idx > 0) html += '<button class="remove-update-btn" onclick="removeSpotlightBlock(' + idx + ')">Remove</button>';
+            html += '</div>';
 
-        if (idx === '' || idx === null) {
-            spotlight.employee = null;
-            infoBox.classList.remove('visible');
-            return;
-        }
+            // Employee select
+            html += '<div class="form-group"><label>Select Employee</label>';
+            html += '<select id="spotlightSelect' + idx + '" onchange="onSpotlightChange(' + idx + ')">' + getEmployeeOptionsHtml(empIdx >= 0 ? empIdx : undefined) + '</select>';
+            html += '</div>';
 
-        var emp = allEmployees[parseInt(idx)];
-        spotlight.employee = emp;
+            // Info card
+            if (sp.employee) {
+                var initials = sp.employee.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase();
+                html += '<div class="spotlight-employee-info visible">';
+                html += '<div class="spotlight-avatar">' + initials + '</div>';
+                html += '<div class="spotlight-details"><h3>' + escapeHtml(sp.employee.name) + '</h3>';
+                html += '<div class="spotlight-role">' + escapeHtml(sp.employee.title || '') + '</div>';
+                html += '<div class="spotlight-dept">' + escapeHtml(sp.employee.department || '') + '</div></div></div>';
+            }
 
-        // Show info card
-        infoBox.classList.add('visible');
-        document.getElementById('spotlightName').textContent = emp.name;
-        document.getElementById('spotlightRole').textContent = emp.title || '';
-        document.getElementById('spotlightDept').textContent = emp.department || '';
+            // Fun facts
+            html += '<div class="form-group"><label>Fun Facts</label>';
+            html += '<textarea id="spotlightFacts' + idx + '" rows="3" placeholder="What makes this person shine?">' + escapeHtml(sp.fun_facts || '') + '</textarea>';
+            html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightFacts' + idx + '\', \'fun and punny\')">AI Rewrite</button></div>';
 
-        // Avatar initials
-        var initials = emp.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase();
-        document.getElementById('spotlightAvatar').textContent = initials;
+            // Image upload
+            html += '<div class="form-group"><label>Photo</label><div class="upload-area">';
+            html += '<label class="upload-btn-label"><input type="file" accept="image/*" style="display:none" onchange="handleSpotlightImageUpload(' + idx + ', this)">Upload Photo</label>';
+            if (sp.image_url) {
+                html += '<img src="' + escapeAttr(sp.image_url) + '" class="upload-preview-thumb">';
+                html += '<button class="upload-remove" onclick="spotlights[' + idx + '].image_url=\'\';renderSpotlightBlocks()">&times;</button>';
+            }
+            html += '</div></div>';
+
+            // Video upload
+            html += '<div class="form-group"><label>Video (optional)</label><div class="upload-area">';
+            html += '<label class="upload-btn-label"><input type="file" accept="video/*" style="display:none" onchange="handleSpotlightVideoUpload(' + idx + ', this)">Upload Video</label>';
+            if (sp.video_url) {
+                html += '<span style="font-size:13px;color:#059669;">Video uploaded</span>';
+                html += '<button class="upload-remove" onclick="spotlights[' + idx + '].video_url=\'\';renderSpotlightBlocks()">&times;</button>';
+            }
+            html += '</div></div>';
+
+            // AI generate + blurb
+            html += '<button class="btn-small btn-orange" onclick="generateSpotlightFor(' + idx + ')" style="margin-bottom:12px;">AI Write Spotlight</button>';
+            if (sp.blurb) {
+                html += '<div class="ai-blurb-container visible"><h4>Spotlight Blurb</h4><div class="form-group" style="margin-bottom:0;">';
+                html += '<textarea id="spotlightBlurb' + idx + '" rows="4">' + escapeHtml(sp.blurb) + '</textarea>';
+                html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightBlurb' + idx + '\', \'warm and engaging\')">AI Rewrite</button></div></div>';
+            } else {
+                html += '<div class="ai-blurb-container" id="spotlightBlurbBox' + idx + '"><h4>Spotlight Blurb</h4><div class="form-group" style="margin-bottom:0;">';
+                html += '<textarea id="spotlightBlurb' + idx + '" rows="4" placeholder="AI-generated blurb will appear here..."></textarea>';
+                html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightBlurb' + idx + '\', \'warm and engaging\')">AI Rewrite</button></div></div>';
+            }
+
+            html += '</div>';
+        });
+        container.innerHTML = html;
+
+        // Show/hide add link
+        document.getElementById('addSpotlightLink').style.display = spotlights.length >= 3 ? 'none' : 'inline-flex';
     }
 
-    function generateSpotlight() {
-        if (!spotlight.employee) {
-            alert('Please select an employee first.');
-            return;
-        }
+    function addSpotlightBlock() {
+        if (spotlights.length >= 3) return;
+        spotlights.push({ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' });
+        renderSpotlightBlocks();
+    }
 
-        var funFacts = document.getElementById('spotlightFunFacts').value.trim();
+    function removeSpotlightBlock(idx) {
+        spotlights.splice(idx, 1);
+        renderSpotlightBlocks();
+    }
+
+    function onSpotlightChange(idx) {
+        var select = document.getElementById('spotlightSelect' + idx);
+        var empIdx = select.value;
+        if (empIdx === '' || empIdx === null) {
+            spotlights[idx].employee = null;
+        } else {
+            spotlights[idx].employee = allEmployees[parseInt(empIdx)];
+        }
+        renderSpotlightBlocks();
+    }
+
+    function handleSpotlightImageUpload(idx, input) {
+        if (!input.files || !input.files[0]) return;
+        showCropperModal(input.files[0], function(url) {
+            spotlights[idx].image_url = url;
+            renderSpotlightBlocks();
+        });
+    }
+
+    function handleSpotlightVideoUpload(idx, input) {
+        if (!input.files || !input.files[0]) return;
+        uploadMediaFile(input.files[0], function(url) {
+            spotlights[idx].video_url = url;
+            renderSpotlightBlocks();
+        });
+    }
+
+    function generateSpotlightFor(idx) {
+        var sp = spotlights[idx];
+        if (!sp.employee) { alert('Please select an employee first.'); return; }
+
+        var funFacts = document.getElementById('spotlightFacts' + idx).value.trim();
+        sp.fun_facts = funFacts;
         var loadingArea = document.getElementById('spotlightLoadingArea');
-        var blurbContainer = document.getElementById('spotlightBlurbContainer');
-
         loadingArea.style.display = 'block';
-        blurbContainer.classList.remove('visible');
 
         fetch(API_BASE + '/api/generate-spotlight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name: spotlight.employee.name,
-                title: spotlight.employee.title || '',
-                department: spotlight.employee.department || '',
+                name: sp.employee.name,
+                title: sp.employee.title || '',
+                department: sp.employee.department || '',
                 fun_facts: funFacts
             })
         })
-        .then(function(res) {
-            if (!res.ok) throw new Error('Failed to generate spotlight');
-            return res.json();
-        })
+        .then(function(res) { return res.json(); })
         .then(function(data) {
             loadingArea.style.display = 'none';
-            var blurb = data.blurb || data.text || data.spotlight || '';
-            document.getElementById('spotlightBlurb').value = blurb;
-            blurbContainer.classList.add('visible');
+            sp.blurb = data.blurb || data.text || data.spotlight || '';
+            renderSpotlightBlocks();
         })
         .catch(function(err) {
             loadingArea.style.display = 'none';
-            console.error('Error generating spotlight:', err);
             alert('Failed to generate spotlight. Please try again.');
         });
     }
 
-    function collectSpotlightData() {
-        spotlight.fun_facts = document.getElementById('spotlightFunFacts').value.trim();
-        spotlight.blurb = document.getElementById('spotlightBlurb').value.trim();
-        spotlight.image_url = document.getElementById('spotlightImageUrl').value.trim();
-        spotlight.video_url = document.getElementById('spotlightVideoUrl').value.trim();
-
-        // Also capture employee from dropdown if not yet set
-        var select = document.getElementById('spotlightEmployeeSelect');
-        var idx = select.value;
-        if (idx !== '' && idx !== null) {
-            spotlight.employee = allEmployees[parseInt(idx)];
+    function collectSpotlightsData() {
+        spotlights.forEach(function(sp, idx) {
+            var factsEl = document.getElementById('spotlightFacts' + idx);
+            var blurbEl = document.getElementById('spotlightBlurb' + idx);
+            if (factsEl) sp.fun_facts = factsEl.value.trim();
+            if (blurbEl) sp.blurb = blurbEl.value.trim();
+        });
+        // Backward compat
+        if (spotlights.length > 0 && spotlights[0].employee) {
+            spotlight = {
+                employee: spotlights[0].employee,
+                fun_facts: spotlights[0].fun_facts,
+                blurb: spotlights[0].blurb,
+                image_url: spotlights[0].image_url,
+                video_url: spotlights[0].video_url
+            };
         }
     }
+
+    // Legacy function name
+    function collectSpotlightData() { collectSpotlightsData(); }
 
     /* ============================================================
        STEP 5: COMPANY UPDATES
@@ -2615,6 +3119,47 @@
         }
     }
 
+    function handleUpdatePhotoUpload(updateIndex) {
+        var photosEl = document.getElementById('update' + (updateIndex + 1) + 'Photos');
+        var existing = (updates[updateIndex] && updates[updateIndex].photos) || [];
+        if (existing.length >= 3) {
+            alert('Maximum 3 photos per update.');
+            return;
+        }
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function() {
+            if (!input.files[0]) return;
+            showCropperModal(input.files[0], function(url) {
+                if (!updates[updateIndex].photos) updates[updateIndex].photos = [];
+                updates[updateIndex].photos.push(url);
+                renderUpdatePhotos(updateIndex);
+            });
+        };
+        input.click();
+    }
+
+    function renderUpdatePhotos(updateIndex) {
+        var photosEl = document.getElementById('update' + (updateIndex + 1) + 'Photos');
+        var photos = (updates[updateIndex] && updates[updateIndex].photos) || [];
+        var html = '';
+        photos.forEach(function(url, i) {
+            html += '<div style="display:inline-block;position:relative;margin:4px;">' +
+                '<img src="' + url + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid #e5e7eb;">' +
+                '<button onclick="removeUpdatePhoto(' + updateIndex + ',' + i + ')" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:20px;">&times;</button>' +
+                '</div>';
+        });
+        photosEl.innerHTML = html;
+    }
+
+    function removeUpdatePhoto(updateIndex, photoIndex) {
+        if (updates[updateIndex] && updates[updateIndex].photos) {
+            updates[updateIndex].photos.splice(photoIndex, 1);
+            renderUpdatePhotos(updateIndex);
+        }
+    }
+
     function collectUpdatesData() {
         updates[0].title = document.getElementById('update1Title').value.trim();
         updates[0].body = document.getElementById('update1Body').value.trim();
@@ -2622,16 +3167,16 @@
             updates[1].title = document.getElementById('update2Title').value.trim();
             updates[1].body = document.getElementById('update2Body').value.trim();
         } else {
-            updates[1] = { title: '', body: '' };
+            updates[1] = { title: '', body: '', photos: [] };
         }
         // Update 3
         var block3 = document.getElementById('updateBlock3');
         if (block3 && block3.style.display !== 'none') {
-            if (!updates[2]) updates[2] = { title: '', body: '' };
+            if (!updates[2]) updates[2] = { title: '', body: '', photos: [] };
             updates[2].title = document.getElementById('update3Title').value.trim();
             updates[2].body = document.getElementById('update3Body').value.trim();
         } else {
-            updates[2] = { title: '', body: '' };
+            updates[2] = { title: '', body: '', photos: [] };
         }
     }
 
@@ -2695,7 +3240,7 @@
     }
 
     /* ============================================================
-       STEP 7: PREVIEW
+       STEP 9: PREVIEW
        ============================================================ */
     function generatePreview() {
         // Collect all data first
@@ -2749,45 +3294,63 @@
     function buildNewsletterPayload() {
         // Build the updates array, filtering empty ones
         var activeUpdates = [];
-        if (updates[0].title || updates[0].body) {
-            activeUpdates.push(updates[0]);
-        }
-        if (showUpdate2 && (updates[1].title || updates[1].body)) {
-            activeUpdates.push(updates[1]);
+        if (updatesEnabled) {
+            if (updates[0].title || updates[0].body) activeUpdates.push(updates[0]);
+            if (showUpdate2 && (updates[1].title || updates[1].body)) activeUpdates.push(updates[1]);
+            var block3 = document.getElementById('updateBlock3');
+            if (block3 && block3.style.display !== 'none' && (updates[2].title || updates[2].body)) activeUpdates.push(updates[2]);
         }
 
         // Build birthday data
         var birthdayData = birthdays.map(function(b) {
+            return { name: b.name, department: b.department, birthday_day: b.birthday_day, message: b.message || '' };
+        });
+
+        // Build spotlights array for rendering
+        var spotlightsData = spotlights.filter(function(sp) { return sp.employee; }).map(function(sp) {
             return {
-                name: b.name,
-                department: b.department,
-                birthday_day: b.birthday_day,
-                message: b.message || ''
+                name: sp.employee.name,
+                title: sp.employee.title || '',
+                department: sp.employee.department || '',
+                fun_facts: sp.fun_facts,
+                blurb: sp.blurb,
+                image_url: sp.image_url,
+                video_url: sp.video_url
             };
         });
 
-        // Build spotlight data
-        var spotlightData = null;
-        if (spotlight.employee) {
-            spotlightData = {
-                name: spotlight.employee.name,
-                title: spotlight.employee.title || '',
-                department: spotlight.employee.department || '',
-                fun_facts: spotlight.fun_facts,
-                blurb: spotlight.blurb,
-                image_url: spotlight.image_url,
-                video_url: spotlight.video_url
-            };
-        }
+        // Legacy single spotlight
+        var spotlightData = spotlightsData.length > 0 ? spotlightsData[0] : null;
 
         // Build special section
         var specialData = null;
         if (specialSection.enabled && (specialSection.title || specialSection.body)) {
             specialData = {
-                title: specialSection.title,
-                body: specialSection.body,
-                image_url: specialSection.image_url || '',
-                placement: specialSection.placement || 'after-updates'
+                title: specialSection.title, body: specialSection.body,
+                image_url: specialSection.image_url || '', placement: specialSection.placement || 'after-updates'
+            };
+        }
+
+        // Build game data
+        var gamePayload = null;
+        if (gameEnabled && (gameData || gameImageUrl)) {
+            var textContent = '';
+            if (gameData && gameType === 'trivia' && gameData.questions) {
+                textContent = gameData.questions.map(function(q, i) {
+                    var opts = q.options ? q.options.map(function(o, j) { return ['A','B','C','D'][j] + ') ' + o; }).join('<br>') : '';
+                    return '<strong>' + (i+1) + '. ' + q.q + '</strong><br>' + opts;
+                }).join('<br><br>');
+            } else if (gameData && gameType === 'fill_blank' && gameData.blanks) {
+                textContent = gameData.blanks.map(function(b, i) {
+                    return '<strong>' + (i+1) + '.</strong> ' + b.sentence;
+                }).join('<br>');
+            }
+
+            gamePayload = {
+                content: textContent,
+                image_url: gameImageUrl,
+                answer: gameAnswer,
+                previous_answer: gamePreviousAnswer
             };
         }
 
@@ -2802,7 +3365,12 @@
             joke: joke,
             birthdays: birthdayData,
             spotlight: spotlightData,
+            spotlights: spotlightsData,
             updates: activeUpdates,
+            updates_enabled: updatesEnabled,
+            welcome_hires: welcomeEnabled ? welcomeHires.filter(function(h) { return h.name; }) : [],
+            welcome_enabled: welcomeEnabled,
+            game: gamePayload,
             special_section: specialData,
             special_sections: specialSections.length > 0 ? specialSections : null,
             subject: subject,
@@ -2811,7 +3379,7 @@
     }
 
     /* ============================================================
-       STEP 8: SEND
+       STEP 10: SEND
        ============================================================ */
     function renderRecipientList() {
         var listEl = document.getElementById('recipientList');
@@ -3030,7 +3598,19 @@
                 selectedJokeIndex: selectedJokeIndex,
                 birthdays: birthdays,
                 spotlight: spotlight,
+                spotlights: spotlights,
                 updates: updates,
+                updatesEnabled: updatesEnabled,
+                welcomeHires: welcomeHires,
+                welcomeEnabled: welcomeEnabled,
+                game: {
+                    enabled: gameEnabled,
+                    type: gameType,
+                    data: gameData,
+                    imageUrl: gameImageUrl,
+                    answer: gameAnswer,
+                    previousAnswer: gamePreviousAnswer
+                },
                 specialSection: specialSection,
                 specialSections: specialSections,
                 subject: subject,
@@ -3072,7 +3652,7 @@
                     card.innerHTML =
                         '<button class="delete-btn" onclick="event.stopPropagation();if(confirm(\'Delete draft for ' + monthCap + ' ' + d.year + '?\'))deleteDraft(\'' + d.filename + '\')">&times;</button>' +
                         '<h4>' + monthCap + ' ' + d.year + '</h4>' +
-                        '<p>Step ' + (d.currentStep || '?') + ' of 8</p>' +
+                        '<p>Step ' + (d.currentStep || '?') + ' of 10</p>' +
                         '<p>By: ' + escapeHtml(savedBy) + '</p>' +
                         '<p>' + savedAt + ' CT</p>';
                     card.onclick = function() { resumeDraft(d.filename); };
@@ -3106,6 +3686,33 @@
             specialSections = d.specialSections || [];
             subject = d.subject || '';
 
+            // Restore new fields
+            // Spotlights (backward compat: wrap old single spotlight in array)
+            if (d.spotlights && d.spotlights.length > 0) {
+                spotlights = d.spotlights;
+            } else if (d.spotlight && d.spotlight.employee) {
+                spotlights = [d.spotlight];
+            } else {
+                spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' }];
+            }
+
+            // Welcome hires
+            welcomeEnabled = d.welcomeEnabled || false;
+            welcomeHires = d.welcomeHires || [];
+
+            // Updates enabled
+            updatesEnabled = d.updatesEnabled !== undefined ? d.updatesEnabled : true;
+
+            // Game
+            if (d.game) {
+                gameEnabled = d.game.enabled || false;
+                gameType = d.game.type || '';
+                gameData = d.game.data || null;
+                gameImageUrl = d.game.imageUrl || '';
+                gameAnswer = d.game.answer || '';
+                gamePreviousAnswer = d.game.previousAnswer || '';
+            }
+
             // Restore UI - month selection
             var monthCards = document.querySelectorAll('.month-card');
             for (var i = 0; i < monthCards.length; i++) {
@@ -3122,6 +3729,19 @@
                 document.getElementById('step2NextBtn').disabled = false;
             }
 
+            // Restore welcome hires UI
+            if (welcomeEnabled) {
+                document.getElementById('welcomeToggle').checked = true;
+                document.getElementById('welcomeHiresArea').style.display = 'block';
+                renderWelcomeHires();
+            }
+
+            // Restore updates UI
+            if (!updatesEnabled) {
+                document.getElementById('updatesToggle').checked = false;
+                document.getElementById('updatesFieldsArea').style.display = 'none';
+            }
+
             // Restore update fields
             if (updates[0]) {
                 document.getElementById('update1Title').value = updates[0].title || '';
@@ -3130,6 +3750,24 @@
             if (updates[1]) {
                 document.getElementById('update2Title').value = updates[1].title || '';
                 document.getElementById('update2Body').value = updates[1].body || '';
+            }
+
+            // Restore game UI
+            if (gameEnabled) {
+                document.getElementById('gameToggle').checked = true;
+                document.getElementById('gameFieldsArea').style.display = 'block';
+                if (gameType) {
+                    var gameCards = document.querySelectorAll('.game-type-card');
+                    gameCards.forEach(function(c) {
+                        c.classList.remove('selected');
+                        if (c.getAttribute('data-type') === gameType) c.classList.add('selected');
+                    });
+                }
+                if (gameData || gameImageUrl) renderGamePreview();
+                if (gamePreviousAnswer) {
+                    var prevInput = document.getElementById('gamePreviousAnswer');
+                    if (prevInput) prevInput.value = gamePreviousAnswer;
+                }
             }
 
             // Restore special section
@@ -3159,8 +3797,9 @@
             // Navigate to saved step
             var step = d.currentStep || 1;
             if (step === 3) renderBirthdayList();
-            if (step === 7) generatePreview();
-            if (step === 8) renderRecipientList();
+            if (step === 5) renderSpotlightBlocks();
+            if (step === 9) generatePreview();
+            if (step === 10) renderRecipientList();
             showStep(step);
         })
         .catch(function(err) {
@@ -3253,11 +3892,29 @@
             specialSections = d.specialSections || [];
             subject = d.subject || '';
 
+            // Restore new fields
+            if (d.spotlights && d.spotlights.length > 0) {
+                spotlights = d.spotlights;
+            } else if (d.spotlight && d.spotlight.employee) {
+                spotlights = [d.spotlight];
+            }
+            welcomeEnabled = d.welcomeEnabled || false;
+            welcomeHires = d.welcomeHires || [];
+            updatesEnabled = d.updatesEnabled !== undefined ? d.updatesEnabled : true;
+            if (d.game) {
+                gameEnabled = d.game.enabled || false;
+                gameType = d.game.type || '';
+                gameData = d.game.data || null;
+                gameImageUrl = d.game.imageUrl || '';
+                gameAnswer = d.game.answer || '';
+                gamePreviousAnswer = d.game.previousAnswer || '';
+            }
+
             if (subject) document.getElementById('subjectLineInput').value = subject;
 
-            // Go directly to preview
+            // Go directly to preview (now step 9)
             generatePreview();
-            showStep(7);
+            showStep(9);
         })
         .catch(function(err) {
             alert('Error loading published newsletter');
@@ -3369,6 +4026,325 @@
         setTimeout(renderTeamList, 1000);
     });
 
+    /* ============================================================
+       UPDATES TOGGLE
+       ============================================================ */
+    function toggleUpdatesSection() {
+        updatesEnabled = document.getElementById('updatesToggle').checked;
+        document.getElementById('updatesFieldsArea').style.display = updatesEnabled ? 'block' : 'none';
+        document.getElementById('updatesToggleHelper').textContent = updatesEnabled
+            ? 'Share what\'s new at BriteCo.'
+            : 'No updates this month — that\'s OK!';
+    }
+
+    /* ============================================================
+       MEDIA UPLOAD HELPERS
+       ============================================================ */
+    function uploadMediaFile(file, callback) {
+        var formData = new FormData();
+        formData.append('file', file);
+
+        fetch(API_BASE + '/api/upload-media', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success && data.url) {
+                callback(data.url);
+            } else {
+                alert('Upload failed: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) {
+            alert('Upload failed: ' + err.message);
+        });
+    }
+
+    function showCropperModal(file, callback) {
+        // Create modal overlay
+        var overlay = document.createElement('div');
+        overlay.className = 'cropper-modal-overlay';
+
+        var modal = document.createElement('div');
+        modal.className = 'cropper-modal-content';
+        modal.innerHTML = '<h3>Crop Image</h3>' +
+            '<div class="cropper-aspect-row">' +
+            '<button class="cropper-aspect-btn active" data-ratio="1" onclick="setCropperAspect(this, 1)">1:1</button>' +
+            '<button class="cropper-aspect-btn" data-ratio="1.777" onclick="setCropperAspect(this, 16/9)">16:9</button>' +
+            '<button class="cropper-aspect-btn" data-ratio="0" onclick="setCropperAspect(this, NaN)">Free</button>' +
+            '</div>' +
+            '<div id="cropperImageContainer"><img id="cropperImage" style="max-width:100%;"></div>' +
+            '<div class="cropper-modal-actions">' +
+            '<button class="btn btn-secondary" id="cropperCancelBtn">Cancel</button>' +
+            '<button class="btn" id="cropperConfirmBtn">Crop & Upload</button>' +
+            '</div>';
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        var img = modal.querySelector('#cropperImage');
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            // Initialize Cropper.js after image loads
+            img.onload = function() {
+                if (typeof Cropper !== 'undefined') {
+                    window._activeCropper = new Cropper(img, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        responsive: true,
+                    });
+                }
+            };
+        };
+        reader.readAsDataURL(file);
+
+        modal.querySelector('#cropperCancelBtn').onclick = function() {
+            if (window._activeCropper) { window._activeCropper.destroy(); window._activeCropper = null; }
+            overlay.remove();
+        };
+
+        modal.querySelector('#cropperConfirmBtn').onclick = function() {
+            if (window._activeCropper) {
+                var canvas = window._activeCropper.getCroppedCanvas({ maxWidth: 800, maxHeight: 800 });
+                canvas.toBlob(function(blob) {
+                    window._activeCropper.destroy();
+                    window._activeCropper = null;
+                    overlay.remove();
+                    // Upload the cropped blob
+                    var croppedFile = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+                    uploadMediaFile(croppedFile, callback);
+                }, 'image/jpeg', 0.9);
+            } else {
+                // No cropper, just upload original
+                overlay.remove();
+                uploadMediaFile(file, callback);
+            }
+        };
+    }
+
+    window.setCropperAspect = function(btn, ratio) {
+        var buttons = btn.parentElement.querySelectorAll('.cropper-aspect-btn');
+        buttons.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        if (window._activeCropper) {
+            window._activeCropper.setAspectRatio(ratio);
+        }
+    };
+
+    /* ============================================================
+       GAME SECTION (Step 7)
+       ============================================================ */
+    function toggleGameSection() {
+        gameEnabled = document.getElementById('gameToggle').checked;
+        document.getElementById('gameFieldsArea').style.display = gameEnabled ? 'block' : 'none';
+        document.getElementById('gameToggleHelper').textContent = gameEnabled
+            ? 'Pick a game type and generate!'
+            : 'Skip if you don\'t want a brain teaser.';
+    }
+
+    function selectGameType(type) {
+        gameType = type;
+        var cards = document.querySelectorAll('.game-type-card');
+        cards.forEach(function(c) {
+            c.classList.remove('selected');
+            if (c.getAttribute('data-type') === type) c.classList.add('selected');
+        });
+    }
+
+    function generateGame() {
+        if (!gameType) { alert('Please select a game type first.'); return; }
+
+        var context = document.getElementById('gameContext').value.trim();
+        var loadingArea = document.getElementById('gameLoadingArea');
+        var previewArea = document.getElementById('gamePreviewArea');
+
+        loadingArea.style.display = 'block';
+        previewArea.style.display = 'none';
+
+        fetch(API_BASE + '/api/generate-game', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: gameType,
+                context: context,
+                month: selectedMonth
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            loadingArea.style.display = 'none';
+            if (!data.success) { alert('Failed: ' + (data.error || 'Unknown error')); return; }
+
+            try {
+                gameData = JSON.parse(data.game_content);
+            } catch(e) {
+                gameData = { text: data.game_content };
+            }
+
+            gameAnswer = gameData.answer || gameData.word || '';
+            renderGamePreview();
+            document.getElementById('regenerateGameBtn').style.display = 'inline-flex';
+        })
+        .catch(function(err) {
+            loadingArea.style.display = 'none';
+            alert('Failed to generate game: ' + err.message);
+        });
+    }
+
+    function renderGamePreview() {
+        var previewArea = document.getElementById('gamePreviewArea');
+        var canvasContainer = document.getElementById('gameCanvasContainer');
+        var textContent = document.getElementById('gameTextContent');
+        var answerDisplay = document.getElementById('gameAnswerDisplay');
+
+        previewArea.style.display = 'block';
+        canvasContainer.innerHTML = '';
+        textContent.innerHTML = '';
+
+        var isVisualGame = ['word_scramble', 'hidden_word', 'emoji_rebus'].indexOf(gameType) !== -1;
+
+        if (isVisualGame && gameData) {
+            // Render on canvas
+            var canvas = document.createElement('canvas');
+            canvas.width = 500;
+            canvas.height = 400;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 500, 400);
+
+            if (gameType === 'word_scramble') {
+                ctx.fillStyle = '#272D3F';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('WORD SCRAMBLE', 250, 40);
+                ctx.font = 'bold 48px monospace';
+                ctx.fillStyle = '#018181';
+                var scrambled = gameData.scrambled || '';
+                // Space out letters
+                var spaced = scrambled.split('').join('  ');
+                ctx.fillText(spaced, 250, 200);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#6b7280';
+                ctx.fillText(gameData.hint || '', 250, 300);
+            } else if (gameType === 'hidden_word') {
+                ctx.fillStyle = '#272D3F';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('FIND THE HIDDEN WORD', 250, 30);
+                if (gameData.grid && Array.isArray(gameData.grid)) {
+                    ctx.font = 'bold 22px monospace';
+                    ctx.fillStyle = '#272D3F';
+                    var gridSize = gameData.grid.length;
+                    var cellSize = Math.min(30, 350 / gridSize);
+                    var startX = 250 - (gridSize * cellSize / 2);
+                    var startY = 60;
+                    gameData.grid.forEach(function(row, r) {
+                        row.forEach(function(letter, c) {
+                            ctx.fillText(letter, startX + c * cellSize + cellSize/2, startY + r * cellSize + cellSize * 0.7);
+                        });
+                    });
+                }
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#6b7280';
+                ctx.fillText('Hint: ' + (gameData.hint || ''), 250, 380);
+            } else if (gameType === 'emoji_rebus') {
+                ctx.fillStyle = '#272D3F';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('EMOJI REBUS', 250, 40);
+                ctx.font = '60px serif';
+                ctx.fillText(gameData.emojis || '', 250, 200);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#6b7280';
+                ctx.fillText('Hint: ' + (gameData.hint || ''), 250, 320);
+            }
+
+            canvasContainer.appendChild(canvas);
+
+            // Auto-upload canvas as PNG to GCS
+            canvas.toBlob(function(blob) {
+                var file = new File([blob], 'game-' + gameType + '.png', { type: 'image/png' });
+                uploadMediaFile(file, function(url) {
+                    gameImageUrl = url;
+                });
+            }, 'image/png');
+
+        } else if (gameData) {
+            // Text-based game (trivia, fill_blank)
+            var html = '';
+            if (gameType === 'trivia' && gameData.questions) {
+                gameData.questions.forEach(function(q, i) {
+                    html += '<div style="margin-bottom:16px;">';
+                    html += '<p style="font-weight:700;color:#272d3f;">' + (i+1) + '. ' + escapeHtml(q.q) + '</p>';
+                    if (q.options) {
+                        q.options.forEach(function(opt, j) {
+                            var letters = ['A', 'B', 'C', 'D'];
+                            html += '<p style="margin-left:20px;color:#555;">' + letters[j] + ') ' + escapeHtml(opt) + '</p>';
+                        });
+                    }
+                    html += '</div>';
+                });
+                gameAnswer = gameData.questions.map(function(q) { return q.answer; }).join(', ');
+            } else if (gameType === 'fill_blank' && gameData.blanks) {
+                gameData.blanks.forEach(function(b, i) {
+                    html += '<p style="margin-bottom:8px;color:#272d3f;"><strong>' + (i+1) + '.</strong> ' + escapeHtml(b.sentence) + '</p>';
+                });
+                gameAnswer = gameData.blanks.map(function(b) { return b.answer; }).join(', ');
+            } else if (gameData.text) {
+                html = '<p style="white-space:pre-wrap;">' + escapeHtml(gameData.text) + '</p>';
+            }
+            textContent.innerHTML = html;
+        }
+
+        answerDisplay.textContent = gameAnswer;
+    }
+
+    function loadPreviousGameAnswer() {
+        if (!selectedMonthNum) return;
+        fetch(API_BASE + '/api/get-previous-game?month=' + selectedMonthNum + '&year=' + new Date().getFullYear())
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var area = document.getElementById('previousGameArea');
+            if (data.game && data.game.answer) {
+                gamePreviousAnswer = data.game.answer;
+                document.getElementById('previousGameAnswer').value = gamePreviousAnswer;
+                area.style.display = 'block';
+            } else {
+                area.style.display = 'block'; // still show input for manual entry
+            }
+        })
+        .catch(function() {});
+    }
+
+    function collectGameData() {
+        if (gameEnabled) {
+            var prevAnswer = document.getElementById('previousGameAnswer');
+            if (prevAnswer) gamePreviousAnswer = prevAnswer.value.trim();
+        }
+    }
+
+    /* ============================================================
+       RECIPIENT SEARCH FILTER
+       ============================================================ */
+    function filterRecipients() {
+        var term = document.getElementById('recipientSearch').value.toLowerCase().trim();
+        var items = document.querySelectorAll('.recipient-item');
+        items.forEach(function(item) {
+            var name = item.querySelector('.recipient-name');
+            var email = item.querySelector('.recipient-email');
+            var nameText = name ? name.textContent.toLowerCase() : '';
+            var emailText = email ? email.textContent.toLowerCase() : '';
+            if (!term || nameText.indexOf(term) !== -1 || emailText.indexOf(term) !== -1) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 </body>
 </html>

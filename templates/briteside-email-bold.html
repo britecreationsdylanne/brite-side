@@ -113,7 +113,7 @@ The BriteSide
 <tr>
 <td>
 <p class="joke-text" style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; line-height: 32px; color: #272D3F; font-style: italic; font-weight: 400;">
-{{JOKE}}
+{{JOKE_SETUP}}
 </p>
 </td>
 </tr>
@@ -151,6 +151,34 @@ The BriteSide
 </tr>
 
 <!-- ============================================ -->
+<!-- WELCOME NEW HIRES SECTION                    -->
+<!-- ============================================ -->
+<tr>
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{WELCOME_DISPLAY}};">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #31D7CA;">
+<tr>
+<td class="card-padding" style="padding: 24px 28px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="padding-bottom: 14px;">
+<span class="section-heading" style="font-size: 22px; font-weight: 900; color: #31D7CA; letter-spacing: -0.3px;">&#128075; Welcome to the Team!</span>
+</td>
+</tr>
+<tr>
+<td style="font-size: 16px; line-height: 28px; color: #444444;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+{{WELCOME_SECTION}}
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ============================================ -->
 <!-- SPOTLIGHT SECTION                            -->
 <!-- ============================================ -->
 <tr>
@@ -164,28 +192,7 @@ The BriteSide
 <span class="section-heading" style="font-size: 22px; font-weight: 900; color: #272D3F; letter-spacing: -0.3px;">Employee Spotlight</span>
 </td>
 </tr>
-<tr>
-<td align="center" style="padding-bottom: 18px;">
-{{SPOTLIGHT_IMAGE}}
-</td>
-</tr>
-<tr>
-<td align="center" style="padding-bottom: 2px;">
-<p style="margin: 0; font-size: 24px; font-weight: 900; color: #272D3F;">{{SPOTLIGHT_NAME}}</p>
-</td>
-</tr>
-<tr>
-<td align="center" style="padding-bottom: 14px;">
-<p style="margin: 0; font-size: 14px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{{SPOTLIGHT_TITLE}}</p>
-</td>
-</tr>
-<tr>
-<td align="center">
-<p style="margin: 0; font-size: 16px; line-height: 26px; color: #444444;">
-{{SPOTLIGHT_BLURB}}
-</p>
-</td>
-</tr>
+{{SPOTLIGHT_SECTION}}
 </table>
 </td>
 </tr>
@@ -197,7 +204,7 @@ The BriteSide
 <!-- UPDATES SECTION                              -->
 <!-- ============================================ -->
 <tr>
-<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff;">
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{UPDATES_DISPLAY}};">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #31D7CA;">
 <tr>
 <td class="card-padding" style="padding: 24px 28px;">
@@ -219,6 +226,7 @@ The BriteSide
 <tr>
 <td style="padding-left: 24px;">
 <p style="margin: 0; font-size: 15px; line-height: 24px; color: #555555;">{{UPDATE_1_BODY}}</p>
+{{UPDATE_1_PHOTOS}}
 </td>
 </tr>
 </table>
@@ -236,6 +244,7 @@ The BriteSide
 <tr>
 <td style="padding-left: 24px;">
 <p style="margin: 0; font-size: 15px; line-height: 24px; color: #555555;">{{UPDATE_2_BODY}}</p>
+{{UPDATE_2_PHOTOS}}
 </td>
 </tr>
 </table>
@@ -253,9 +262,36 @@ The BriteSide
 <tr>
 <td style="padding-left: 24px;">
 <p style="margin: 0; font-size: 15px; line-height: 24px; color: #555555;">{{UPDATE_3_BODY}}</p>
+{{UPDATE_3_PHOTOS}}
 </td>
 </tr>
 </table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ============================================ -->
+<!-- GAME SECTION                                 -->
+<!-- ============================================ -->
+<tr>
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{GAME_DISPLAY}};">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #FE8916;">
+<tr>
+<td class="card-padding" style="padding: 24px 28px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="padding-bottom: 14px;">
+<span class="section-heading" style="font-size: 22px; font-weight: 900; color: #FE8916; letter-spacing: -0.3px;">&#129513; BriteSide Brain Teaser</span>
+</td>
+</tr>
+<tr>
+<td>
+{{GAME_SECTION}}
 </td>
 </tr>
 </table>
@@ -284,6 +320,34 @@ The BriteSide
 <tr>
 <td>
 <p style="margin: 0; font-size: 16px; line-height: 26px; color: #444444;">{{SPECIAL_BODY}}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- ============================================ -->
+<!-- JOKE PUNCHLINE                               -->
+<!-- ============================================ -->
+<tr>
+<td class="mobile-padding" style="padding: 24px 40px 0 40px; background-color: #ffffff; display: {{PUNCHLINE_DISPLAY}};">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 4px solid #31D7CA;">
+<tr>
+<td class="card-padding" style="padding: 24px 28px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="padding-bottom: 10px;">
+<span style="font-size: 13px; font-weight: 800; color: #31D7CA; text-transform: uppercase; letter-spacing: 2px;">The Punchline...</span>
+</td>
+</tr>
+<tr>
+<td>
+<p class="joke-text" style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; line-height: 32px; color: #272D3F; font-style: italic; font-weight: 400;">
+{{JOKE_PUNCHLINE}}
+</p>
 </td>
 </tr>
 </table>

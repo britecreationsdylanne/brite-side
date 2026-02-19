@@ -8,6 +8,7 @@ import sys
 import json
 import secrets
 import traceback
+import uuid
 from datetime import datetime
 
 import pytz
@@ -648,6 +649,189 @@ def rewrite_content():
 
 
 # ============================================================================
+# ROUTES - MEDIA UPLOAD
+# ============================================================================
+
+ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+ALLOWED_VIDEO_TYPES = {'video/mp4', 'video/quicktime', 'video/webm'}
+MAX_IMAGE_SIZE = 10 * 1024 * 1024   # 10MB
+MAX_VIDEO_SIZE = 50 * 1024 * 1024   # 50MB
+
+
+@app.route('/api/upload-media', methods=['POST'])
+def upload_media():
+    """Upload an image or video to GCS and return its public URL"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if not file.filename:
+            return jsonify({'success': False, 'error': 'Empty filename'}), 400
+
+        content_type = file.content_type or ''
+        is_image = content_type in ALLOWED_IMAGE_TYPES
+        is_video = content_type in ALLOWED_VIDEO_TYPES
+
+        if not is_image and not is_video:
+            return jsonify({'success': False, 'error': f'Unsupported file type: {content_type}'}), 400
+
+        # Read file data and check size
+        file_data = file.read()
+        max_size = MAX_IMAGE_SIZE if is_image else MAX_VIDEO_SIZE
+        if len(file_data) > max_size:
+            limit_mb = max_size // (1024 * 1024)
+            return jsonify({'success': False, 'error': f'File too large. Max {limit_mb}MB.'}), 400
+
+        # Generate unique filename
+        ext = os.path.splitext(file.filename)[1].lower() or ('.jpg' if is_image else '.mp4')
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        blob_path = f"media/{unique_name}"
+
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(blob_path)
+        blob.upload_from_string(file_data, content_type=content_type)
+        blob.make_public()
+
+        public_url = blob.public_url
+        safe_print(f"[MEDIA] Uploaded {blob_path} ({len(file_data)} bytes)")
+
+        return jsonify({
+            'success': True,
+            'url': public_url,
+            'filename': unique_name,
+            'type': 'image' if is_image else 'video',
+            'size': len(file_data),
+        })
+
+    except Exception as e:
+        safe_print(f"[MEDIA UPLOAD ERROR] {str(e)}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - GAME / PUZZLE
+# ============================================================================
+
+@app.route('/api/generate-game', methods=['POST'])
+def generate_game():
+    """Generate a monthly game/puzzle using AI"""
+    try:
+        if not claude_client:
+            return jsonify({"success": False, "error": "Claude AI is not available"}), 503
+
+        data = request.json
+        game_type = data.get('type', 'word_scramble')
+        context = data.get('context', '')
+        month = data.get('month', datetime.now(CHICAGO_TZ).strftime('%B'))
+
+        safe_print(f"[API] Generating {game_type} game for {month}")
+
+        prompt = AI_PROMPTS.get('generate_game', '').format(
+            game_type=game_type,
+            context=context,
+            month=month,
+        )
+
+        response = claude_client.generate_content(
+            prompt=prompt,
+            system_prompt=BRITESIDE_SYSTEM_PROMPT,
+            max_tokens=800,
+            temperature=0.8,
+        )
+
+        game_text = response.get('content', '').strip()
+
+        safe_print(f"[API] Game generated ({response.get('tokens', 0)} tokens)")
+
+        return jsonify({
+            "success": True,
+            "game_content": game_text,
+            "model": response.get('model', ''),
+            "tokens": response.get('tokens', 0),
+            "cost_estimate": response.get('cost_estimate', ''),
+        })
+
+    except Exception as e:
+        safe_print(f"[API] Error generating game: {e}")
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/save-game-answer', methods=['POST'])
+def save_game_answer():
+    """Save game answer to GCS for next month's reveal"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        data = request.json
+        month = data.get('month', '').lower()
+        year = data.get('year', datetime.now(CHICAGO_TZ).year)
+        answer = data.get('answer', '')
+        game_type = data.get('type', '')
+
+        blob_name = f"games/{month}-{year}.json"
+        game_data = {
+            'month': month,
+            'year': year,
+            'type': game_type,
+            'answer': answer,
+            'savedAt': datetime.now(CHICAGO_TZ).isoformat(),
+        }
+
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(json.dumps(game_data), content_type='application/json')
+
+        safe_print(f"[GAME] Saved answer for {month} {year}")
+        return jsonify({'success': True, 'file': blob_name})
+
+    except Exception as e:
+        safe_print(f"[GAME SAVE ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/get-previous-game', methods=['GET'])
+def get_previous_game():
+    """Load previous month's game answer from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True, 'game': None})
+    try:
+        month_num = request.args.get('month', type=int)
+        year = request.args.get('year', type=int, default=datetime.now(CHICAGO_TZ).year)
+
+        if not month_num:
+            return jsonify({'success': False, 'error': 'Month parameter required'}), 400
+
+        # Calculate previous month
+        if month_num == 1:
+            prev_month_num = 12
+            prev_year = year - 1
+        else:
+            prev_month_num = month_num - 1
+            prev_year = year
+
+        prev_month_name = MONTH_NAMES.get(prev_month_num, '').lower()
+        blob_name = f"games/{prev_month_name}-{prev_year}.json"
+
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(blob_name)
+
+        if not blob.exists():
+            return jsonify({'success': True, 'game': None})
+
+        game_data = json.loads(blob.download_as_text())
+        return jsonify({'success': True, 'game': game_data})
+
+    except Exception as e:
+        safe_print(f"[GAME LOAD ERROR] {str(e)}")
+        return jsonify({'success': True, 'game': None})
+
+
+# ============================================================================
 # ROUTES - EMAIL RENDERING & SENDING
 # ============================================================================
 
@@ -663,8 +847,13 @@ def render_email():
         joke = data.get('joke', '')
         birthdays = data.get('birthdays', [])
         spotlight = data.get('spotlight', {})
+        spotlights = data.get('spotlights', [])
         updates = data.get('updates', [])
+        updates_enabled = data.get('updates_enabled', True)
         special_section = data.get('special_section', {})
+        welcome_hires = data.get('welcome_hires', [])
+        welcome_enabled = data.get('welcome_enabled', False)
+        game = data.get('game', {})
 
         # Template selection (default to classic)
         template_file = data.get('template', 'briteside-email.html')
@@ -705,35 +894,63 @@ def render_email():
                 )
             birthday_html = '\n'.join(birthday_items)
 
-        # Build updates HTML list
-        updates_html = ''
-        if updates:
-            update_items = []
-            for update in updates:
-                if isinstance(update, str):
-                    update_items.append(f'<li style="margin-bottom: 8px;">{update}</li>')
-                elif isinstance(update, dict):
-                    title = update.get('title', '')
-                    body = update.get('body', '')
-                    update_items.append(
-                        f'<li style="margin-bottom: 12px;"><strong>{title}</strong><br>{body}</li>'
-                    )
-            updates_html = '\n'.join(update_items)
+        # Build welcome hires HTML
+        welcome_html = ''
+        if welcome_enabled and welcome_hires:
+            hire_items = []
+            for hire in welcome_hires:
+                h_name = hire.get('name', '')
+                h_role = hire.get('role', '')
+                h_fact = hire.get('fun_fact', '')
+                hire_items.append(
+                    f'<tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">'
+                    f'<span style="font-size: 16px; font-weight: 700; color: #272D3F;">{h_name}</span><br>'
+                    f'<span style="font-size: 14px; color: #018181; font-style: italic;">{h_role}</span>'
+                    + (f'<br><span style="font-size: 13px; color: #6b7280;">Fun fact: {h_fact}</span>' if h_fact else '')
+                    + '</td></tr>'
+                )
+            welcome_html = '\n'.join(hire_items)
 
-        # Build spotlight HTML (frontend sends null if no spotlight selected)
+        # Build spotlight section HTML (supports 1-3 spotlights)
+        # Use spotlights array if available, fall back to single spotlight
+        spotlight_list = spotlights if spotlights else ([spotlight] if spotlight and spotlight.get('name') else [])
+        spotlight_section_html = ''
+        for sp in spotlight_list:
+            if not sp or not sp.get('name'):
+                continue
+            sp_name = sp.get('name', '')
+            sp_title = sp.get('title', '')
+            sp_blurb = sp.get('blurb', '')
+            sp_image_url = sp.get('image_url', '')
+
+            sp_image_html = ''
+            if sp_image_url:
+                sp_image_html = (
+                    f'<tr><td align="center" style="padding-bottom: 18px;">'
+                    f'<img src="{sp_image_url}" width="120" alt="{sp_name}" '
+                    f'style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block;">'
+                    f'</td></tr>'
+                )
+
+            spotlight_section_html += (
+                f'{sp_image_html}'
+                f'<tr><td align="center" style="padding-bottom: 2px;">'
+                f'<p style="margin: 0; font-size: 24px; font-weight: 900; color: #272D3F;">{sp_name}</p>'
+                f'</td></tr>'
+                f'<tr><td align="center" style="padding-bottom: 14px;">'
+                f'<p style="margin: 0; font-size: 14px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{sp_title}</p>'
+                f'</td></tr>'
+                f'<tr><td align="center" style="padding-bottom: 24px;">'
+                f'<p style="margin: 0; font-size: 16px; line-height: 26px; color: #444444;">{sp_blurb}</p>'
+                f'</td></tr>'
+            )
+
+        # For backward compat, also build single-spotlight placeholders
         if not spotlight:
             spotlight = {}
         spotlight_name = spotlight.get('name', '')
-        spotlight_title = spotlight.get('title', '')
+        spotlight_title_val = spotlight.get('title', '')
         spotlight_blurb = spotlight.get('blurb', '')
-
-        # Build special section HTML (frontend sends null if disabled)
-        if not special_section:
-            special_section = {}
-        special_title = special_section.get('title', '')
-        special_body = special_section.get('body', '')
-
-        # Build spotlight image HTML
         spotlight_image_url = spotlight.get('image_url', '') if spotlight else ''
         spotlight_image_html = ''
         if spotlight_image_url:
@@ -743,40 +960,107 @@ def render_email():
                 f'class="mobile-img-full">'
             )
 
+        # Build updates HTML with photos
+        if not updates_enabled:
+            updates = []
+
         # Build individual update fields
         update_1_title = ''
         update_1_body = ''
+        update_1_photos_html = ''
         update_2_title = ''
         update_2_body = ''
+        update_2_photos_html = ''
         update_3_title = ''
         update_3_body = ''
+        update_3_photos_html = ''
         if updates:
-            if len(updates) >= 1:
-                u1 = updates[0]
-                if isinstance(u1, dict):
-                    update_1_title = u1.get('title', '')
-                    update_1_body = u1.get('body', '')
-            if len(updates) >= 2:
-                u2 = updates[1]
-                if isinstance(u2, dict):
-                    update_2_title = u2.get('title', '')
-                    update_2_body = u2.get('body', '')
-            if len(updates) >= 3:
-                u3 = updates[2]
-                if isinstance(u3, dict):
-                    update_3_title = u3.get('title', '')
-                    update_3_body = u3.get('body', '')
+            for i, u in enumerate(updates[:3]):
+                if not isinstance(u, dict):
+                    continue
+                title = u.get('title', '')
+                body = u.get('body', '')
+                photos = u.get('photos', [])
+                photos_html = ''
+                for photo_url in photos:
+                    if photo_url:
+                        photos_html += (
+                            f'<img src="{photo_url}" width="100%" '
+                            f'style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
+                            f'alt="Update photo">'
+                        )
+                if i == 0:
+                    update_1_title = title
+                    update_1_body = body
+                    update_1_photos_html = photos_html
+                elif i == 1:
+                    update_2_title = title
+                    update_2_body = body
+                    update_2_photos_html = photos_html
+                elif i == 2:
+                    update_3_title = title
+                    update_3_body = body
+                    update_3_photos_html = photos_html
+
+        # Build special section HTML (frontend sends null if disabled)
+        if not special_section:
+            special_section = {}
+        special_title = special_section.get('title', '')
+        special_body = special_section.get('body', '')
+
+        # Build game section HTML
+        if not game:
+            game = {}
+        game_content = game.get('content', '')
+        game_image_url = game.get('image_url', '')
+        game_previous_answer = game.get('previous_answer', '')
+
+        game_section_html = ''
+        if game_content or game_image_url:
+            if game_image_url:
+                game_section_html += (
+                    f'<img src="{game_image_url}" width="100%" '
+                    f'style="max-width: 100%; height: auto; border-radius: 8px; display: block; margin-bottom: 16px;" '
+                    f'alt="BriteSide Brain Teaser">'
+                )
+            if game_content:
+                game_section_html += (
+                    f'<p style="margin: 0 0 16px 0; font-size: 15px; line-height: 24px; color: #444444;">{game_content}</p>'
+                )
+            game_section_html += (
+                '<p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #018181;">'
+                'Email Dove your answer &mdash; the winner gets 100 BriteCo Bucks!</p>'
+            )
+            if game_previous_answer:
+                game_section_html += (
+                    f'<div style="margin-top: 16px; padding: 12px 16px; background: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
+                    f'<span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</span><br>'
+                    f'<span style="font-size: 14px; color: #272D3F;">{game_previous_answer}</span>'
+                    f'</div>'
+                )
+
+        # Joke setup/punchline split (delimiter: |)
+        joke_setup = str(joke)
+        joke_punchline = ''
+        if '|' in str(joke):
+            parts = str(joke).split('|', 1)
+            joke_setup = parts[0].strip()
+            joke_punchline = parts[1].strip()
 
         # Conditional display values
         birthday_display = 'table-row' if birthdays else 'none'
+        welcome_display = 'table-row' if (welcome_enabled and welcome_hires) else 'none'
         update_2_display = 'table-row' if (update_2_title or update_2_body) else 'none'
         update_3_display = 'table-row' if (update_3_title or update_3_body) else 'none'
+        updates_display = 'table-row' if updates_enabled and updates else 'none'
         special_display = 'table-row' if (special_title or special_body) else 'none'
+        game_display = 'table-row' if game_section_html else 'none'
+        punchline_display = 'table-row' if joke_punchline else 'none'
 
         # Preheader text (short preview text for email clients)
         preheader = f"The BriteSide - {month} {year}"
-        if joke:
-            preheader = joke[:100]
+        if joke_setup:
+            preheader = joke_setup[:100]
 
         # Make logo paths absolute so they work in iframe previews and email clients
         base_url = request.host_url.rstrip('/')
@@ -787,23 +1071,35 @@ def render_email():
         html = html.replace('{{YEAR}}', str(year))
         html = html.replace('{{PREHEADER}}', str(preheader))
         html = html.replace('{{JOKE}}', str(joke))
+        html = html.replace('{{JOKE_SETUP}}', joke_setup)
+        html = html.replace('{{JOKE_PUNCHLINE}}', joke_punchline)
+        html = html.replace('{{PUNCHLINE_DISPLAY}}', punchline_display)
         html = html.replace('{{BIRTHDAY_DISPLAY}}', birthday_display)
         html = html.replace('{{BIRTHDAY_SECTION}}', birthday_html)
+        html = html.replace('{{WELCOME_DISPLAY}}', welcome_display)
+        html = html.replace('{{WELCOME_SECTION}}', welcome_html)
+        html = html.replace('{{SPOTLIGHT_SECTION}}', spotlight_section_html)
         html = html.replace('{{SPOTLIGHT_IMAGE}}', spotlight_image_html)
         html = html.replace('{{SPOTLIGHT_NAME}}', str(spotlight_name))
-        html = html.replace('{{SPOTLIGHT_TITLE}}', str(spotlight_title))
+        html = html.replace('{{SPOTLIGHT_TITLE}}', str(spotlight_title_val))
         html = html.replace('{{SPOTLIGHT_BLURB}}', str(spotlight_blurb))
+        html = html.replace('{{UPDATES_DISPLAY}}', updates_display)
         html = html.replace('{{UPDATE_1_TITLE}}', str(update_1_title))
         html = html.replace('{{UPDATE_1_BODY}}', str(update_1_body))
+        html = html.replace('{{UPDATE_1_PHOTOS}}', update_1_photos_html)
         html = html.replace('{{UPDATE_2_TITLE}}', str(update_2_title))
         html = html.replace('{{UPDATE_2_BODY}}', str(update_2_body))
+        html = html.replace('{{UPDATE_2_PHOTOS}}', update_2_photos_html)
         html = html.replace('{{UPDATE_2_DISPLAY}}', update_2_display)
         html = html.replace('{{UPDATE_3_TITLE}}', str(update_3_title))
         html = html.replace('{{UPDATE_3_BODY}}', str(update_3_body))
+        html = html.replace('{{UPDATE_3_PHOTOS}}', update_3_photos_html)
         html = html.replace('{{UPDATE_3_DISPLAY}}', update_3_display)
         html = html.replace('{{SPECIAL_TITLE}}', str(special_title))
         html = html.replace('{{SPECIAL_BODY}}', str(special_body))
         html = html.replace('{{SPECIAL_SECTION_DISPLAY}}', special_display)
+        html = html.replace('{{GAME_DISPLAY}}', game_display)
+        html = html.replace('{{GAME_SECTION}}', game_section_html)
 
         safe_print(f"[API] Email template rendered ({len(html)} chars)")
 
@@ -921,8 +1217,13 @@ def save_draft():
             'selectedJokeIndex': data.get('selectedJokeIndex'),
             'birthdays': data.get('birthdays'),
             'spotlight': data.get('spotlight'),
+            'spotlights': data.get('spotlights'),
             'updates': data.get('updates'),
+            'updatesEnabled': data.get('updatesEnabled', True),
             'specialSection': data.get('specialSection'),
+            'welcomeHires': data.get('welcomeHires'),
+            'welcomeEnabled': data.get('welcomeEnabled', False),
+            'game': data.get('game'),
             'subject': data.get('subject'),
             'lastSavedBy': data.get('savedBy', 'unknown'),
             'lastSavedAt': datetime.now(CHICAGO_TZ).isoformat(),

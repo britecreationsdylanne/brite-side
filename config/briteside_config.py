@@ -94,12 +94,14 @@ AI_PROMPTS = {
         "Write 3 short, fun jokes or puns related to {theme}. "
         "These are for the opening of an internal company newsletter at a jewelry insurance company.\n\n"
         "Requirements:\n"
-        "- Each joke should be 1-2 sentences max\n"
+        "- Each joke MUST be in setup | punchline format, separated by a pipe character (|)\n"
+        "- Example format: Why did the diamond go to school? | Because it wanted more carats!\n"
+        "- The setup is a question or statement, the punchline is the answer/payoff\n"
         "- Puns about jewelry, weddings, watches, or insurance are great\n"
         "- Keep it office-appropriate and upbeat\n"
         "- Number them 1, 2, 3 so the user can pick their favorite\n"
         "- Seasonal tie-ins for {month} are welcome\n\n"
-        "Return ONLY the 3 numbered jokes, nothing else."
+        "Return ONLY the 3 numbered jokes in setup | punchline format, nothing else."
     ),
     "generate_spotlight": (
         "Write a fun, warm employee spotlight blurb for an internal company newsletter.\n\n"
@@ -123,6 +125,23 @@ AI_PROMPTS = {
         "- Fun, warm, punny if possible\n"
         "- Jewelry/sparkle themed is great\n"
         "- Return ONLY the shoutout text, no names or labels"
+    ),
+    "generate_game": (
+        "Generate a {game_type} game/puzzle for an internal company newsletter at BriteCo (a jewelry insurance company).\n\n"
+        "Month: {month}\n"
+        "Context/facts to use: {context}\n\n"
+        "Game type instructions:\n"
+        "- word_scramble: Scramble the letters of a word or short phrase related to the context. "
+        "Return as JSON: {{\"scrambled\": \"MABERDCL\", \"hint\": \"A short hint\", \"answer\": \"BRACELET\"}}\n"
+        "- trivia: Write 3-4 multiple choice trivia questions based on the context. "
+        "Return as JSON: {{\"questions\": [{{\"q\": \"Question?\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"answer\": \"B\"}}]}}\n"
+        "- emoji_rebus: Create an emoji sequence that represents a jewelry/BriteCo-related phrase. "
+        "Return as JSON: {{\"emojis\": \"emoji sequence here\", \"hint\": \"A hint\", \"answer\": \"The phrase\"}}\n"
+        "- fill_blank: Write 3-4 fill-in-the-blank sentences using facts from the context. "
+        "Return as JSON: {{\"blanks\": [{{\"sentence\": \"___ loves hiking on weekends\", \"answer\": \"Sarah\"}}]}}\n"
+        "- hidden_word: Create a 10x10 letter grid containing a hidden word related to the context. "
+        "Return as JSON: {{\"grid\": [[\"A\",\"B\",...]], \"word\": \"DIAMOND\", \"hint\": \"A precious stone\"}}\n\n"
+        "IMPORTANT: Return ONLY valid JSON, no extra text or markdown."
     ),
 }
 
