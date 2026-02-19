@@ -952,18 +952,41 @@ def render_email():
                     f'</td></tr>'
                 )
 
+            # Build Q&A HTML if present
+            sp_qa = sp.get('qa', [])
+            qa_html = ''
+            for pair in sp_qa:
+                q_text = pair.get('q', '')
+                a_text = pair.get('a', '')
+                if q_text and a_text:
+                    qa_html += (
+                        f'<tr><td style="padding: 4px 0;">'
+                        f'<p style="margin: 0; font-family: {FONT}; font-size: 14px; color: #018181; font-weight: 700;">{q_text}</p>'
+                        f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; color: #444444;">{a_text}</p>'
+                        f'</td></tr>'
+                    )
+
+            spotlight_section_html += f'{sp_image_html}'
             spotlight_section_html += (
-                f'{sp_image_html}'
                 f'<tr><td align="center" style="padding-bottom: 2px;">'
                 f'<p style="margin: 0; font-family: {FONT}; font-size: 20px; font-weight: 800; color: #272D3F;">{sp_name}</p>'
                 f'</td></tr>'
                 f'<tr><td align="center" style="padding-bottom: 14px;">'
                 f'<p style="margin: 0; font-family: {FONT}; font-size: 13px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{sp_title}</p>'
                 f'</td></tr>'
-                f'<tr><td align="center" style="padding-bottom: 24px;">'
-                f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444;">{sp_blurb}</p>'
-                f'</td></tr>'
             )
+            if qa_html:
+                spotlight_section_html += (
+                    f'<tr><td style="padding: 0 20px 14px 20px;">'
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
+                    f'{qa_html}</table></td></tr>'
+                )
+            if sp_blurb:
+                spotlight_section_html += (
+                    f'<tr><td align="center" style="padding-bottom: 24px;">'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444;">{sp_blurb}</p>'
+                    f'</td></tr>'
+                )
 
         # For backward compat, also build single-spotlight placeholders
         if not spotlight:

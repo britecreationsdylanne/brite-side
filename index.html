@@ -1905,7 +1905,10 @@
                 <div class="form-group">
                     <label>Context / Facts to Use</label>
                     <textarea id="gameContext" rows="3" placeholder="Enter fun facts, employee info, or BriteCo trivia for the AI to use in the game..."></textarea>
-                    <div class="helper-text">The more specific, the harder it is for AI to solve!</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                        <div class="helper-text" style="margin:0;">The more specific, the harder it is for AI to solve!</div>
+                        <button class="btn-ai-rewrite" style="white-space:nowrap;" onclick="suggestGameContext()">Suggest Ideas</button>
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-bottom: 16px;">
@@ -2260,7 +2263,7 @@
     let welcomeHires = [];
 
     // Spotlights (1-3)
-    let spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' }];
+    let spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] }];
 
     // Legacy single spotlight (for backward compat)
     let spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
@@ -2512,7 +2515,7 @@
         birthdays = [];
         welcomeEnabled = false;
         welcomeHires = [];
-        spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' }];
+        spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] }];
         spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
         updates = [{ title: '', body: '', photos: [] }, { title: '', body: '', photos: [] }, { title: '', body: '', photos: [] }];
         updatesEnabled = true;
@@ -2900,7 +2903,10 @@
             html += '<div class="welcome-hire-fields">';
             html += '<input type="text" placeholder="Name" value="' + escapeAttr(hire.name) + '" onchange="welcomeHires[' + idx + '].name=this.value">';
             html += '<input type="text" placeholder="Role / Title" value="' + escapeAttr(hire.role) + '" onchange="welcomeHires[' + idx + '].role=this.value">';
-            html += '<input type="text" class="full-width" placeholder="Fun fact (optional)" value="' + escapeAttr(hire.fun_fact) + '" onchange="welcomeHires[' + idx + '].fun_fact=this.value">';
+            html += '<div class="full-width" style="display:flex;gap:6px;align-items:center;">';
+            html += '<input type="text" style="flex:1;" id="welcomeFact' + idx + '" placeholder="Fun fact (optional)" value="' + escapeAttr(hire.fun_fact) + '" onchange="welcomeHires[' + idx + '].fun_fact=this.value">';
+            html += '<button class="btn-ai-rewrite" style="white-space:nowrap;flex-shrink:0;" onclick="aiRewrite(\'welcomeFact' + idx + '\', \'fun and punny\')">AI Rewrite</button>';
+            html += '</div>';
             html += '</div>';
             html += '<button class="welcome-remove-btn" onclick="removeWelcomeHire(' + idx + ')">Remove</button>';
             html += '</div>';
@@ -2942,11 +2948,13 @@
         spotlights.forEach(function(sp, idx) {
             var empIdx = sp.employee ? allEmployees.indexOf(sp.employee) : '';
             if (empIdx === -1 && sp.employee) {
-                // Find by name
                 for (var i = 0; i < allEmployees.length; i++) {
                     if (allEmployees[i].name === sp.employee.name) { empIdx = i; break; }
                 }
             }
+            // Initialize Q&A if missing
+            if (!sp.qa) sp.qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
+
             html += '<div class="spotlight-block" data-idx="' + idx + '">';
             html += '<div class="spotlight-block-header"><h3>Spotlight #' + (idx + 1) + '</h3>';
             if (idx > 0) html += '<button class="remove-update-btn" onclick="removeSpotlightBlock(' + idx + ')">Remove</button>';
@@ -2957,19 +2965,29 @@
             html += '<select id="spotlightSelect' + idx + '" onchange="onSpotlightChange(' + idx + ')">' + getEmployeeOptionsHtml(empIdx >= 0 ? empIdx : undefined) + '</select>';
             html += '</div>';
 
-            // Info card
+            // Editable title (pre-filled from employee record)
             if (sp.employee) {
-                var initials = sp.employee.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase();
-                html += '<div class="spotlight-employee-info visible">';
-                html += '<div class="spotlight-avatar">' + initials + '</div>';
-                html += '<div class="spotlight-details"><h3>' + escapeHtml(sp.employee.name) + '</h3>';
-                html += '<div class="spotlight-role">' + escapeHtml(sp.employee.title || '') + '</div>';
-                html += '<div class="spotlight-dept">' + escapeHtml(sp.employee.department || '') + '</div></div></div>';
+                var displayTitle = sp.display_title !== undefined ? sp.display_title : (sp.employee.title || '');
+                html += '<div class="form-group"><label>Title / Role <span style="color:#6b7280;font-weight:400">(editable — shown in newsletter)</span></label>';
+                html += '<input type="text" id="spotlightTitle' + idx + '" value="' + escapeAttr(displayTitle) + '" placeholder="e.g. Senior Designer" onchange="spotlights[' + idx + '].display_title=this.value">';
+                html += '</div>';
             }
 
-            // Fun facts
-            html += '<div class="form-group"><label>Fun Facts</label>';
-            html += '<textarea id="spotlightFacts' + idx + '" rows="3" placeholder="What makes this person shine?">' + escapeHtml(sp.fun_facts || '') + '</textarea>';
+            // 3 Q&A pairs
+            if (sp.employee) {
+                html += '<div class="form-group"><label>Get to Know Them <span style="color:#6b7280;font-weight:400">(3 Q&amp;A)</span></label>';
+                for (var q = 0; q < 3; q++) {
+                    html += '<div style="display:flex;gap:8px;margin-bottom:8px;">';
+                    html += '<input type="text" id="spotlightQ' + idx + '_' + q + '" style="flex:1" placeholder="Q' + (q+1) + ': e.g. Favorite gem?" value="' + escapeAttr(sp.qa[q].q || '') + '" onchange="spotlights[' + idx + '].qa[' + q + '].q=this.value">';
+                    html += '<input type="text" id="spotlightA' + idx + '_' + q + '" style="flex:1" placeholder="Answer..." value="' + escapeAttr(sp.qa[q].a || '') + '" onchange="spotlights[' + idx + '].qa[' + q + '].a=this.value">';
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+
+            // Fun facts (additional context for AI)
+            html += '<div class="form-group"><label>Fun Facts <span style="color:#6b7280;font-weight:400">(optional — helps AI write the blurb)</span></label>';
+            html += '<textarea id="spotlightFacts' + idx + '" rows="2" placeholder="Anything else about this person...">' + escapeHtml(sp.fun_facts || '') + '</textarea>';
             html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightFacts' + idx + '\', \'fun and punny\')">AI Rewrite</button></div>';
 
             // Image upload
@@ -2992,15 +3010,10 @@
 
             // AI generate + blurb
             html += '<button class="btn-small btn-orange" onclick="generateSpotlightFor(' + idx + ')" style="margin-bottom:12px;">AI Write Spotlight</button>';
-            if (sp.blurb) {
-                html += '<div class="ai-blurb-container visible"><h4>Spotlight Blurb</h4><div class="form-group" style="margin-bottom:0;">';
-                html += '<textarea id="spotlightBlurb' + idx + '" rows="4">' + escapeHtml(sp.blurb) + '</textarea>';
-                html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightBlurb' + idx + '\', \'warm and engaging\')">AI Rewrite</button></div></div>';
-            } else {
-                html += '<div class="ai-blurb-container" id="spotlightBlurbBox' + idx + '"><h4>Spotlight Blurb</h4><div class="form-group" style="margin-bottom:0;">';
-                html += '<textarea id="spotlightBlurb' + idx + '" rows="4" placeholder="AI-generated blurb will appear here..."></textarea>';
-                html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightBlurb' + idx + '\', \'warm and engaging\')">AI Rewrite</button></div></div>';
-            }
+            var hasBlurb = sp.blurb ? ' visible' : '';
+            html += '<div class="ai-blurb-container' + hasBlurb + '" id="spotlightBlurbBox' + idx + '"><h4>Spotlight Blurb</h4><div class="form-group" style="margin-bottom:0;">';
+            html += '<textarea id="spotlightBlurb' + idx + '" rows="4" placeholder="AI-generated blurb will appear here...">' + escapeHtml(sp.blurb || '') + '</textarea>';
+            html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightBlurb' + idx + '\', \'warm and engaging\')">AI Rewrite</button></div></div>';
 
             html += '</div>';
         });
@@ -3012,7 +3025,7 @@
 
     function addSpotlightBlock() {
         if (spotlights.length >= 3) return;
-        spotlights.push({ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' });
+        spotlights.push({ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] });
         renderSpotlightBlocks();
     }
 
@@ -3026,9 +3039,13 @@
         var empIdx = select.value;
         if (empIdx === '' || empIdx === null) {
             spotlights[idx].employee = null;
+            spotlights[idx].display_title = '';
         } else {
-            spotlights[idx].employee = allEmployees[parseInt(empIdx)];
+            var emp = allEmployees[parseInt(empIdx)];
+            spotlights[idx].employee = emp;
+            spotlights[idx].display_title = emp.title || '';
         }
+        if (!spotlights[idx].qa) spotlights[idx].qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
         renderSpotlightBlocks();
     }
 
@@ -3052,19 +3069,37 @@
         var sp = spotlights[idx];
         if (!sp.employee) { alert('Please select an employee first.'); return; }
 
+        // Collect current Q&A + fun facts
         var funFacts = document.getElementById('spotlightFacts' + idx).value.trim();
         sp.fun_facts = funFacts;
+        var qaText = '';
+        if (sp.qa) {
+            sp.qa.forEach(function(pair, q) {
+                var qEl = document.getElementById('spotlightQ' + idx + '_' + q);
+                var aEl = document.getElementById('spotlightA' + idx + '_' + q);
+                if (qEl) sp.qa[q].q = qEl.value.trim();
+                if (aEl) sp.qa[q].a = aEl.value.trim();
+                if (sp.qa[q].q && sp.qa[q].a) {
+                    qaText += sp.qa[q].q + ' ' + sp.qa[q].a + '. ';
+                }
+            });
+        }
+        var combinedFacts = (funFacts + ' ' + qaText).trim();
+
         var loadingArea = document.getElementById('spotlightLoadingArea');
         loadingArea.style.display = 'block';
+
+        var titleEl = document.getElementById('spotlightTitle' + idx);
+        var displayTitle = titleEl ? titleEl.value.trim() : (sp.employee.title || '');
 
         fetch(API_BASE + '/api/generate-spotlight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: sp.employee.name,
-                title: sp.employee.title || '',
+                title: displayTitle,
                 department: sp.employee.department || '',
-                fun_facts: funFacts
+                fun_facts: combinedFacts
             })
         })
         .then(function(res) { return res.json(); })
@@ -3083,8 +3118,18 @@
         spotlights.forEach(function(sp, idx) {
             var factsEl = document.getElementById('spotlightFacts' + idx);
             var blurbEl = document.getElementById('spotlightBlurb' + idx);
+            var titleEl = document.getElementById('spotlightTitle' + idx);
             if (factsEl) sp.fun_facts = factsEl.value.trim();
             if (blurbEl) sp.blurb = blurbEl.value.trim();
+            if (titleEl) sp.display_title = titleEl.value.trim();
+            // Collect Q&A
+            if (!sp.qa) sp.qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
+            for (var q = 0; q < 3; q++) {
+                var qEl = document.getElementById('spotlightQ' + idx + '_' + q);
+                var aEl = document.getElementById('spotlightA' + idx + '_' + q);
+                if (qEl) sp.qa[q].q = qEl.value.trim();
+                if (aEl) sp.qa[q].a = aEl.value.trim();
+            }
         });
         // Backward compat
         if (spotlights.length > 0 && spotlights[0].employee) {
@@ -3308,14 +3353,16 @@
 
         // Build spotlights array for rendering
         var spotlightsData = spotlights.filter(function(sp) { return sp.employee; }).map(function(sp) {
+            var qaFiltered = (sp.qa || []).filter(function(pair) { return pair.q && pair.a; });
             return {
                 name: sp.employee.name,
-                title: sp.employee.title || '',
+                title: sp.display_title || sp.employee.title || '',
                 department: sp.employee.department || '',
                 fun_facts: sp.fun_facts,
                 blurb: sp.blurb,
                 image_url: sp.image_url,
-                video_url: sp.video_url
+                video_url: sp.video_url,
+                qa: qaFiltered
             };
         });
 
@@ -3690,10 +3737,17 @@
             // Spotlights (backward compat: wrap old single spotlight in array)
             if (d.spotlights && d.spotlights.length > 0) {
                 spotlights = d.spotlights;
+                // Ensure qa arrays exist on each spotlight
+                spotlights.forEach(function(sp) {
+                    if (!sp.qa) sp.qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
+                    if (sp.display_title === undefined && sp.employee) sp.display_title = sp.employee.title || '';
+                });
             } else if (d.spotlight && d.spotlight.employee) {
                 spotlights = [d.spotlight];
+                spotlights[0].qa = spotlights[0].qa || [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
+                spotlights[0].display_title = spotlights[0].display_title || spotlights[0].employee.title || '';
             } else {
-                spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' }];
+                spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] }];
             }
 
             // Welcome hires
@@ -3895,8 +3949,15 @@
             // Restore new fields
             if (d.spotlights && d.spotlights.length > 0) {
                 spotlights = d.spotlights;
+                spotlights.forEach(function(sp) {
+                    if (!sp.qa) sp.qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
+                    if (sp.display_title === undefined && sp.employee) sp.display_title = sp.employee.title || '';
+                });
             } else if (d.spotlight && d.spotlight.employee) {
-                spotlights = [d.spotlight];
+                var s = d.spotlight;
+                s.qa = s.qa || [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
+                s.display_title = s.display_title || s.employee.title || '';
+                spotlights = [s];
             }
             welcomeEnabled = d.welcomeEnabled || false;
             welcomeHires = d.welcomeHires || [];
@@ -4151,6 +4212,52 @@
             c.classList.remove('selected');
             if (c.getAttribute('data-type') === type) c.classList.add('selected');
         });
+    }
+
+    function suggestGameContext() {
+        // Build context from current newsletter content
+        var ideas = [];
+
+        // From spotlight Q&A and facts
+        spotlights.forEach(function(sp) {
+            if (sp.employee) {
+                ideas.push(sp.employee.name + ' - ' + (sp.display_title || sp.employee.title || ''));
+                if (sp.fun_facts) ideas.push(sp.fun_facts);
+                if (sp.qa) {
+                    sp.qa.forEach(function(pair) {
+                        if (pair.q && pair.a) ideas.push(pair.q + ' ' + pair.a);
+                    });
+                }
+            }
+        });
+
+        // From birthdays
+        birthdays.forEach(function(b) {
+            if (b.name) ideas.push(b.name + ' has a birthday this month');
+        });
+
+        // From welcome hires
+        welcomeHires.forEach(function(h) {
+            if (h.name) {
+                var line = 'New hire: ' + h.name;
+                if (h.role) line += ' (' + h.role + ')';
+                if (h.fun_fact) line += ' - ' + h.fun_fact;
+                ideas.push(line);
+            }
+        });
+
+        // From updates
+        updates.forEach(function(u) {
+            if (u.title) ideas.push('Company update: ' + u.title);
+        });
+
+        if (ideas.length === 0) {
+            alert('Fill in some newsletter content first (spotlight, birthdays, updates, etc.) and I\'ll suggest game ideas from that!');
+            return;
+        }
+
+        var textarea = document.getElementById('gameContext');
+        textarea.value = ideas.join('\n');
     }
 
     function generateGame() {
