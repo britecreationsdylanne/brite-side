@@ -947,8 +947,14 @@ def render_email():
             if sp_image_url:
                 sp_image_html = (
                     f'<tr><td align="center" style="padding-bottom: 18px;">'
+                    f'<!--[if !mso]><!-->'
                     f'<img src="{sp_image_url}" width="120" alt="{sp_name}" '
                     f'style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block;">'
+                    f'<!--<![endif]-->'
+                    f'<!--[if mso]>'
+                    f'<img src="{sp_image_url}" width="120" alt="{sp_name}" '
+                    f'style="width: 120px; height: auto; display: block;">'
+                    f'<![endif]-->'
                     f'</td></tr>'
                 )
 
@@ -1028,8 +1034,8 @@ def render_email():
                 for photo_url in photos:
                     if photo_url:
                         photos_html += (
-                            f'<img src="{photo_url}" width="100%" '
-                            f'style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
+                            f'<img src="{photo_url}" width="560" '
+                            f'style="width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
                             f'alt="Update photo">'
                         )
                 if i == 0:
@@ -1062,8 +1068,8 @@ def render_email():
         if game_content or game_image_url:
             if game_image_url:
                 game_section_html += (
-                    f'<img src="{game_image_url}" width="100%" '
-                    f'style="max-width: 100%; height: auto; border-radius: 8px; display: block; margin-bottom: 16px;" '
+                    f'<img src="{game_image_url}" width="560" '
+                    f'style="width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; margin-bottom: 16px;" '
                     f'alt="BriteSide Brain Teaser">'
                 )
             if game_content:
@@ -1076,10 +1082,11 @@ def render_email():
             )
             if game_previous_answer:
                 game_section_html += (
-                    f'<div style="margin-top: 16px; padding: 12px 16px; background: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
-                    f'<span style="font-family: {FONT}; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</span><br>'
-                    f'<span style="font-family: {FONT}; font-size: 15px; color: #272D3F;">{game_previous_answer}</span>'
-                    f'</div>'
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 16px;">'
+                    f'<tr><td style="padding: 12px 16px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
+                    f'<p style="margin: 0 0 4px 0; font-family: {FONT}; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</p>'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; color: #272D3F;">{game_previous_answer}</p>'
+                    f'</td></tr></table>'
                 )
 
         # Joke setup/punchline split (delimiter: |)
