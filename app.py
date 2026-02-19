@@ -121,6 +121,23 @@ try:
     from google.cloud import storage as gcs_storage
     gcs_client = gcs_storage.Client()
     print("[OK] GCS initialized")
+
+    # Ensure bucket allows public reads (uniform bucket-level access)
+    try:
+        _bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        _policy = _bucket.get_iam_policy(requested_policy_version=3)
+        _has_public = any(
+            b.get('role') == 'roles/storage.objectViewer' and 'allUsers' in b.get('members', set())
+            for b in _policy.bindings
+        )
+        if not _has_public:
+            _policy.bindings.append({'role': 'roles/storage.objectViewer', 'members': {'allUsers'}})
+            _bucket.set_iam_policy(_policy)
+            print("[OK] Bucket public read access enabled via IAM")
+        else:
+            print("[OK] Bucket already has public read access")
+    except Exception as iam_err:
+        print(f"[WARNING] Could not set bucket IAM policy: {iam_err}")
 except Exception as e:
     print(f"[WARNING] GCS not available: {e}")
 
@@ -693,9 +710,9 @@ def upload_media():
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(blob_path)
         blob.upload_from_string(file_data, content_type=content_type)
-        blob.make_public()
 
-        public_url = blob.public_url
+        # Construct public URL directly (bucket uses uniform bucket-level access)
+        public_url = f"https://storage.googleapis.com/{GCS_DRAFTS_BUCKET}/{blob_path}"
         safe_print(f"[MEDIA] Uploaded {blob_path} ({len(file_data)} bytes)")
 
         return jsonify({
@@ -879,6 +896,9 @@ def render_email():
         except FileNotFoundError:
             return jsonify({"success": False, "error": f"Template not found: {template_path}"}), 404
 
+        # Consistent font family for all dynamically generated HTML
+        FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"
+
         # Build birthday HTML rows
         birthday_html = ''
         if birthdays:
@@ -888,9 +908,9 @@ def render_email():
                 bday_day = bday.get('birthday_day', '')
                 bday_dept = bday.get('department', '')
                 birthday_items.append(
-                    f'<tr><td style="padding: 6px 12px; font-weight: 600;">{bday_name}</td>'
-                    f'<td style="padding: 6px 12px; color: #6b7280;">{month} {bday_day}</td>'
-                    f'<td style="padding: 6px 12px; color: #6b7280;">{bday_dept}</td></tr>'
+                    f'<tr><td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; font-weight: 600; color: #272D3F;">{bday_name}</td>'
+                    f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{month} {bday_day}</td>'
+                    f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{bday_dept}</td></tr>'
                 )
             birthday_html = '\n'.join(birthday_items)
 
@@ -903,7 +923,7 @@ def render_email():
                 h_role = hire.get('role', '')
                 h_fact = hire.get('fun_fact', '')
                 hire_items.append(
-                    f'<tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">'
+                    f'<tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-family: {FONT};">'
                     f'<span style="font-size: 16px; font-weight: 700; color: #272D3F;">{h_name}</span><br>'
                     f'<span style="font-size: 14px; color: #018181; font-style: italic;">{h_role}</span>'
                     + (f'<br><span style="font-size: 13px; color: #6b7280;">Fun fact: {h_fact}</span>' if h_fact else '')
@@ -935,13 +955,13 @@ def render_email():
             spotlight_section_html += (
                 f'{sp_image_html}'
                 f'<tr><td align="center" style="padding-bottom: 2px;">'
-                f'<p style="margin: 0; font-size: 24px; font-weight: 900; color: #272D3F;">{sp_name}</p>'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 20px; font-weight: 800; color: #272D3F;">{sp_name}</p>'
                 f'</td></tr>'
                 f'<tr><td align="center" style="padding-bottom: 14px;">'
-                f'<p style="margin: 0; font-size: 14px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{sp_title}</p>'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 13px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{sp_title}</p>'
                 f'</td></tr>'
                 f'<tr><td align="center" style="padding-bottom: 24px;">'
-                f'<p style="margin: 0; font-size: 16px; line-height: 26px; color: #444444;">{sp_blurb}</p>'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444;">{sp_blurb}</p>'
                 f'</td></tr>'
             )
 
@@ -1025,17 +1045,17 @@ def render_email():
                 )
             if game_content:
                 game_section_html += (
-                    f'<p style="margin: 0 0 16px 0; font-size: 15px; line-height: 24px; color: #444444;">{game_content}</p>'
+                    f'<p style="margin: 0 0 16px 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444;">{game_content}</p>'
                 )
             game_section_html += (
-                '<p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #018181;">'
+                f'<p style="margin: 0 0 8px 0; font-family: {FONT}; font-size: 15px; font-weight: 700; color: #018181;">'
                 'Email Dove your answer &mdash; the winner gets 100 BriteCo Bucks!</p>'
             )
             if game_previous_answer:
                 game_section_html += (
                     f'<div style="margin-top: 16px; padding: 12px 16px; background: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
-                    f'<span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</span><br>'
-                    f'<span style="font-size: 14px; color: #272D3F;">{game_previous_answer}</span>'
+                    f'<span style="font-family: {FONT}; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</span><br>'
+                    f'<span style="font-family: {FONT}; font-size: 15px; color: #272D3F;">{game_previous_answer}</span>'
                     f'</div>'
                 )
 
