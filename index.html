@@ -4059,10 +4059,12 @@
                 document.getElementById('subjectLineInput').value = subject;
             }
 
+            // Always render spotlight blocks so DOM elements exist for data collection
+            renderSpotlightBlocks();
+
             // Navigate to saved step
             var step = d.currentStep || 1;
             if (step === 3) renderBirthdayList();
-            if (step === 5) renderSpotlightBlocks();
             if (step === 9) generatePreview();
             if (step === 10) renderRecipientList();
             showStep(step);
@@ -4183,6 +4185,9 @@
             }
 
             if (subject) document.getElementById('subjectLineInput').value = subject;
+
+            // Render spotlight blocks so DOM elements exist for data collection
+            renderSpotlightBlocks();
 
             // Go directly to preview (now step 9)
             generatePreview();

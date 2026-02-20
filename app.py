@@ -6,6 +6,7 @@ Flask backend API for generating BriteCo's internal employee newsletter
 import os
 import sys
 import json
+import html as html_mod
 import secrets
 import traceback
 import requests as http_requests
@@ -208,6 +209,13 @@ load_employees_from_gcs()
 # ============================================================================
 # HELPERS
 # ============================================================================
+
+def esc(text):
+    """HTML-escape user-generated text to prevent broken rendering"""
+    if not text:
+        return text or ''
+    return html_mod.escape(str(text))
+
 
 def safe_print(text):
     """Safe print for Unicode characters"""
@@ -919,9 +927,9 @@ def render_email():
         if birthdays:
             birthday_items = []
             for bday in birthdays:
-                bday_name = bday.get('name', '')
-                bday_day = bday.get('birthday_day', '')
-                bday_dept = bday.get('department', '')
+                bday_name = esc(bday.get('name', ''))
+                bday_day = esc(bday.get('birthday_day', ''))
+                bday_dept = esc(bday.get('department', ''))
                 birthday_items.append(
                     f'<tr><td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; font-weight: 600; color: #272D3F;">{bday_name}</td>'
                     f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{month} {bday_day}</td>'
@@ -934,9 +942,9 @@ def render_email():
         if welcome_enabled and welcome_hires:
             hire_items = []
             for hire in welcome_hires:
-                h_name = hire.get('name', '')
-                h_role = hire.get('role', '')
-                h_fact = hire.get('fun_fact', '')
+                h_name = esc(hire.get('name', ''))
+                h_role = esc(hire.get('role', ''))
+                h_fact = esc(hire.get('fun_fact', ''))
                 hire_items.append(
                     f'<tr><td align="center" style="padding: 14px 0; border-bottom: 1px solid #e8f5f5; font-family: {FONT}; text-align: center;">'
                     f'<p style="margin: 0 0 2px 0; font-family: {FONT}; font-size: 17px; font-weight: 700; color: #272D3F;">{h_name}</p>'
@@ -952,10 +960,10 @@ def render_email():
         spotlight_section_html = ''
         valid_spotlights = [sp for sp in spotlight_list if sp and sp.get('name')]
         for sp_idx, sp in enumerate(valid_spotlights):
-            sp_name = sp.get('name', '')
-            sp_title = sp.get('title', '')
-            sp_blurb = sp.get('blurb', '')
-            sp_fun_facts = sp.get('fun_facts', '')
+            sp_name = esc(sp.get('name', ''))
+            sp_title = esc(sp.get('title', ''))
+            sp_blurb = esc(sp.get('blurb', ''))
+            sp_fun_facts = esc(sp.get('fun_facts', ''))
             sp_image_url = sp.get('image_url', '')
 
             # Add separator between multiple spotlights
@@ -999,8 +1007,8 @@ def render_email():
             sp_qa = sp.get('qa', [])
             qa_html = ''
             for pair in sp_qa:
-                q_text = pair.get('q', '')
-                a_text = pair.get('a', '')
+                q_text = esc(pair.get('q', ''))
+                a_text = esc(pair.get('a', ''))
                 if q_text and a_text:
                     qa_html += (
                         f'<tr><td align="center" style="padding: 6px 0; text-align: center;">'
@@ -1066,17 +1074,39 @@ def render_email():
             for i, u in enumerate(updates[:3]):
                 if not isinstance(u, dict):
                     continue
-                title = u.get('title', '')
-                body = u.get('body', '')
-                photos = u.get('photos', [])
+                title = esc(u.get('title', ''))
+                body = esc(u.get('body', ''))
+                photos = [p for p in u.get('photos', []) if p]
                 photos_html = ''
-                for photo_url in photos:
-                    if photo_url:
+                if len(photos) == 1:
+                    # Single photo: full width
+                    photos_html = (
+                        f'<img src="{photos[0]}" width="516" '
+                        f'style="width: 100%; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
+                        f'alt="Update photo" class="mobile-img-full">'
+                    )
+                elif len(photos) >= 2:
+                    # Multiple photos: side-by-side in a 2-column table
+                    photos_html = (
+                        '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 12px;">'
+                        '<tr>'
+                    )
+                    for p_idx, photo_url in enumerate(photos):
+                        # Start a new row every 2 photos
+                        if p_idx > 0 and p_idx % 2 == 0:
+                            photos_html += '</tr><tr>'
+                        cell_width = '50%' if (len(photos) - p_idx) >= 2 or p_idx % 2 == 1 else '100%'
+                        pad_right = '4px' if p_idx % 2 == 0 and (p_idx + 1) < len(photos) else '0'
+                        pad_left = '4px' if p_idx % 2 == 1 else '0'
+                        colspan = ' colspan="2"' if cell_width == '100%' else ''
                         photos_html += (
-                            f'<img src="{photo_url}" width="360" '
-                            f'style="width: 100%; max-width: 360px; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
-                            f'alt="Update photo">'
+                            f'<td{colspan} width="{cell_width}" style="padding-right: {pad_right}; padding-left: {pad_left}; padding-bottom: 8px;" valign="top">'
+                            f'<img src="{photo_url}" width="248" '
+                            f'style="width: 100%; height: auto; border-radius: 8px; display: block;" '
+                            f'alt="Update photo" class="mobile-img-full">'
+                            f'</td>'
                         )
+                    photos_html += '</tr></table>'
                 if i == 0:
                     update_1_title = title
                     update_1_body = body
@@ -1093,8 +1123,8 @@ def render_email():
         # Build special section HTML (frontend sends null if disabled)
         if not special_section:
             special_section = {}
-        special_title = special_section.get('title', '')
-        special_body = special_section.get('body', '')
+        special_title = esc(special_section.get('title', ''))
+        special_body = esc(special_section.get('body', ''))
 
         # Build game section HTML
         if not game:
@@ -1139,12 +1169,12 @@ def render_email():
             game_section_html += '</table>'
 
         # Joke setup/punchline split (delimiter: |)
-        joke_setup = str(joke)
+        joke_setup = esc(str(joke))
         joke_punchline = ''
         if '|' in str(joke):
             parts = str(joke).split('|', 1)
-            joke_setup = parts[0].strip()
-            joke_punchline = parts[1].strip()
+            joke_setup = esc(parts[0].strip())
+            joke_punchline = esc(parts[1].strip())
 
         # Conditional display values
         birthday_display = 'table-row' if birthdays else 'none'
