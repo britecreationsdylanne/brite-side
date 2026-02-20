@@ -2080,12 +2080,8 @@
                 <label>Email Template</label>
                 <select id="templateSelect" onchange="generatePreview()">
                     <option value="briteside-email.html">Classic BriteSide</option>
-                    <option value="briteside-email-bold.html">Bold & Vibrant</option>
                     <option value="briteside-email-playful.html">Playful & Fun</option>
-                    <option value="briteside-email-minimal.html">Modern Minimal</option>
-                    <option value="briteside-email-magazine.html">Magazine Style</option>
                     <option value="briteside-email-teal.html">Teal Background</option>
-                    <option value="briteside-email-teal-white.html">Teal + White</option>
                 </select>
             </div>
 
@@ -2167,7 +2163,22 @@
                     <div class="confetti-dot"></div>
                     <div class="confetti-dot"></div>
                 </div>
-                <div class="buttons" style="justify-content: center; margin-top: 40px;">
+                <!-- Slack sharing -->
+                <div id="slackShareArea" style="margin-top: 32px; max-width: 420px; margin-left: auto; margin-right: auto;">
+                    <button class="btn" id="slackShareBtn" onclick="toggleSlackShare()" style="background: #4A154B; width: 100%;">
+                        &#128172; Share in #announcements
+                    </button>
+                    <div id="slackShareForm" style="display: none; margin-top: 16px; text-align: left;">
+                        <textarea id="slackMessage" rows="3" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 15px; resize: vertical; box-sizing: border-box;"></textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button class="btn" id="slackSendBtn" onclick="sendToSlack()" style="background: #4A154B; flex: 1;">Post to Slack</button>
+                            <button class="btn btn-secondary" onclick="toggleSlackShare()" style="flex: 0;">Cancel</button>
+                        </div>
+                        <p id="slackStatus" style="margin: 10px 0 0 0; font-size: 14px; text-align: center; display: none;"></p>
+                    </div>
+                </div>
+
+                <div class="buttons" style="justify-content: center; margin-top: 20px;">
                     <button class="btn" onclick="startOver()">Done &mdash; Start Fresh</button>
                 </div>
             </div>
@@ -3669,6 +3680,68 @@
         document.getElementById('progressStepText').textContent = 'Complete!';
         document.getElementById('progressLabel').textContent = 'Newsletter delivered';
         document.getElementById('progressBar').style.width = '100%';
+
+        // Reset Slack share area
+        document.getElementById('slackShareForm').style.display = 'none';
+        document.getElementById('slackShareBtn').style.display = '';
+        document.getElementById('slackStatus').style.display = 'none';
+        var monthName = selectedMonth || 'this month';
+        document.getElementById('slackMessage').value =
+            'Check your email for ' + monthName + '\'s BriteSide! 🎉';
+    }
+
+    function toggleSlackShare() {
+        var form = document.getElementById('slackShareForm');
+        var btn = document.getElementById('slackShareBtn');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            form.style.display = 'none';
+            btn.style.display = '';
+        }
+    }
+
+    function sendToSlack() {
+        var message = document.getElementById('slackMessage').value.trim();
+        if (!message) return;
+
+        var sendBtn = document.getElementById('slackSendBtn');
+        var status = document.getElementById('slackStatus');
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Posting...';
+        status.style.display = 'none';
+
+        fetch(API_BASE + '/api/send-to-slack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Post to Slack';
+            status.style.display = 'block';
+            if (data.success) {
+                status.style.color = '#018181';
+                status.textContent = 'Posted to #announcements!';
+                document.getElementById('slackShareForm').style.display = 'none';
+                document.getElementById('slackShareBtn').textContent = '✓ Shared in #announcements';
+                document.getElementById('slackShareBtn').style.display = '';
+                document.getElementById('slackShareBtn').disabled = true;
+                document.getElementById('slackShareBtn').style.opacity = '0.7';
+            } else {
+                status.style.color = '#dc2626';
+                status.textContent = data.error || 'Failed to post to Slack';
+            }
+        })
+        .catch(function(err) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Post to Slack';
+            status.style.display = 'block';
+            status.style.color = '#dc2626';
+            status.textContent = 'Network error — could not reach server';
+        });
     }
 
     /* ============================================================

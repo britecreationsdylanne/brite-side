@@ -8,6 +8,7 @@ import sys
 import json
 import secrets
 import traceback
+import requests as http_requests
 import uuid
 from datetime import datetime
 
@@ -916,12 +917,8 @@ def render_email():
         template_file = data.get('template', 'briteside-email.html')
         allowed_templates = [
             'briteside-email.html',
-            'briteside-email-bold.html',
             'briteside-email-playful.html',
-            'briteside-email-minimal.html',
-            'briteside-email-magazine.html',
             'briteside-email-teal.html',
-            'briteside-email-teal-white.html',
         ]
         if template_file not in allowed_templates:
             template_file = 'briteside-email.html'
@@ -1303,6 +1300,49 @@ def send_newsletter():
 
     except Exception as e:
         safe_print(f"[API] Error sending newsletter: {e}")
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================================
+# SLACK INTEGRATION
+# ============================================================================
+
+@app.route('/api/send-to-slack', methods=['POST'])
+def send_to_slack():
+    """Post a message to Slack via incoming webhook"""
+    try:
+        webhook_url = os.environ.get('_SLACK_WEBHOOK_URL', os.environ.get('SLACK_WEBHOOK_URL', ''))
+        if not webhook_url:
+            return jsonify({"success": False, "error": "Slack webhook not configured. Add SLACK_WEBHOOK_URL to your environment."}), 400
+
+        data = request.json
+        message = data.get('message', '').strip()
+        if not message:
+            return jsonify({"success": False, "error": "Message cannot be empty"}), 400
+
+        payload = {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f":tada: *The BriteSide is here!*\n\n{message}"
+                    }
+                }
+            ]
+        }
+
+        resp = http_requests.post(webhook_url, json=payload, timeout=10)
+        if resp.status_code == 200:
+            safe_print(f"[API] Slack message sent successfully")
+            return jsonify({"success": True})
+        else:
+            safe_print(f"[API] Slack webhook returned {resp.status_code}: {resp.text}")
+            return jsonify({"success": False, "error": f"Slack returned status {resp.status_code}"}), 502
+
+    except Exception as e:
+        safe_print(f"[API] Error sending to Slack: {e}")
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
