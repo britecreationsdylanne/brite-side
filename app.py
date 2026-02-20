@@ -923,10 +923,10 @@ def render_email():
                 h_role = hire.get('role', '')
                 h_fact = hire.get('fun_fact', '')
                 hire_items.append(
-                    f'<tr><td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-family: {FONT};">'
-                    f'<span style="font-size: 16px; font-weight: 700; color: #272D3F;">{h_name}</span><br>'
-                    f'<span style="font-size: 14px; color: #018181; font-style: italic;">{h_role}</span>'
-                    + (f'<br><span style="font-size: 13px; color: #6b7280;">Fun fact: {h_fact}</span>' if h_fact else '')
+                    f'<tr><td align="center" style="padding: 14px 0; border-bottom: 1px solid #e8f5f5; font-family: {FONT}; text-align: center;">'
+                    f'<p style="margin: 0 0 2px 0; font-family: {FONT}; font-size: 17px; font-weight: 700; color: #272D3F;">{h_name}</p>'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 14px; color: #31D7CA; font-style: italic;">{h_role}</p>'
+                    + (f'<p style="margin: 4px 0 0 0; font-family: {FONT}; font-size: 13px; color: #6b7280;">Fun fact: {h_fact}</p>' if h_fact else '')
                     + '</td></tr>'
                 )
             welcome_html = '\n'.join(hire_items)
@@ -935,18 +935,28 @@ def render_email():
         # Use spotlights array if available, fall back to single spotlight
         spotlight_list = spotlights if spotlights else ([spotlight] if spotlight and spotlight.get('name') else [])
         spotlight_section_html = ''
-        for sp in spotlight_list:
-            if not sp or not sp.get('name'):
-                continue
+        valid_spotlights = [sp for sp in spotlight_list if sp and sp.get('name')]
+        for sp_idx, sp in enumerate(valid_spotlights):
             sp_name = sp.get('name', '')
             sp_title = sp.get('title', '')
             sp_blurb = sp.get('blurb', '')
+            sp_fun_facts = sp.get('fun_facts', '')
             sp_image_url = sp.get('image_url', '')
+
+            # Add separator between multiple spotlights
+            if sp_idx > 0:
+                spotlight_section_html += (
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 8px 0 20px 0;">'
+                    f'<tr><td style="height: 1px; background-color: #e8f5f5; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>'
+                    f'</table>'
+                )
+
+            spotlight_section_html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
 
             sp_image_html = ''
             if sp_image_url:
-                sp_image_html = (
-                    f'<tr><td align="center" style="padding-bottom: 18px;">'
+                spotlight_section_html += (
+                    f'<tr><td align="center" style="padding-bottom: 16px;">'
                     f'<!--[if !mso]><!-->'
                     f'<img src="{sp_image_url}" width="120" alt="{sp_name}" '
                     f'style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block;">'
@@ -958,7 +968,17 @@ def render_email():
                     f'</td></tr>'
                 )
 
-            # Build Q&A HTML if present
+            # Name and title
+            spotlight_section_html += (
+                f'<tr><td align="center" style="padding-bottom: 2px;">'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 20px; font-weight: 800; color: #272D3F;">{sp_name}</p>'
+                f'</td></tr>'
+                f'<tr><td align="center" style="padding-bottom: 16px;">'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 13px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{sp_title}</p>'
+                f'</td></tr>'
+            )
+
+            # Build Q&A HTML if present — centered
             sp_qa = sp.get('qa', [])
             qa_html = ''
             for pair in sp_qa:
@@ -966,33 +986,29 @@ def render_email():
                 a_text = pair.get('a', '')
                 if q_text and a_text:
                     qa_html += (
-                        f'<tr><td style="padding: 4px 0;">'
-                        f'<p style="margin: 0; font-family: {FONT}; font-size: 14px; color: #018181; font-weight: 700;">{q_text}</p>'
+                        f'<tr><td align="center" style="padding: 6px 0; text-align: center;">'
+                        f'<p style="margin: 0; font-family: {FONT}; font-size: 14px; color: #272D3F; font-weight: 700;">{q_text}</p>'
                         f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; color: #444444;">{a_text}</p>'
                         f'</td></tr>'
                     )
 
-            spotlight_section_html += f'{sp_image_html}'
-            spotlight_section_html += (
-                f'<tr><td align="center" style="padding-bottom: 2px;">'
-                f'<p style="margin: 0; font-family: {FONT}; font-size: 20px; font-weight: 800; color: #272D3F;">{sp_name}</p>'
-                f'</td></tr>'
-                f'<tr><td align="center" style="padding-bottom: 14px;">'
-                f'<p style="margin: 0; font-family: {FONT}; font-size: 13px; font-weight: 700; color: #31D7CA; text-transform: uppercase; letter-spacing: 1px;">{sp_title}</p>'
-                f'</td></tr>'
-            )
             if qa_html:
                 spotlight_section_html += (
-                    f'<tr><td style="padding: 0 20px 14px 20px;">'
+                    f'<tr><td style="padding: 0 0 16px 0;">'
                     f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
                     f'{qa_html}</table></td></tr>'
                 )
-            if sp_blurb:
+
+            # Show blurb if present, fall back to fun_facts
+            sp_text = sp_blurb or sp_fun_facts
+            if sp_text:
                 spotlight_section_html += (
-                    f'<tr><td align="center" style="padding-bottom: 24px;">'
-                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444;">{sp_blurb}</p>'
+                    f'<tr><td align="center" style="padding-bottom: 8px; text-align: center;">'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444; font-style: italic;">{sp_text}</p>'
                     f'</td></tr>'
                 )
+
+            spotlight_section_html += '</table>'
 
         # For backward compat, also build single-spotlight placeholders
         if not spotlight:

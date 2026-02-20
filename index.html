@@ -2455,6 +2455,11 @@
         }
         if (step === 7) {
             loadPreviousGameAnswer();
+            // Auto-suggest game context if field is empty
+            var gameCtx = document.getElementById('gameContext');
+            if (gameCtx && !gameCtx.value.trim()) {
+                suggestGameContext();
+            }
         }
         if (step === 9) {
             generatePreview();
@@ -4225,7 +4230,7 @@
                 if (sp.fun_facts) ideas.push(sp.fun_facts);
                 if (sp.qa) {
                     sp.qa.forEach(function(pair) {
-                        if (pair.q && pair.a) ideas.push(pair.q + ' ' + pair.a);
+                        if (pair.q && pair.a) ideas.push(pair.q + ': ' + pair.a);
                     });
                 }
             }
@@ -4251,13 +4256,59 @@
             if (u.title) ideas.push('Company update: ' + u.title);
         });
 
-        if (ideas.length === 0) {
-            alert('Fill in some newsletter content first (spotlight, birthdays, updates, etc.) and I\'ll suggest game ideas from that!');
-            return;
-        }
-
         var textarea = document.getElementById('gameContext');
-        textarea.value = ideas.join('\n');
+
+        // Also fetch past newsletters for additional context
+        fetch(API_BASE + '/api/list-published')
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (!data.success || !data.newsletters || data.newsletters.length === 0) {
+                    textarea.value = ideas.join('\n');
+                    return;
+                }
+                // Load the most recent published newsletter
+                var latest = data.newsletters[0];
+                return fetch(API_BASE + '/api/load-published?file=' + encodeURIComponent(latest.filename))
+                    .then(function(res) { return res.json(); })
+                    .then(function(pubData) {
+                        if (!pubData.success) return;
+                        var d = pubData.data || pubData;
+                        ideas.push('');
+                        ideas.push('--- From past newsletter (' + (latest.month || '') + ' ' + (latest.year || '') + ') ---');
+
+                        // Past spotlight data
+                        var pastSpotlights = d.spotlights || [];
+                        if (!pastSpotlights.length && d.spotlight && d.spotlight.name) pastSpotlights = [d.spotlight];
+                        pastSpotlights.forEach(function(ps) {
+                            if (ps.name) ideas.push('Past spotlight: ' + ps.name + (ps.title ? ' (' + ps.title + ')' : ''));
+                            if (ps.fun_facts) ideas.push(ps.fun_facts);
+                            if (ps.blurb) ideas.push(ps.blurb);
+                            if (ps.qa) {
+                                ps.qa.forEach(function(pair) {
+                                    if (pair.q && pair.a) ideas.push(pair.q + ': ' + pair.a);
+                                });
+                            }
+                        });
+
+                        // Past birthdays
+                        var pastBdays = d.birthdays || [];
+                        pastBdays.forEach(function(b) {
+                            if (b.name) ideas.push('Past birthday: ' + b.name);
+                        });
+
+                        // Past updates
+                        var pastUpdates = d.updates || [];
+                        pastUpdates.forEach(function(u) {
+                            if (u && u.title) ideas.push('Past update: ' + u.title);
+                        });
+
+                        textarea.value = ideas.join('\n');
+                    });
+            })
+            .catch(function() {
+                // If fetch fails, just use current content
+                textarea.value = ideas.join('\n');
+            });
     }
 
     function generateGame() {
