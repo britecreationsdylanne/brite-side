@@ -1079,11 +1079,13 @@ def render_email():
                 photos = [p for p in u.get('photos', []) if p]
                 photos_html = ''
                 if len(photos) == 1:
-                    # Single photo: full width
+                    # Single photo: full width, 35% shorter max-height
                     photos_html = (
+                        f'<div style="margin-top: 12px; max-height: 220px; overflow: hidden; border-radius: 8px;">'
                         f'<img src="{photos[0]}" width="516" '
-                        f'style="width: 100%; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
+                        f'style="width: 100%; height: auto; display: block;" '
                         f'alt="Update photo" class="mobile-img-full">'
+                        f'</div>'
                     )
                 elif len(photos) >= 2:
                     # Multiple photos: side-by-side in a 2-column table
@@ -1195,8 +1197,9 @@ def render_email():
         base_url = request.host_url.rstrip('/')
         html = html.replace('/static/briteco-logo-white.png', f'{base_url}/static/briteco-logo-white.png')
 
-        # Replace placeholders in template
-        html = html.replace('{{MONTH}}', str(month))
+        # Replace placeholders in template (ensure month is always capitalized)
+        month_cap = str(month).capitalize() if month else ''
+        html = html.replace('{{MONTH}}', month_cap)
         html = html.replace('{{YEAR}}', str(year))
         html = html.replace('{{PREHEADER}}', str(preheader))
         html = html.replace('{{INTRO_LINE}}', '')
