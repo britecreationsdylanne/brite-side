@@ -672,7 +672,7 @@ def rewrite_content():
             f"Requirements:\n"
             f"- Maintain the core message and facts\n"
             f"- Apply the requested tone consistently\n"
-            f"- Keep approximately the same length\n"
+            f"- Keep it concise — aim for 2-3 sentences max, no filler\n"
             f"- Return ONLY the rewritten text, nothing else"
         )
 
