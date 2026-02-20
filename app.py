@@ -998,12 +998,18 @@ def render_email():
                     f'{qa_html}</table></td></tr>'
                 )
 
-            # Show blurb if present, fall back to fun_facts
-            sp_text = sp_blurb or sp_fun_facts
-            if sp_text:
+            # Show blurb if present
+            if sp_blurb:
                 spotlight_section_html += (
                     f'<tr><td align="center" style="padding-bottom: 8px; text-align: center;">'
-                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444; font-style: italic;">{sp_text}</p>'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444; font-style: italic;">{sp_blurb}</p>'
+                    f'</td></tr>'
+                )
+            # Show fun facts below blurb (or on its own if no blurb)
+            if sp_fun_facts:
+                spotlight_section_html += (
+                    f'<tr><td align="center" style="padding-bottom: 8px; text-align: center;">'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 14px; line-height: 22px; color: #6b7280;">Fun fact: {sp_fun_facts}</p>'
                     f'</td></tr>'
                 )
 
@@ -1049,8 +1055,8 @@ def render_email():
                 for photo_url in photos:
                     if photo_url:
                         photos_html += (
-                            f'<img src="{photo_url}" width="560" '
-                            f'style="width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
+                            f'<img src="{photo_url}" width="360" '
+                            f'style="width: 100%; max-width: 360px; height: auto; border-radius: 8px; margin-top: 12px; display: block;" '
                             f'alt="Update photo">'
                         )
                 if i == 0:
@@ -1083,23 +1089,23 @@ def render_email():
         if game_content or game_image_url:
             if game_image_url:
                 game_section_html += (
-                    f'<img src="{game_image_url}" width="560" '
-                    f'style="width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; margin-bottom: 16px;" '
+                    f'<img src="{game_image_url}" width="460" '
+                    f'style="width: 100%; max-width: 460px; height: auto; border-radius: 8px; display: block; margin-bottom: 10px;" '
                     f'alt="BriteSide Brain Teaser">'
                 )
             if game_content:
                 game_section_html += (
-                    f'<p style="margin: 0 0 16px 0; font-family: {FONT}; font-size: 15px; line-height: 25px; color: #444444;">{game_content}</p>'
+                    f'<p style="margin: 0 0 10px 0; font-family: {FONT}; font-size: 15px; line-height: 24px; color: #444444;">{game_content}</p>'
                 )
             game_section_html += (
-                f'<p style="margin: 0 0 8px 0; font-family: {FONT}; font-size: 15px; font-weight: 700; color: #018181;">'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; font-weight: 700; color: #018181;">'
                 'Email Dove your answer &mdash; the winner gets 100 BriteCo Bucks!</p>'
             )
             if game_previous_answer:
                 game_section_html += (
-                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 16px;">'
-                    f'<tr><td style="padding: 12px 16px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
-                    f'<p style="margin: 0 0 4px 0; font-family: {FONT}; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</p>'
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 10px;">'
+                    f'<tr><td style="padding: 10px 14px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
+                    f'<p style="margin: 0 0 2px 0; font-family: {FONT}; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</p>'
                     f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; color: #272D3F;">{game_previous_answer}</p>'
                     f'</td></tr></table>'
                 )

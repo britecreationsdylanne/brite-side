@@ -1653,6 +1653,7 @@
             <p class="step-description" id="birthdayDescription">Celebrate this month's birthday stars!</p>
 
             <div id="birthdayListArea"></div>
+            <a href="javascript:void(0)" class="add-update-link" onclick="addManualBirthday()">+ Add Birthday</a>
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Back</button>
@@ -2328,6 +2329,8 @@
             if (btn) { btn.disabled = false; btn.textContent = 'AI Rewrite'; }
             if (data.success && data.rewritten) {
                 textarea.value = data.rewritten;
+                textarea.dispatchEvent(new Event('change'));
+                textarea.dispatchEvent(new Event('input'));
                 showRewriteFeedback(textarea, tone);
             } else {
                 alert('AI rewrite failed: ' + (data.error || 'Unknown error'));
@@ -2373,6 +2376,8 @@
             input.disabled = false;
             if (data.success && data.rewritten) {
                 input.value = data.rewritten.replace(/\n/g, ' ').trim();
+                input.dispatchEvent(new Event('change'));
+                input.dispatchEvent(new Event('input'));
             } else {
                 alert('AI rewrite failed: ' + (data.error || 'Unknown error'));
             }
@@ -2863,19 +2868,35 @@
 
         var html = '<div class="birthday-list">';
         birthdays.forEach(function(b, idx) {
-            var dayStr = selectedMonth.substring(0, 3) + ' ' + b.birthday_day;
+            var isManual = !b.birthday_day && !b.name;
             html += '<div class="birthday-card">';
             html += '<div class="birthday-icon">&#127874;</div>';
             html += '<div class="birthday-info">';
-            html += '<div class="birthday-name">' + escapeHtml(b.name) + '</div>';
-            html += '<div class="birthday-meta">' + escapeHtml(b.department) + ' &middot; ' + dayStr + '</div>';
+            if (isManual || b._manual) {
+                b._manual = true;
+                html += '<div style="display:flex;gap:8px;margin-bottom:6px;">';
+                html += '<input type="text" placeholder="Name" value="' + escapeAttr(b.name) + '" onchange="birthdays[' + idx + '].name=this.value" style="flex:2;">';
+                html += '<input type="text" placeholder="Department" value="' + escapeAttr(b.department) + '" onchange="birthdays[' + idx + '].department=this.value" style="flex:1;">';
+                html += '<input type="text" placeholder="Day (e.g. 15)" value="' + escapeAttr(b.birthday_day) + '" onchange="birthdays[' + idx + '].birthday_day=this.value" style="width:80px;">';
+                html += '</div>';
+            } else {
+                var dayStr = selectedMonth.substring(0, 3) + ' ' + b.birthday_day;
+                html += '<div class="birthday-name">' + escapeHtml(b.name) + '</div>';
+                html += '<div class="birthday-meta">' + escapeHtml(b.department) + ' &middot; ' + dayStr + '</div>';
+            }
             html += '<textarea class="birthday-message-input" id="birthdayMsg' + idx + '" data-idx="' + idx + '" placeholder="Add a personal note..." rows="2">' + escapeHtml(b.message || '') + '</textarea>';
             html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'birthdayMsg' + idx + '\', \'warm and celebratory\')">AI Rewrite</button>';
+            if (b._manual) html += '<button class="welcome-remove-btn" onclick="birthdays.splice(' + idx + ',1);renderBirthdayList()" style="margin-top:6px;">Remove</button>';
             html += '</div>';
             html += '</div>';
         });
         html += '</div>';
         area.innerHTML = html;
+    }
+
+    function addManualBirthday() {
+        birthdays.push({ name: '', department: '', birthday_day: '', message: '' });
+        renderBirthdayList();
     }
 
     function collectBirthdayData() {
@@ -2932,7 +2953,14 @@
     }
 
     function collectWelcomeData() {
-        // Data is collected via onchange handlers on the inputs
+        welcomeHires.forEach(function(hire, idx) {
+            var nameEl = document.querySelector('.welcome-hire-card[data-idx="' + idx + '"] input[placeholder="Name"]');
+            var roleEl = document.querySelector('.welcome-hire-card[data-idx="' + idx + '"] input[placeholder="Role / Title"]');
+            var factEl = document.getElementById('welcomeFact' + idx);
+            if (nameEl) hire.name = nameEl.value;
+            if (roleEl) hire.role = roleEl.value;
+            if (factEl) hire.fun_fact = factEl.value;
+        });
     }
 
     /* ============================================================
