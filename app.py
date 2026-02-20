@@ -986,9 +986,11 @@ def render_email():
             # Add separator between multiple spotlights
             if sp_idx > 0:
                 spotlight_section_html += (
-                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 8px 0 20px 0;">'
-                    f'<tr><td style="height: 1px; background-color: #e8f5f5; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>'
-                    f'</table>'
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
+                    f'<tr><td style="height: 1px; padding: 28px 0; font-size: 1px; line-height: 1px;">'
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
+                    f'<tr><td style="height: 0; border-top: 2px dashed #31D7CA; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>'
+                    f'</table></td></tr></table>'
                 )
 
             spotlight_section_html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
