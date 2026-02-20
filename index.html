@@ -1491,9 +1491,9 @@
         }
         .team-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 60px;
-            gap: 10px;
-            padding: 12px 16px;
+            grid-template-columns: 1fr 1fr 1fr 110px 60px;
+            gap: 8px;
+            padding: 10px 16px;
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.06);
             font-size: 13px;
@@ -1504,6 +1504,32 @@
         .team-row .name { font-weight: 600; color: white; }
         .team-row .email { color: rgba(255,255,255,0.5); font-size: 12px; }
         .team-row .dept { color: rgba(255,255,255,0.5); font-size: 12px; }
+        .team-row .team-edit-input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.85);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .team-row .team-edit-input:focus {
+            border-color: #31D7CA;
+            outline: none;
+        }
+        .team-row .team-edit-input::placeholder { color: rgba(255,255,255,0.25); }
+        .team-row .bday-cell { display: flex; gap: 4px; align-items: center; }
+        .team-row .bday-cell select, .team-row .bday-cell input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.85);
+            padding: 3px 4px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .team-row .bday-cell select { width: 52px; }
+        .team-row .bday-cell input { width: 36px; text-align: center; }
         .team-remove-btn {
             background: transparent;
             border: 1px solid rgba(220,53,69,0.5);
@@ -1535,9 +1561,11 @@
                 grid-template-columns: 1fr 1fr;
             }
             .team-row {
-                grid-template-columns: 1fr 1fr 60px;
+                grid-template-columns: 1fr 1fr 1fr 90px 50px;
+                font-size: 11px;
+                gap: 4px;
+                padding: 8px 10px;
             }
-            .team-row { grid-template-columns: 1fr 60px; }
             .team-section { padding: 24px 20px; }
         }
     </style>
@@ -2228,6 +2256,10 @@
             <div class="form-col">
                 <label>Email *</label>
                 <input type="text" id="addEmpEmail" placeholder="email@brite.co">
+            </div>
+            <div class="form-col">
+                <label>Title</label>
+                <input type="text" id="addEmpTitle" placeholder="Job title">
             </div>
             <button class="team-add-btn" onclick="addEmployee()">+ Add</button>
         </div>
@@ -4184,6 +4216,7 @@
     function renderTeamList() {
         var listEl = document.getElementById('teamList');
         var countEl = document.getElementById('teamCount');
+        var monthAbbr = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
         if (!allEmployees || allEmployees.length === 0) {
             listEl.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);font-size:14px;">No employees loaded</div>';
@@ -4191,12 +4224,27 @@
             return;
         }
 
-        var html = '';
+        var html = '<div class="team-row" style="font-weight:700;color:rgba(255,255,255,0.5);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.12);">';
+        html += '<div>Name</div><div>Email</div><div>Title</div><div>Birthday</div><div></div>';
+        html += '</div>';
+
         allEmployees.forEach(function(emp) {
+            var safeEmail = escapeAttr(emp.email);
             html += '<div class="team-row">';
             html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
             html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
-            html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + escapeAttr(emp.email) + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
+            html += '<div><input type="text" class="team-edit-input" value="' + escapeAttr(emp.title || '') + '" placeholder="Title" onchange="updateEmployeeField(\'' + safeEmail + '\', \'title\', this.value)"></div>';
+            html += '<div class="bday-cell">';
+            html += '<select onchange="updateEmployeeBday(\'' + safeEmail + '\', this.value, null)">';
+            html += '<option value="0">--</option>';
+            for (var m = 1; m <= 12; m++) {
+                var sel = (emp.birthday_month === m) ? ' selected' : '';
+                html += '<option value="' + m + '"' + sel + '>' + monthAbbr[m] + '</option>';
+            }
+            html += '</select>';
+            html += '<input type="number" value="' + (emp.birthday_day || '') + '" min="1" max="31" placeholder="D" onchange="updateEmployeeBday(\'' + safeEmail + '\', null, this.value)">';
+            html += '</div>';
+            html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
             html += '</div>';
         });
 
@@ -4207,6 +4255,7 @@
     function addEmployee() {
         var name = document.getElementById('addEmpName').value.trim();
         var email = document.getElementById('addEmpEmail').value.trim();
+        var title = document.getElementById('addEmpTitle').value.trim();
         if (!name || !email) {
             alert('Name and email are required.');
             return;
@@ -4215,20 +4264,68 @@
         fetch(API_BASE + '/api/employees/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name, email: email, department: '', title: '' })
+            body: JSON.stringify({ name: name, email: email, department: '', title: title })
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
             if (data.success) {
                 document.getElementById('addEmpName').value = '';
                 document.getElementById('addEmpEmail').value = '';
-                // Refresh employee list
+                document.getElementById('addEmpTitle').value = '';
                 fetchAllEmployees();
             } else {
                 alert('Error: ' + (data.error || 'Could not add employee'));
             }
         })
         .catch(function(err) { alert('Error adding employee: ' + err.message); });
+    }
+
+    function updateEmployeeField(email, field, value) {
+        var payload = { email: email };
+        payload[field] = value.trim();
+        fetch(API_BASE + '/api/employees/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                for (var i = 0; i < allEmployees.length; i++) {
+                    if (allEmployees[i].email.toLowerCase() === email.toLowerCase()) {
+                        allEmployees[i][field] = value.trim();
+                        break;
+                    }
+                }
+            }
+        })
+        .catch(function(err) { console.error('Error updating employee:', err); });
+    }
+
+    function updateEmployeeBday(email, month, day) {
+        var emp = null;
+        for (var i = 0; i < allEmployees.length; i++) {
+            if (allEmployees[i].email.toLowerCase() === email.toLowerCase()) {
+                emp = allEmployees[i];
+                break;
+            }
+        }
+        if (!emp) return;
+        var m = month !== null ? parseInt(month) : emp.birthday_month;
+        var d = day !== null ? parseInt(day) : emp.birthday_day;
+        fetch(API_BASE + '/api/employees/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, birthday_month: m || 0, birthday_day: d || 0 })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                emp.birthday_month = m || 0;
+                emp.birthday_day = d || 0;
+            }
+        })
+        .catch(function(err) { console.error('Error updating birthday:', err); });
     }
 
     function removeEmployee(email, name) {
