@@ -2140,8 +2140,8 @@
                         <input type="text" id="recipientSearch" placeholder="Search by name or email..." oninput="filterRecipients()">
                     </div>
 
-                    <div class="select-all-row" onclick="toggleSelectAll()">
-                        <input type="checkbox" id="selectAllCheckbox">
+                    <div class="select-all-row">
+                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
                         <label for="selectAllCheckbox">Select All Employees</label>
                     </div>
 
@@ -3143,7 +3143,7 @@
 
             // Fun facts (additional context for AI)
             html += '<div class="form-group"><label>Fun Facts <span style="color:#6b7280;font-weight:400">(optional — helps AI write the blurb)</span></label>';
-            html += '<textarea id="spotlightFacts' + idx + '" rows="2" placeholder="Anything else about this person...">' + escapeHtml(sp.fun_facts || '') + '</textarea>';
+            html += '<textarea id="spotlightFacts' + idx + '" rows="2" placeholder="Anything else about this person..." oninput="spotlights[' + idx + '].fun_facts=this.value">' + escapeHtml(sp.fun_facts || '') + '</textarea>';
             html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightFacts' + idx + '\', \'fun and punny\')">AI Rewrite</button></div>';
 
             // Image upload
@@ -3168,7 +3168,7 @@
             html += '<button class="btn-small btn-orange" onclick="generateSpotlightFor(' + idx + ')" style="margin-bottom:12px;">AI Write Spotlight</button>';
             var hasBlurb = sp.blurb ? ' visible' : '';
             html += '<div class="ai-blurb-container' + hasBlurb + '" id="spotlightBlurbBox' + idx + '"><h4>Spotlight Blurb</h4><div class="form-group" style="margin-bottom:0;">';
-            html += '<textarea id="spotlightBlurb' + idx + '" rows="4" placeholder="AI-generated blurb will appear here...">' + escapeHtml(sp.blurb || '') + '</textarea>';
+            html += '<textarea id="spotlightBlurb' + idx + '" rows="4" placeholder="AI-generated blurb will appear here..." oninput="spotlights[' + idx + '].blurb=this.value">' + escapeHtml(sp.blurb || '') + '</textarea>';
             html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'spotlightBlurb' + idx + '\', \'warm and engaging\')">AI Rewrite</button></div></div>';
 
             html += '</div>';
@@ -3493,6 +3493,10 @@
     }
 
     function buildNewsletterPayload() {
+        // Collect all step data to ensure state is fresh
+        collectWelcomeData();
+        collectSpotlightsData();
+
         // Build the updates array, filtering empty ones
         var activeUpdates = [];
         if (updatesEnabled) {
@@ -3613,15 +3617,16 @@
         });
 
         listEl.innerHTML = html;
-        document.getElementById('selectAllCheckbox').checked = false;
+        // Default to all selected
+        document.getElementById('selectAllCheckbox').checked = true;
+        var allCbs = document.querySelectorAll('.emp-checkbox');
+        allCbs.forEach(function(cb) { cb.checked = true; });
         updateRecipientCount();
     }
 
     function toggleSelectAll() {
         var selectAllCb = document.getElementById('selectAllCheckbox');
-        // Toggle the checkbox itself if clicked outside the input
-        var isChecked = !selectAllCb.checked;
-        selectAllCb.checked = isChecked;
+        var isChecked = selectAllCb.checked;
 
         var checkboxes = document.querySelectorAll('.emp-checkbox, .manual-checkbox');
         checkboxes.forEach(function(cb) {
@@ -3629,18 +3634,6 @@
         });
         updateRecipientCount();
     }
-
-    // Handle the checkbox click directly so we don't double-toggle
-    document.addEventListener('change', function(e) {
-        if (e.target && e.target.id === 'selectAllCheckbox') {
-            var isChecked = e.target.checked;
-            var checkboxes = document.querySelectorAll('.emp-checkbox, .manual-checkbox');
-            checkboxes.forEach(function(cb) {
-                cb.checked = isChecked;
-            });
-            updateRecipientCount();
-        }
-    });
 
     function addManualRecipient() {
         var input = document.getElementById('manualRecipientInput');

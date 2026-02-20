@@ -374,8 +374,10 @@ def get_employees():
             {
                 "name": emp["name"],
                 "email": emp["email"],
-                "department": emp["department"],
-                "title": emp["title"],
+                "department": emp.get("department", ""),
+                "title": emp.get("title", ""),
+                "birthday_month": emp.get("birthday_month", 0),
+                "birthday_day": emp.get("birthday_day", 0),
             }
             for emp in EMPLOYEES
         ]
@@ -1103,28 +1105,38 @@ def render_email():
 
         game_section_html = ''
         if game_content or game_image_url:
+            game_section_html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
             if game_image_url:
                 game_section_html += (
+                    f'<tr><td align="center" style="padding-bottom: 10px; text-align: center;">'
                     f'<img src="{game_image_url}" width="460" '
-                    f'style="width: 100%; max-width: 460px; height: auto; border-radius: 8px; display: block; margin-bottom: 10px;" '
+                    f'style="width: 100%; max-width: 460px; height: auto; border-radius: 8px; display: block; margin: 0 auto;" '
                     f'alt="BriteSide Brain Teaser">'
+                    f'</td></tr>'
                 )
             if game_content:
                 game_section_html += (
-                    f'<p style="margin: 0 0 10px 0; font-family: {FONT}; font-size: 15px; line-height: 24px; color: #444444;">{game_content}</p>'
+                    f'<tr><td align="center" style="padding-bottom: 10px; text-align: center;">'
+                    f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 24px; color: #444444; text-align: center;">{game_content}</p>'
+                    f'</td></tr>'
                 )
             game_section_html += (
-                f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; font-weight: 700; color: #018181;">'
+                f'<tr><td align="center" style="text-align: center;">'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; font-weight: 700; color: #018181; text-align: center;">'
                 'Email Dove your answer &mdash; the winner gets 100 BriteCo Bucks!</p>'
+                f'</td></tr>'
             )
             if game_previous_answer:
                 game_section_html += (
-                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 10px;">'
-                    f'<tr><td style="padding: 10px 14px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">'
+                    f'<tr><td align="center" style="padding-top: 10px; text-align: center;">'
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">'
+                    f'<tr><td style="padding: 10px 14px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #86efac; text-align: center;">'
                     f'<p style="margin: 0 0 2px 0; font-family: {FONT}; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 1px;">Last Month\'s Answer</p>'
                     f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; color: #272D3F;">{game_previous_answer}</p>'
                     f'</td></tr></table>'
+                    f'</td></tr>'
                 )
+            game_section_html += '</table>'
 
         # Joke setup/punchline split (delimiter: |)
         joke_setup = str(joke)
