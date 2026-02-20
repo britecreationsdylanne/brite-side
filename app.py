@@ -44,6 +44,7 @@ from backend.integrations.claude_client import ClaudeClient
 # Import config
 from config.briteside_config import (
     EMPLOYEES as CONFIG_EMPLOYEES,
+    CONFIG_EMPLOYEES_VERSION,
     MONTH_NAMES,
     BRITESIDE_SYSTEM_PROMPT,
     AI_PROMPTS,
@@ -151,7 +152,8 @@ EMPLOYEES_GCS_KEY = 'config/employees.json'
 
 
 def load_employees_from_gcs():
-    """Load employee list from GCS if available, otherwise use config defaults."""
+    """Load employee list from GCS if available, otherwise use config defaults.
+    If config version is newer than GCS version, re-sync from config."""
     global EMPLOYEES
     if not gcs_client:
         return
@@ -159,10 +161,23 @@ def load_employees_from_gcs():
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(EMPLOYEES_GCS_KEY)
         if blob.exists():
-            data = json.loads(blob.download_as_text())
-            EMPLOYEES.clear()
-            EMPLOYEES.extend(data)
-            print(f"[OK] Loaded {len(EMPLOYEES)} employees from GCS")
+            raw = json.loads(blob.download_as_text())
+            # Support versioned format: {"version": N, "employees": [...]}
+            if isinstance(raw, dict) and 'employees' in raw:
+                gcs_version = raw.get('version', 1)
+                gcs_employees = raw['employees']
+            else:
+                # Legacy format: just a list
+                gcs_version = 1
+                gcs_employees = raw
+            if gcs_version < CONFIG_EMPLOYEES_VERSION:
+                # Config has been updated — re-sync to GCS
+                print(f"[OK] Config v{CONFIG_EMPLOYEES_VERSION} > GCS v{gcs_version}, re-syncing employees from config")
+                save_employees_to_gcs()
+            else:
+                EMPLOYEES.clear()
+                EMPLOYEES.extend(gcs_employees)
+                print(f"[OK] Loaded {len(EMPLOYEES)} employees from GCS (v{gcs_version})")
         else:
             # First run: save config defaults to GCS
             save_employees_to_gcs()
@@ -172,13 +187,14 @@ def load_employees_from_gcs():
 
 
 def save_employees_to_gcs():
-    """Persist current employee list to GCS."""
+    """Persist current employee list to GCS with version."""
     if not gcs_client:
         return False
     try:
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(EMPLOYEES_GCS_KEY)
-        blob.upload_from_string(json.dumps(EMPLOYEES, indent=2), content_type='application/json')
+        data = {"version": CONFIG_EMPLOYEES_VERSION, "employees": EMPLOYEES}
+        blob.upload_from_string(json.dumps(data, indent=2), content_type='application/json')
         return True
     except Exception as e:
         print(f"[WARNING] Could not save employees to GCS: {e}")

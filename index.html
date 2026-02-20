@@ -1655,6 +1655,14 @@
             <div id="birthdayListArea"></div>
             <a href="javascript:void(0)" class="add-update-link" onclick="addManualBirthday()">+ Add Birthday</a>
 
+            <div style="margin-top: 24px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+                <a href="javascript:void(0)" onclick="toggleBirthdayEditor()" style="font-size: 13px; color: #6b7280; text-decoration: underline;">Edit Employee Birthdays</a>
+                <div id="birthdayEditorArea" style="display: none; margin-top: 12px;">
+                    <p style="font-size: 13px; color: #6b7280; margin: 0 0 10px 0;">Update birthdays for employees missing them. Changes are saved permanently.</p>
+                    <div id="birthdayEditorList"></div>
+                </div>
+            </div>
+
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Back</button>
                 <button class="btn" onclick="goToStep(4)">Next &rarr;</button>
@@ -2895,8 +2903,79 @@
     }
 
     function addManualBirthday() {
-        birthdays.push({ name: '', department: '', birthday_day: '', message: '' });
+        birthdays.push({ name: '', department: '', birthday_day: '', message: '', _manual: true });
         renderBirthdayList();
+    }
+
+    function toggleBirthdayEditor() {
+        var area = document.getElementById('birthdayEditorArea');
+        if (area.style.display === 'none') {
+            area.style.display = 'block';
+            renderBirthdayEditor();
+        } else {
+            area.style.display = 'none';
+        }
+    }
+
+    function renderBirthdayEditor() {
+        var container = document.getElementById('birthdayEditorList');
+        var monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        // Show employees sorted by name, highlight those missing birthdays
+        var sorted = allEmployees.slice().sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+        var html = '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+        html += '<tr style="background:#f9fafb;font-weight:600;"><td style="padding:6px 8px;">Name</td><td style="padding:6px 8px;">Title</td><td style="padding:6px 8px;">Birthday Month</td><td style="padding:6px 8px;">Day</td><td style="padding:6px 8px;"></td></tr>';
+        sorted.forEach(function(emp) {
+            var hasBday = emp.birthday_month && emp.birthday_day;
+            var rowStyle = hasBday ? '' : 'background: #fef3c7;';
+            html += '<tr style="border-bottom:1px solid #e5e7eb;' + rowStyle + '">';
+            html += '<td style="padding:6px 8px;">' + escapeHtml(emp.name) + '</td>';
+            html += '<td style="padding:6px 8px;color:#6b7280;">' + escapeHtml(emp.title || '') + '</td>';
+            html += '<td style="padding:6px 8px;"><select id="bdayMonth_' + escapeAttr(emp.email) + '" style="font-size:12px;padding:2px;">';
+            html += '<option value="0">--</option>';
+            for (var m = 1; m <= 12; m++) {
+                var sel = (emp.birthday_month === m) ? ' selected' : '';
+                html += '<option value="' + m + '"' + sel + '>' + monthNames[m] + '</option>';
+            }
+            html += '</select></td>';
+            html += '<td style="padding:6px 8px;"><input type="number" id="bdayDay_' + escapeAttr(emp.email) + '" value="' + (emp.birthday_day || '') + '" min="1" max="31" style="width:50px;font-size:12px;padding:2px;" placeholder="Day"></td>';
+            html += '<td style="padding:6px 8px;"><button onclick="saveBirthday(\'' + escapeAttr(emp.email) + '\')" style="font-size:11px;padding:2px 8px;background:#31D7CA;color:#272D3F;border:none;border-radius:4px;cursor:pointer;">Save</button></td>';
+            html += '</tr>';
+        });
+        html += '</table>';
+        container.innerHTML = html;
+    }
+
+    function saveBirthday(email) {
+        var monthEl = document.getElementById('bdayMonth_' + email);
+        var dayEl = document.getElementById('bdayDay_' + email);
+        var month = parseInt(monthEl.value) || 0;
+        var day = parseInt(dayEl.value) || 0;
+        fetch(API_BASE + '/api/employees/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, birthday_month: month, birthday_day: day })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Update local data too
+                for (var i = 0; i < allEmployees.length; i++) {
+                    if (allEmployees[i].email.toLowerCase() === email.toLowerCase()) {
+                        allEmployees[i].birthday_month = month;
+                        allEmployees[i].birthday_day = day;
+                        break;
+                    }
+                }
+                // Re-fetch birthdays for current month
+                if (selectedMonthNum) fetchBirthdayCount(selectedMonthNum);
+                renderBirthdayEditor();
+            } else {
+                alert('Failed to save: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) { alert('Error saving birthday: ' + err.message); });
     }
 
     function collectBirthdayData() {
