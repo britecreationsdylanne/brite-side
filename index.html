@@ -1584,22 +1584,6 @@
                 <span class="birthday-count-badge" id="birthdayCountBadge"></span>
             </div>
 
-            <!-- Newsletter Intro Line -->
-            <div id="introArea" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
-                <label style="font-weight: 600; font-size: 14px; color: #272d3f; margin-bottom: 8px; display: block;">Newsletter Intro</label>
-                <p style="font-size: 13px; color: #9ca3af; margin-bottom: 10px;">A short, witty opener for the top of the email.</p>
-                <div id="introLoading" style="display: none; text-align: center; padding: 12px;">
-                    <div class="spinner" style="display: inline-block;"></div>
-                    <span style="color: #9ca3af; font-size: 13px; margin-left: 8px;">Crafting a witty intro...</span>
-                </div>
-                <div id="introResult" style="display: none;">
-                    <textarea id="introText" rows="2" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 50px;" placeholder="Your intro line will appear here..."></textarea>
-                    <div style="text-align: right; margin-top: 6px;">
-                        <button class="btn btn-secondary" onclick="generateIntro()" style="font-size: 12px; padding: 6px 14px;">Regenerate</button>
-                    </div>
-                </div>
-            </div>
-
             <div class="buttons">
                 <button id="step1NextBtn" class="btn" disabled onclick="goToStep(2)">Next &rarr;</button>
             </div>
@@ -2280,7 +2264,6 @@
 
     let selectedMonth = '';
     let selectedMonthNum = 0;
-    let introLine = '';
     let joke = '';
     let jokeOptions = [];
     let selectedJokeIndex = -1;
@@ -2526,7 +2509,6 @@
 
     function collectCurrentStepData() {
         switch (currentStep) {
-            case 1: introLine = (document.getElementById('introText').value || '').trim(); break;
             case 2: collectJokeData(); break;
             case 3: collectBirthdayData(); break;
             case 4: collectWelcomeData(); break;
@@ -2543,7 +2525,6 @@
 
         selectedMonth = '';
         selectedMonthNum = 0;
-        introLine = '';
         joke = '';
         jokeOptions = [];
         selectedJokeIndex = -1;
@@ -2572,8 +2553,6 @@
         document.getElementById('step1NextBtn').disabled = true;
         document.getElementById('step2NextBtn').disabled = true;
         document.getElementById('birthdayCountArea').style.display = 'none';
-        document.getElementById('introArea').style.display = 'none';
-        document.getElementById('introText').value = '';
         document.getElementById('jokeCardsArea').style.display = 'none';
         document.getElementById('jokeCardsArea').innerHTML = '';
         document.getElementById('customJokeToggle').checked = false;
@@ -2655,8 +2634,6 @@
         // Fetch birthday count
         fetchBirthdayCount(monthNum);
 
-        // Auto-generate intro line
-        generateIntro();
     }
 
     function fetchBirthdayCount(monthNum) {
@@ -2693,44 +2670,6 @@
                 badge.textContent = 'Could not load birthdays';
                 birthdays = [];
             });
-    }
-
-    /* ============================================================
-       NEWSLETTER INTRO LINE
-       ============================================================ */
-    function generateIntro() {
-        var introArea = document.getElementById('introArea');
-        var introLoading = document.getElementById('introLoading');
-        var introResult = document.getElementById('introResult');
-
-        introArea.style.display = 'block';
-        introLoading.style.display = 'block';
-        introResult.style.display = 'none';
-
-        fetch(API_BASE + '/api/generate-intro', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ month: selectedMonth, year: new Date().getFullYear() })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            introLoading.style.display = 'none';
-            introResult.style.display = 'block';
-            if (data.success && data.intro) {
-                introLine = data.intro;
-                document.getElementById('introText').value = introLine;
-            } else {
-                document.getElementById('introText').value = '';
-                document.getElementById('introText').placeholder = 'Could not generate — type your own!';
-            }
-        })
-        .catch(function(err) {
-            console.error('Error generating intro:', err);
-            introLoading.style.display = 'none';
-            introResult.style.display = 'block';
-            document.getElementById('introText').value = '';
-            document.getElementById('introText').placeholder = 'Could not generate — type your own!';
-        });
     }
 
     /* ============================================================
@@ -3487,7 +3426,6 @@
             month: selectedMonth,
             month_num: selectedMonthNum,
             year: new Date().getFullYear(),
-            intro_line: introLine,
             joke: joke,
             birthdays: birthdayData,
             spotlight: spotlightData,

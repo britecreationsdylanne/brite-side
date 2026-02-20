@@ -512,45 +512,6 @@ def update_employee():
 # ROUTES - AI GENERATION
 # ============================================================================
 
-@app.route('/api/generate-intro', methods=['POST'])
-def generate_intro():
-    """Generate a short witty intro pun for the newsletter"""
-    try:
-        if not claude_client:
-            return jsonify({"success": False, "error": "Claude AI is not available"}), 503
-
-        data = request.json
-        month = data.get('month', datetime.now(CHICAGO_TZ).strftime('%B'))
-        year = data.get('year', datetime.now(CHICAGO_TZ).year)
-
-        safe_print(f"[API] Generating intro for {month} {year}")
-
-        prompt = AI_PROMPTS['generate_intro'].format(month=month, year=year)
-
-        response = claude_client.generate_content(
-            prompt=prompt,
-            system_prompt=BRITESIDE_SYSTEM_PROMPT,
-            max_tokens=100,
-            temperature=0.9,
-        )
-
-        intro_text = response.get('content', '').strip().strip('"').strip("'")
-
-        safe_print(f"[API] Intro generated ({response.get('tokens', 0)} tokens)")
-
-        return jsonify({
-            "success": True,
-            "intro": intro_text,
-            "model": response.get('model', ''),
-            "tokens": response.get('tokens', 0),
-        })
-
-    except Exception as e:
-        safe_print(f"[API] Error generating intro: {e}")
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
 @app.route('/api/generate-joke', methods=['POST'])
 def generate_joke():
     """Generate 3 joke/pun options for the newsletter opener"""
@@ -901,7 +862,6 @@ def render_email():
         # Extract content fields from request body
         month = data.get('month', datetime.now(CHICAGO_TZ).strftime('%B'))
         year = data.get('year', datetime.now(CHICAGO_TZ).year)
-        intro_line = data.get('intro_line', '')
         joke = data.get('joke', '')
         birthdays = data.get('birthdays', [])
         spotlight = data.get('spotlight', {})
@@ -1162,14 +1122,9 @@ def render_email():
         game_display = 'table-row' if game_section_html else 'none'
         punchline_display = 'table-row' if joke_punchline else 'none'
 
-        # Intro line display
-        intro_display = 'table-row' if intro_line else 'none'
-
         # Preheader text (short preview text for email clients)
         preheader = f"The BriteSide - {month} {year}"
-        if intro_line:
-            preheader = intro_line[:100]
-        elif joke_setup:
+        if joke_setup:
             preheader = joke_setup[:100]
 
         # Make logo paths absolute so they work in iframe previews and email clients
@@ -1180,8 +1135,8 @@ def render_email():
         html = html.replace('{{MONTH}}', str(month))
         html = html.replace('{{YEAR}}', str(year))
         html = html.replace('{{PREHEADER}}', str(preheader))
-        html = html.replace('{{INTRO_LINE}}', str(intro_line))
-        html = html.replace('{{INTRO_DISPLAY}}', intro_display)
+        html = html.replace('{{INTRO_LINE}}', '')
+        html = html.replace('{{INTRO_DISPLAY}}', 'none')
         html = html.replace('{{JOKE}}', str(joke))
         html = html.replace('{{JOKE_SETUP}}', joke_setup)
         html = html.replace('{{JOKE_PUNCHLINE}}', joke_punchline)

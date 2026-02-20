@@ -90,19 +90,6 @@ BRITESIDE_SYSTEM_PROMPT = (
 # ──────────────────────────────────────────
 
 AI_PROMPTS = {
-    "generate_intro": (
-        "Write a short, witty newsletter intro line for the {month} {year} edition of The BriteSide "
-        "(BriteCo's internal employee newsletter).\n\n"
-        "Requirements:\n"
-        "- Exactly 1-2 sentences, max 25 words total\n"
-        "- Should be a cute pun or witty quip tied to the season or month\n"
-        "- Think: clever wordplay, seasonal references, jewelry/insurance puns welcome\n"
-        "- Examples of the vibe: 'Spring has sprung and so have we — let us shine bright this month!' or "
-        "'December called — it wants its sparkle back. Good thing we have got plenty.'\n"
-        "- Keep it fun, light, and energizing\n"
-        "- Do NOT include quotes around the text\n"
-        "- Return ONLY the intro line, nothing else"
-    ),
     "generate_joke": (
         "Write 3 short, fun jokes or puns related to {theme}. "
         "These are for the opening of an internal company newsletter at a jewelry insurance company.\n\n"
