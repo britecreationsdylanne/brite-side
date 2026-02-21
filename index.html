@@ -2578,7 +2578,7 @@
         welcomeHires = [];
         spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] }];
         spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
-        updates = [{ title: '', body: '', photos: [] }, { title: '', body: '', photos: [] }, { title: '', body: '', photos: [] }];
+        updates = [{ title: '', body: '', photos: [], photo_positions: [] }, { title: '', body: '', photos: [], photo_positions: [] }, { title: '', body: '', photos: [], photo_positions: [] }];
         updatesEnabled = true;
         showUpdate2 = true;
         specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
@@ -3332,10 +3332,15 @@
         input.accept = 'image/*';
         input.onchange = function() {
             if (!input.files[0]) return;
-            showCropperModal(input.files[0], function(url) {
-                if (!updates[updateIndex].photos) updates[updateIndex].photos = [];
-                updates[updateIndex].photos.push(url);
-                renderUpdatePhotos(updateIndex);
+            var file = input.files[0];
+            showPositionModal(file, function(posY) {
+                uploadMediaFile(file, function(url) {
+                    if (!updates[updateIndex].photos) updates[updateIndex].photos = [];
+                    if (!updates[updateIndex].photo_positions) updates[updateIndex].photo_positions = [];
+                    updates[updateIndex].photos.push(url);
+                    updates[updateIndex].photo_positions.push(posY);
+                    renderUpdatePhotos(updateIndex);
+                });
             });
         };
         input.click();
@@ -3344,19 +3349,34 @@
     function renderUpdatePhotos(updateIndex) {
         var photosEl = document.getElementById('update' + (updateIndex + 1) + 'Photos');
         var photos = (updates[updateIndex] && updates[updateIndex].photos) || [];
+        var positions = (updates[updateIndex] && updates[updateIndex].photo_positions) || [];
         var html = '';
         photos.forEach(function(url, i) {
+            var posY = positions[i] !== undefined ? positions[i] : 50;
             html += '<div style="display:inline-block;position:relative;margin:4px;">' +
-                '<img src="' + url + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid #e5e7eb;">' +
+                '<img src="' + url + '" style="width:80px;height:80px;object-fit:cover;object-position:center ' + posY + '%;border-radius:6px;border:2px solid #e5e7eb;cursor:pointer;" title="Click to reposition" onclick="repositionUpdatePhoto(' + updateIndex + ',' + i + ')">' +
                 '<button onclick="removeUpdatePhoto(' + updateIndex + ',' + i + ')" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:20px;">&times;</button>' +
                 '</div>';
         });
         photosEl.innerHTML = html;
     }
 
+    function repositionUpdatePhoto(updateIndex, photoIndex) {
+        var url = updates[updateIndex].photos[photoIndex];
+        var currentPos = (updates[updateIndex].photo_positions || [])[photoIndex];
+        showPositionModal(url, function(posY) {
+            if (!updates[updateIndex].photo_positions) updates[updateIndex].photo_positions = [];
+            updates[updateIndex].photo_positions[photoIndex] = posY;
+            renderUpdatePhotos(updateIndex);
+        }, currentPos);
+    }
+
     function removeUpdatePhoto(updateIndex, photoIndex) {
         if (updates[updateIndex] && updates[updateIndex].photos) {
             updates[updateIndex].photos.splice(photoIndex, 1);
+            if (updates[updateIndex].photo_positions) {
+                updates[updateIndex].photo_positions.splice(photoIndex, 1);
+            }
             renderUpdatePhotos(updateIndex);
         }
     }
@@ -3368,16 +3388,16 @@
             updates[1].title = document.getElementById('update2Title').value.trim();
             updates[1].body = document.getElementById('update2Body').value.trim();
         } else {
-            updates[1] = { title: '', body: '', photos: [] };
+            updates[1] = { title: '', body: '', photos: [], photo_positions: [] };
         }
         // Update 3
         var block3 = document.getElementById('updateBlock3');
         if (block3 && block3.style.display !== 'none') {
-            if (!updates[2]) updates[2] = { title: '', body: '', photos: [] };
+            if (!updates[2]) updates[2] = { title: '', body: '', photos: [], photo_positions: [] };
             updates[2].title = document.getElementById('update3Title').value.trim();
             updates[2].body = document.getElementById('update3Body').value.trim();
         } else {
-            updates[2] = { title: '', body: '', photos: [] };
+            updates[2] = { title: '', body: '', photos: [], photo_positions: [] };
         }
     }
 
@@ -4474,6 +4494,125 @@
             window._activeCropper.setAspectRatio(ratio);
         }
     };
+
+    /* ============================================================
+       DRAG-TO-POSITION MODAL (for update photos)
+       ============================================================ */
+    function showPositionModal(fileOrUrl, callback, initialPosY) {
+        var CONTAINER_HEIGHT = 242;
+        var overlay = document.createElement('div');
+        overlay.className = 'cropper-modal-overlay';
+
+        var modal = document.createElement('div');
+        modal.className = 'cropper-modal-content';
+        modal.innerHTML = '<h3>Position Image</h3>' +
+            '<p style="color:#6b7280;font-size:13px;margin:0 0 12px 0;">Drag the image up or down to choose what\'s visible in the newsletter.</p>' +
+            '<div id="positionContainer" style="width:100%;height:' + CONTAINER_HEIGHT + 'px;overflow:hidden;border-radius:8px;cursor:grab;position:relative;background:#f3f4f6;">' +
+            '<img id="positionImage" style="width:100%;height:auto;display:block;pointer-events:none;position:relative;top:0;user-select:none;">' +
+            '</div>' +
+            '<p id="positionHint" style="color:#9ca3af;font-size:12px;margin:8px 0 0 0;text-align:center;"></p>' +
+            '<div class="cropper-modal-actions">' +
+            '<button class="btn btn-secondary" id="positionCancelBtn">Cancel</button>' +
+            '<button class="btn" id="positionConfirmBtn">Confirm Position</button>' +
+            '</div>';
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        var container = modal.querySelector('#positionContainer');
+        var img = modal.querySelector('#positionImage');
+        var hint = modal.querySelector('#positionHint');
+        var isDragging = false;
+        var startY = 0;
+        var startTop = 0;
+
+        // Load the image
+        if (typeof fileOrUrl === 'string') {
+            img.src = fileOrUrl;
+        } else {
+            var reader = new FileReader();
+            reader.onload = function(e) { img.src = e.target.result; };
+            reader.readAsDataURL(fileOrUrl);
+        }
+
+        img.onload = function() {
+            var overflow = img.offsetHeight - CONTAINER_HEIGHT;
+            if (overflow <= 0) {
+                hint.textContent = 'Image fits within the frame.';
+                container.style.cursor = 'default';
+            } else {
+                hint.textContent = 'Drag to reposition';
+                // Apply initial position
+                var posY = (initialPosY !== undefined) ? initialPosY : 50;
+                img.style.top = (-(overflow * posY / 100)) + 'px';
+            }
+        };
+
+        container.onmousedown = function(e) {
+            if (img.offsetHeight <= CONTAINER_HEIGHT) return;
+            isDragging = true;
+            startY = e.clientY;
+            startTop = parseInt(img.style.top) || 0;
+            container.style.cursor = 'grabbing';
+            e.preventDefault();
+        };
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            var deltaY = e.clientY - startY;
+            var overflow = img.offsetHeight - CONTAINER_HEIGHT;
+            var newTop = Math.max(-overflow, Math.min(0, startTop + deltaY));
+            img.style.top = newTop + 'px';
+        }
+
+        function dragEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            container.style.cursor = 'grab';
+        }
+
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+
+        // Touch support
+        container.ontouchstart = function(e) {
+            if (img.offsetHeight <= CONTAINER_HEIGHT) return;
+            isDragging = true;
+            startY = e.touches[0].clientY;
+            startTop = parseInt(img.style.top) || 0;
+            e.preventDefault();
+        };
+        container.ontouchmove = function(e) {
+            if (!isDragging) return;
+            var deltaY = e.touches[0].clientY - startY;
+            var overflow = img.offsetHeight - CONTAINER_HEIGHT;
+            var newTop = Math.max(-overflow, Math.min(0, startTop + deltaY));
+            img.style.top = newTop + 'px';
+            e.preventDefault();
+        };
+        container.ontouchend = function() { isDragging = false; };
+
+        function cleanup() {
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            overlay.remove();
+        }
+
+        modal.querySelector('#positionCancelBtn').onclick = function() {
+            cleanup();
+        };
+
+        modal.querySelector('#positionConfirmBtn').onclick = function() {
+            var overflow = img.offsetHeight - CONTAINER_HEIGHT;
+            var posY = 50;
+            if (overflow > 0) {
+                var currentTop = parseInt(img.style.top) || 0;
+                posY = Math.round((-currentTop / overflow) * 100);
+            }
+            cleanup();
+            callback(posY);
+        };
+    }
 
     /* ============================================================
        GAME SECTION (Step 7)

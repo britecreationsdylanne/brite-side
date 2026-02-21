@@ -1079,13 +1079,15 @@ def render_email():
                 photos = [p for p in u.get('photos', []) if p]
                 photos_html = ''
                 if len(photos) == 1:
-                    # Single photo: full width, 35% shorter max-height
+                    # Single photo: full width, fixed height with drag-position
+                    photo_positions = u.get('photo_positions', [])
+                    pos_y = photo_positions[0] if photo_positions else 50
                     photos_html = (
-                        f'<div style="margin-top: 12px; max-height: 220px; overflow: hidden; border-radius: 8px;">'
                         f'<img src="{photos[0]}" width="516" '
-                        f'style="width: 100%; height: auto; display: block;" '
+                        f'style="width: 100%; height: 242px; object-fit: cover; '
+                        f'object-position: center {pos_y}%; border-radius: 8px; '
+                        f'margin-top: 12px; display: block;" '
                         f'alt="Update photo" class="mobile-img-full">'
-                        f'</div>'
                     )
                 elif len(photos) >= 2:
                     # Multiple photos: side-by-side in a 2-column table
