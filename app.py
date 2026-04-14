@@ -153,8 +153,8 @@ EMPLOYEES_GCS_KEY = 'config/employees.json'
 
 
 def load_employees_from_gcs():
-    """Load employee list from GCS if available, otherwise use config defaults.
-    If config version is newer than GCS version, re-sync from config."""
+    """Load employee list from GCS. GCS is always the source of truth for
+    user-edited data; config is only used as the initial seed on first run."""
     global EMPLOYEES
     if not gcs_client:
         return
@@ -163,28 +163,23 @@ def load_employees_from_gcs():
         blob = bucket.blob(EMPLOYEES_GCS_KEY)
         if blob.exists():
             raw = json.loads(blob.download_as_text())
-            # Support versioned format: {"version": N, "employees": [...]}
             if isinstance(raw, dict) and 'employees' in raw:
-                gcs_version = raw.get('version', 1)
                 gcs_employees = raw['employees']
             else:
-                # Legacy format: just a list
-                gcs_version = 1
                 gcs_employees = raw
-            if gcs_version < CONFIG_EMPLOYEES_VERSION:
-                # Config has been updated — re-sync to GCS
-                print(f"[OK] Config v{CONFIG_EMPLOYEES_VERSION} > GCS v{gcs_version}, re-syncing employees from config")
-                save_employees_to_gcs()
-            else:
-                EMPLOYEES.clear()
-                EMPLOYEES.extend(gcs_employees)
-                print(f"[OK] Loaded {len(EMPLOYEES)} employees from GCS (v{gcs_version})")
+            EMPLOYEES.clear()
+            EMPLOYEES.extend(gcs_employees)
         else:
-            # First run: save config defaults to GCS
             save_employees_to_gcs()
             print(f"[OK] Initialized GCS employees from config ({len(EMPLOYEES)})")
     except Exception as e:
         print(f"[WARNING] Could not load employees from GCS: {e}")
+
+
+def refresh_employees():
+    """Pull latest employees from GCS. Called on every read endpoint so that
+    multi-instance Cloud Run stays consistent after writes."""
+    load_employees_from_gcs()
 
 
 def save_employees_to_gcs():
@@ -378,6 +373,7 @@ def health_check():
 def get_employees():
     """Return all employees for dropdowns (name, email, department, title)"""
     try:
+        refresh_employees()
         employees = [
             {
                 "name": emp["name"],
@@ -400,6 +396,7 @@ def get_employees():
 def get_birthdays():
     """Return employees with birthday in the given month, sorted by day"""
     try:
+        refresh_employees()
         month = request.args.get('month', type=int)
         if not month or month < 1 or month > 12:
             return jsonify({"success": False, "error": "Valid month parameter (1-12) required"}), 400
@@ -439,6 +436,7 @@ def get_birthdays():
 def add_employee():
     """Add a new employee to the list"""
     try:
+        refresh_employees()
         data = request.json
         name = data.get('name', '').strip()
         email = data.get('email', '').strip()
@@ -478,6 +476,7 @@ def add_employee():
 def remove_employee():
     """Remove an employee from the list"""
     try:
+        refresh_employees()
         data = request.json
         email = data.get('email', '').strip().lower()
 
@@ -504,6 +503,7 @@ def remove_employee():
 def update_employee():
     """Update an employee's details"""
     try:
+        refresh_employees()
         data = request.json
         email = data.get('email', '').strip().lower()
 
