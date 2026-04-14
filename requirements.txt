@@ -19,6 +19,9 @@ sendgrid>=6.10.0
 # Google Cloud Storage (drafts)
 google-cloud-storage>=2.14.0
 
+# Firestore (employees)
+google-cloud-firestore>=2.15.0
+
 # Timezone
 pytz>=2024.1
 

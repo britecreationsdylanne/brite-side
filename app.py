@@ -54,8 +54,8 @@ from config.briteside_config import (
     GCS_CONFIG,
 )
 
-# Mutable employee list (starts from config, can be updated at runtime via GCS)
-EMPLOYEES = list(CONFIG_EMPLOYEES)
+# Employees live in Firestore (see EMPLOYEE DATA LAYER section below).
+# CONFIG_EMPLOYEES is only used as a first-run seed fallback.
 
 
 # ============================================================================
@@ -146,59 +146,122 @@ except Exception as e:
 
 
 # ============================================================================
-# EMPLOYEE LIST MANAGEMENT (GCS-backed)
+# EMPLOYEE DATA LAYER (Firestore-backed)
 # ============================================================================
+# Single source of truth. Each employee is one doc in the `employees`
+# collection, keyed by lowercased email. No in-memory cache — every read
+# hits Firestore so multi-instance Cloud Run stays consistent.
 
-EMPLOYEES_GCS_KEY = 'config/employees.json'
+EMPLOYEES_COLLECTION = 'employees'
+EMPLOYEES_GCS_KEY = 'config/employees.json'  # kept only for initial seed
+
+firestore_client = None
+try:
+    from google.cloud import firestore
+    firestore_client = firestore.Client()
+    print("[OK] Firestore initialized")
+except Exception as e:
+    print(f"[WARNING] Firestore not available: {e}")
 
 
-def load_employees_from_gcs():
-    """Load employee list from GCS. GCS is always the source of truth for
-    user-edited data; config is only used as the initial seed on first run."""
-    global EMPLOYEES
-    if not gcs_client:
-        return
+def _emp_key(email):
+    return (email or '').strip().lower()
+
+
+def list_employees():
+    """Return all employees sorted by name (case-insensitive)."""
+    if not firestore_client:
+        return list(CONFIG_EMPLOYEES)
     try:
-        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
-        blob = bucket.blob(EMPLOYEES_GCS_KEY)
-        if blob.exists():
-            raw = json.loads(blob.download_as_text())
-            if isinstance(raw, dict) and 'employees' in raw:
-                gcs_employees = raw['employees']
-            else:
-                gcs_employees = raw
-            EMPLOYEES.clear()
-            EMPLOYEES.extend(gcs_employees)
-        else:
-            save_employees_to_gcs()
-            print(f"[OK] Initialized GCS employees from config ({len(EMPLOYEES)})")
+        docs = firestore_client.collection(EMPLOYEES_COLLECTION).stream()
+        employees = [doc.to_dict() for doc in docs if doc.exists]
+        employees.sort(key=lambda e: (e.get('name') or '').lower())
+        return employees
     except Exception as e:
-        print(f"[WARNING] Could not load employees from GCS: {e}")
+        print(f"[WARNING] Firestore list failed: {e}")
+        return []
 
 
-def refresh_employees():
-    """Pull latest employees from GCS. Called on every read endpoint so that
-    multi-instance Cloud Run stays consistent after writes."""
-    load_employees_from_gcs()
+def get_employee(email):
+    if not firestore_client:
+        return None
+    try:
+        doc = firestore_client.collection(EMPLOYEES_COLLECTION).document(_emp_key(email)).get()
+        return doc.to_dict() if doc.exists else None
+    except Exception as e:
+        print(f"[WARNING] Firestore get failed: {e}")
+        return None
 
 
-def save_employees_to_gcs():
-    """Persist current employee list to GCS with version."""
-    if not gcs_client:
+def upsert_employee(email, data):
+    if not firestore_client:
         return False
     try:
-        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
-        blob = bucket.blob(EMPLOYEES_GCS_KEY)
-        data = {"version": CONFIG_EMPLOYEES_VERSION, "employees": EMPLOYEES}
-        blob.upload_from_string(json.dumps(data, indent=2), content_type='application/json')
+        firestore_client.collection(EMPLOYEES_COLLECTION).document(_emp_key(email)).set(data)
         return True
     except Exception as e:
-        print(f"[WARNING] Could not save employees to GCS: {e}")
+        print(f"[WARNING] Firestore upsert failed: {e}")
         return False
 
 
-# Load employees from GCS on startup
-load_employees_from_gcs()
+def delete_employee(email):
+    if not firestore_client:
+        return False
+    try:
+        firestore_client.collection(EMPLOYEES_COLLECTION).document(_emp_key(email)).delete()
+        return True
+    except Exception as e:
+        print(f"[WARNING] Firestore delete failed: {e}")
+        return False
+
+
+def _seed_from_gcs_or_config():
+    """Return the list of employees to seed Firestore with on first run."""
+    if gcs_client:
+        try:
+            bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+            blob = bucket.blob(EMPLOYEES_GCS_KEY)
+            if blob.exists():
+                raw = json.loads(blob.download_as_text())
+                if isinstance(raw, dict) and 'employees' in raw:
+                    return raw['employees']
+                if isinstance(raw, list):
+                    return raw
+        except Exception as e:
+            print(f"[WARNING] Could not read GCS seed: {e}")
+    return list(CONFIG_EMPLOYEES)
+
+
+def seed_employees_if_empty():
+    """If the Firestore collection is empty, populate it from GCS (preferred)
+    or from the config defaults. Runs once on startup."""
+    if not firestore_client:
+        return
+    try:
+        existing = list(firestore_client.collection(EMPLOYEES_COLLECTION).limit(1).stream())
+        if existing:
+            return
+    except Exception as e:
+        print(f"[WARNING] Could not check Firestore seed state: {e}")
+        return
+
+    seed = _seed_from_gcs_or_config()
+    print(f"[SEED] Populating Firestore with {len(seed)} employees...")
+    batch = firestore_client.batch()
+    written = 0
+    for emp in seed:
+        key = _emp_key(emp.get('email', ''))
+        if not key:
+            continue
+        ref = firestore_client.collection(EMPLOYEES_COLLECTION).document(key)
+        batch.set(ref, emp)
+        written += 1
+    if written:
+        batch.commit()
+    print(f"[SEED] Seeded {written} employees into Firestore")
+
+
+seed_employees_if_empty()
 
 
 # ============================================================================
@@ -233,12 +296,12 @@ def require_auth(f):
 def find_employee(name):
     """Look up an employee by name (case-insensitive partial match)"""
     name_lower = name.lower().strip()
-    for emp in EMPLOYEES:
-        if emp['name'].lower() == name_lower:
+    employees = list_employees()
+    for emp in employees:
+        if emp.get('name', '').lower() == name_lower:
             return emp
-    # Partial match fallback
-    for emp in EMPLOYEES:
-        if name_lower in emp['name'].lower():
+    for emp in employees:
+        if name_lower in emp.get('name', '').lower():
             return emp
     return None
 
@@ -373,17 +436,16 @@ def health_check():
 def get_employees():
     """Return all employees for dropdowns (name, email, department, title)"""
     try:
-        refresh_employees()
         employees = [
             {
-                "name": emp["name"],
-                "email": emp["email"],
+                "name": emp.get("name", ""),
+                "email": emp.get("email", ""),
                 "department": emp.get("department", ""),
                 "title": emp.get("title", ""),
                 "birthday_month": emp.get("birthday_month", 0),
                 "birthday_day": emp.get("birthday_day", 0),
             }
-            for emp in EMPLOYEES
+            for emp in list_employees()
         ]
         return jsonify({"success": True, "employees": employees})
 
@@ -396,21 +458,20 @@ def get_employees():
 def get_birthdays():
     """Return employees with birthday in the given month, sorted by day"""
     try:
-        refresh_employees()
         month = request.args.get('month', type=int)
         if not month or month < 1 or month > 12:
             return jsonify({"success": False, "error": "Valid month parameter (1-12) required"}), 400
 
         birthday_employees = [
             {
-                "name": emp["name"],
-                "email": emp["email"],
-                "department": emp["department"],
-                "title": emp["title"],
-                "birthday_day": emp["birthday_day"],
-                "birthday_month": emp["birthday_month"],
+                "name": emp.get("name", ""),
+                "email": emp.get("email", ""),
+                "department": emp.get("department", ""),
+                "title": emp.get("title", ""),
+                "birthday_day": emp.get("birthday_day", 0),
+                "birthday_month": emp.get("birthday_month", 0),
             }
-            for emp in EMPLOYEES
+            for emp in list_employees()
             if emp.get("birthday_month") == month
         ]
 
@@ -436,7 +497,6 @@ def get_birthdays():
 def add_employee():
     """Add a new employee to the list"""
     try:
-        refresh_employees()
         data = request.json
         name = data.get('name', '').strip()
         email = data.get('email', '').strip()
@@ -446,10 +506,8 @@ def add_employee():
         if not email:
             return jsonify({"success": False, "error": "Employee email is required"}), 400
 
-        # Check for duplicates
-        for emp in EMPLOYEES:
-            if emp['email'].lower() == email.lower():
-                return jsonify({"success": False, "error": f"Employee with email {email} already exists"}), 409
+        if get_employee(email):
+            return jsonify({"success": False, "error": f"Employee with email {email} already exists"}), 409
 
         new_employee = {
             "name": name,
@@ -460,12 +518,12 @@ def add_employee():
             "title": data.get('title', ''),
         }
 
-        EMPLOYEES.append(new_employee)
-        EMPLOYEES.sort(key=lambda e: e['name'].lower())
-        save_employees_to_gcs()
+        if not upsert_employee(email, new_employee):
+            return jsonify({"success": False, "error": "Database write failed"}), 500
 
+        total = len(list_employees())
         safe_print(f"[API] Added employee: {name} ({email})")
-        return jsonify({"success": True, "employee": new_employee, "total": len(EMPLOYEES)})
+        return jsonify({"success": True, "employee": new_employee, "total": total})
 
     except Exception as e:
         safe_print(f"[API] Error adding employee: {e}")
@@ -476,23 +534,19 @@ def add_employee():
 def remove_employee():
     """Remove an employee from the list"""
     try:
-        refresh_employees()
         data = request.json
         email = data.get('email', '').strip().lower()
 
         if not email:
             return jsonify({"success": False, "error": "Employee email is required"}), 400
 
-        original_count = len(EMPLOYEES)
-        EMPLOYEES[:] = [emp for emp in EMPLOYEES if emp['email'].lower() != email]
-
-        if len(EMPLOYEES) == original_count:
+        if not get_employee(email):
             return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
 
-        save_employees_to_gcs()
+        delete_employee(email)
 
         safe_print(f"[API] Removed employee: {email}")
-        return jsonify({"success": True, "total": len(EMPLOYEES)})
+        return jsonify({"success": True, "total": len(list_employees())})
 
     except Exception as e:
         safe_print(f"[API] Error removing employee: {e}")
@@ -503,38 +557,43 @@ def remove_employee():
 def update_employee():
     """Update an employee's details"""
     try:
-        refresh_employees()
         data = request.json
         email = data.get('email', '').strip().lower()
 
         if not email:
             return jsonify({"success": False, "error": "Employee email is required"}), 400
 
-        new_email = data.get('new_email', '').strip().lower() if data.get('new_email') else None
+        emp = get_employee(email)
+        if not emp:
+            return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
 
-        for emp in EMPLOYEES:
-            if emp['email'].lower() == email:
-                if new_email and new_email != email:
-                    # Prevent collision with another existing employee
-                    if any(e['email'].lower() == new_email for e in EMPLOYEES if e is not emp):
-                        return jsonify({"success": False, "error": f"Email {new_email} is already in use"}), 400
-                    emp['email'] = new_email
-                if 'name' in data:
-                    emp['name'] = data['name'].strip()
-                if 'department' in data:
-                    emp['department'] = data['department'].strip()
-                if 'title' in data:
-                    emp['title'] = data['title'].strip()
-                if 'birthday_month' in data:
-                    emp['birthday_month'] = data['birthday_month']
-                if 'birthday_day' in data:
-                    emp['birthday_day'] = data['birthday_day']
+        new_email_raw = data.get('new_email', '')
+        new_email = new_email_raw.strip().lower() if new_email_raw else None
 
-                save_employees_to_gcs()
-                safe_print(f"[API] Updated employee: {emp['name']} ({emp['email']})")
-                return jsonify({"success": True, "employee": emp})
+        if new_email and new_email != email:
+            if get_employee(new_email):
+                return jsonify({"success": False, "error": f"Email {new_email} is already in use"}), 400
 
-        return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
+        if 'name' in data:
+            emp['name'] = data['name'].strip()
+        if 'department' in data:
+            emp['department'] = data['department'].strip()
+        if 'title' in data:
+            emp['title'] = data['title'].strip()
+        if 'birthday_month' in data:
+            emp['birthday_month'] = data['birthday_month']
+        if 'birthday_day' in data:
+            emp['birthday_day'] = data['birthday_day']
+
+        if new_email and new_email != email:
+            emp['email'] = new_email
+            delete_employee(email)
+            upsert_employee(new_email, emp)
+        else:
+            upsert_employee(email, emp)
+
+        safe_print(f"[API] Updated employee: {emp.get('name', '')} ({emp.get('email', '')})")
+        return jsonify({"success": True, "employee": emp})
 
     except Exception as e:
         safe_print(f"[API] Error updating employee: {e}")
