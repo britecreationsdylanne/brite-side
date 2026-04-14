@@ -1491,7 +1491,7 @@
         }
         .team-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 110px 60px;
+            grid-template-columns: 1fr 1fr 1.1fr 100px 160px;
             gap: 8px;
             padding: 10px 16px;
             align-items: center;
@@ -1499,6 +1499,39 @@
             font-size: 13px;
             color: rgba(255,255,255,0.85);
         }
+        .team-row .title-read, .team-row .bday-read {
+            color: rgba(255,255,255,0.75);
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .team-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+        .team-edit-btn, .team-save-btn {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .team-edit-btn {
+            background: transparent;
+            border: 1px solid rgba(49,215,202,0.6);
+            color: #31D7CA;
+        }
+        .team-edit-btn:hover { background: #31D7CA; color: #272D3F; border-color: #31D7CA; }
+        .team-save-btn {
+            background: #31D7CA;
+            border: 1px solid #31D7CA;
+            color: #272D3F;
+            font-weight: 700;
+        }
+        .team-save-btn:hover { background: #2bc5b9; border-color: #2bc5b9; }
         .team-row:last-child { border-bottom: none; }
         .team-row:hover { background: rgba(255,255,255,0.04); }
         .team-row .name { font-weight: 600; color: white; }
@@ -1561,7 +1594,7 @@
                 grid-template-columns: 1fr 1fr;
             }
             .team-row {
-                grid-template-columns: 1fr 1fr 1fr 90px 50px;
+                grid-template-columns: 1fr 1fr 1fr 80px 140px;
                 font-size: 11px;
                 gap: 4px;
                 padding: 8px 10px;
@@ -4231,6 +4264,8 @@
     /* ============================================================
        MANAGE TEAM
        ============================================================ */
+    let editingTeamEmail = null;
+
     function renderTeamList() {
         var listEl = document.getElementById('teamList');
         var countEl = document.getElementById('teamCount');
@@ -4248,26 +4283,107 @@
 
         allEmployees.forEach(function(emp) {
             var safeEmail = escapeAttr(emp.email);
+            var isEditing = editingTeamEmail && editingTeamEmail.toLowerCase() === emp.email.toLowerCase();
             html += '<div class="team-row">';
-            html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
-            html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
-            html += '<div><input type="text" class="team-edit-input" value="' + escapeAttr(emp.title || '') + '" placeholder="Title" onchange="updateEmployeeField(\'' + safeEmail + '\', \'title\', this.value)"></div>';
-            html += '<div class="bday-cell">';
-            html += '<select onchange="updateEmployeeBday(\'' + safeEmail + '\', this.value, null)">';
-            html += '<option value="0">--</option>';
-            for (var m = 1; m <= 12; m++) {
-                var sel = (emp.birthday_month === m) ? ' selected' : '';
-                html += '<option value="' + m + '"' + sel + '>' + monthAbbr[m] + '</option>';
+
+            if (isEditing) {
+                html += '<div><input type="text" class="team-edit-input" id="teamName_' + safeEmail + '" value="' + escapeAttr(emp.name || '') + '" placeholder="Name"></div>';
+                html += '<div><input type="email" class="team-edit-input" id="teamEmail_' + safeEmail + '" value="' + escapeAttr(emp.email || '') + '" placeholder="Email"></div>';
+                html += '<div><input type="text" class="team-edit-input" id="teamTitle_' + safeEmail + '" value="' + escapeAttr(emp.title || '') + '" placeholder="Title"></div>';
+                html += '<div class="bday-cell">';
+                html += '<select id="teamBMonth_' + safeEmail + '">';
+                html += '<option value="0">--</option>';
+                for (var m = 1; m <= 12; m++) {
+                    var sel = (emp.birthday_month === m) ? ' selected' : '';
+                    html += '<option value="' + m + '"' + sel + '>' + monthAbbr[m] + '</option>';
+                }
+                html += '</select>';
+                html += '<input type="number" id="teamBDay_' + safeEmail + '" value="' + (emp.birthday_day || '') + '" min="1" max="31" placeholder="D">';
+                html += '</div>';
+                html += '<div class="team-actions">';
+                html += '<button class="team-save-btn" onclick="saveEmployee(\'' + safeEmail + '\')">Save</button>';
+                html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
+                html += '</div>';
+            } else {
+                html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
+                html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
+                html += '<div class="title-read">' + escapeHtml(emp.title || '—') + '</div>';
+                var bdayText = (emp.birthday_month && emp.birthday_day)
+                    ? monthAbbr[emp.birthday_month] + ' ' + emp.birthday_day
+                    : '—';
+                html += '<div class="bday-read">' + bdayText + '</div>';
+                html += '<div class="team-actions">';
+                html += '<button class="team-edit-btn" onclick="editEmployee(\'' + safeEmail + '\')">Edit</button>';
+                html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
+                html += '</div>';
             }
-            html += '</select>';
-            html += '<input type="number" value="' + (emp.birthday_day || '') + '" min="1" max="31" placeholder="D" onchange="updateEmployeeBday(\'' + safeEmail + '\', null, this.value)">';
-            html += '</div>';
-            html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
             html += '</div>';
         });
 
         listEl.innerHTML = html;
         countEl.textContent = allEmployees.length + ' team member' + (allEmployees.length !== 1 ? 's' : '');
+    }
+
+    function editEmployee(email) {
+        editingTeamEmail = email;
+        renderTeamList();
+    }
+
+    function saveEmployee(email) {
+        var nameEl = document.getElementById('teamName_' + email);
+        var emailEl = document.getElementById('teamEmail_' + email);
+        var titleEl = document.getElementById('teamTitle_' + email);
+        var monthEl = document.getElementById('teamBMonth_' + email);
+        var dayEl = document.getElementById('teamBDay_' + email);
+
+        var name = nameEl ? nameEl.value.trim() : '';
+        var newEmail = emailEl ? emailEl.value.trim() : '';
+        var title = titleEl ? titleEl.value.trim() : '';
+        var month = monthEl ? parseInt(monthEl.value) || 0 : 0;
+        var day = dayEl ? parseInt(dayEl.value) || 0 : 0;
+
+        if (!name) { alert('Name is required.'); return; }
+        if (!newEmail || !isValidEmail(newEmail)) { alert('A valid email is required.'); return; }
+
+        var payload = {
+            email: email,
+            name: name,
+            title: title,
+            birthday_month: month,
+            birthday_day: day
+        };
+        if (newEmail.toLowerCase() !== email.toLowerCase()) {
+            payload.new_email = newEmail;
+        }
+
+        fetch(API_BASE + '/api/employees/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                for (var i = 0; i < allEmployees.length; i++) {
+                    if (allEmployees[i].email.toLowerCase() === email.toLowerCase()) {
+                        allEmployees[i].name = name;
+                        allEmployees[i].email = newEmail;
+                        allEmployees[i].title = title;
+                        allEmployees[i].birthday_month = month;
+                        allEmployees[i].birthday_day = day;
+                        break;
+                    }
+                }
+                editingTeamEmail = null;
+                renderTeamList();
+                if (typeof selectedMonthNum !== 'undefined' && selectedMonthNum) {
+                    fetchBirthdayCount(selectedMonthNum);
+                }
+            } else {
+                alert('Failed to save: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) { alert('Error saving: ' + err.message); });
     }
 
     function addEmployee() {

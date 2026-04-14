@@ -510,8 +510,15 @@ def update_employee():
         if not email:
             return jsonify({"success": False, "error": "Employee email is required"}), 400
 
+        new_email = data.get('new_email', '').strip().lower() if data.get('new_email') else None
+
         for emp in EMPLOYEES:
             if emp['email'].lower() == email:
+                if new_email and new_email != email:
+                    # Prevent collision with another existing employee
+                    if any(e['email'].lower() == new_email for e in EMPLOYEES if e is not emp):
+                        return jsonify({"success": False, "error": f"Email {new_email} is already in use"}), 400
+                    emp['email'] = new_email
                 if 'name' in data:
                     emp['name'] = data['name'].strip()
                 if 'department' in data:
@@ -524,7 +531,7 @@ def update_employee():
                     emp['birthday_day'] = data['birthday_day']
 
                 save_employees_to_gcs()
-                safe_print(f"[API] Updated employee: {emp['name']} ({email})")
+                safe_print(f"[API] Updated employee: {emp['name']} ({emp['email']})")
                 return jsonify({"success": True, "employee": emp})
 
         return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
@@ -924,6 +931,7 @@ def render_email():
 
         # Build birthday HTML rows
         birthday_html = ''
+        month_display = str(month).capitalize() if month else ''
         if birthdays:
             birthday_items = []
             for bday in birthdays:
@@ -932,7 +940,7 @@ def render_email():
                 bday_dept = esc(bday.get('department', ''))
                 birthday_items.append(
                     f'<tr><td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; font-weight: 600; color: #272D3F;">{bday_name}</td>'
-                    f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{month} {bday_day}</td>'
+                    f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{month_display} {bday_day}</td>'
                     f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{bday_dept}</td></tr>'
                 )
             birthday_html = '\n'.join(birthday_items)
