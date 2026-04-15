@@ -766,11 +766,75 @@ ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
 ALLOWED_VIDEO_TYPES = {'video/mp4', 'video/quicktime', 'video/webm'}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024   # 10MB
 MAX_VIDEO_SIZE = 50 * 1024 * 1024   # 50MB
+MAX_GIF_SIZE = 3 * 1024 * 1024      # 3MB hard cap for GIFs (no resize)
+
+# Pillow + python-magic for the media section pipeline
+try:
+    from PIL import Image
+    import io as _io
+    PIL_AVAILABLE = True
+except Exception as _pil_err:
+    PIL_AVAILABLE = False
+    print(f"[WARNING] Pillow not available: {_pil_err}")
+
+try:
+    import magic as _magic
+    MAGIC_AVAILABLE = True
+except Exception as _magic_err:
+    MAGIC_AVAILABLE = False
+    print(f"[WARNING] python-magic not available: {_magic_err}")
+
+
+def _detect_mime(file_bytes):
+    """Detect MIME from magic bytes. Returns content-type header as fallback."""
+    if MAGIC_AVAILABLE:
+        try:
+            return _magic.from_buffer(file_bytes[:2048], mime=True)
+        except Exception:
+            pass
+    return None
+
+
+def _optimize_image(file_bytes, detected_mime):
+    """Resize static images to max 1200x800, strip EXIF, re-encode.
+    GIFs are passed through untouched (to preserve animation).
+    Returns (processed_bytes, output_mime, ext).
+    """
+    if not PIL_AVAILABLE:
+        return file_bytes, detected_mime, None
+
+    if detected_mime == 'image/gif':
+        return file_bytes, 'image/gif', '.gif'
+
+    try:
+        img = Image.open(_io.BytesIO(file_bytes))
+        img.load()
+        has_alpha = img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info)
+
+        # Resize if larger than 1200x800 (preserve aspect)
+        max_w, max_h = 1200, 800
+        if img.width > max_w or img.height > max_h:
+            img.thumbnail((max_w, max_h), Image.LANCZOS)
+
+        out = _io.BytesIO()
+        if has_alpha:
+            img.save(out, format='PNG', optimize=True)
+            return out.getvalue(), 'image/png', '.png'
+        else:
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            img.save(out, format='JPEG', quality=85, optimize=True, progressive=True)
+            return out.getvalue(), 'image/jpeg', '.jpg'
+    except Exception as e:
+        safe_print(f"[MEDIA] Pillow optimize failed, using original: {e}")
+        return file_bytes, detected_mime, None
 
 
 @app.route('/api/upload-media', methods=['POST'])
 def upload_media():
-    """Upload an image or video to GCS and return its public URL"""
+    """Upload an image, gif, or video to GCS and return its public URL.
+    Images are auto-resized and re-encoded via Pillow; GIFs are capped at
+    3MB and passed through untouched; videos are stored as-is."""
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
@@ -781,45 +845,253 @@ def upload_media():
         if not file.filename:
             return jsonify({'success': False, 'error': 'Empty filename'}), 400
 
-        content_type = file.content_type or ''
-        is_image = content_type in ALLOWED_IMAGE_TYPES
-        is_video = content_type in ALLOWED_VIDEO_TYPES
+        file_data = file.read()
+        if not file_data:
+            return jsonify({'success': False, 'error': 'Empty file'}), 400
+
+        # Prefer magic-bytes detection over client-supplied content type
+        detected = _detect_mime(file_data) or (file.content_type or '')
+        is_image = detected in ALLOWED_IMAGE_TYPES
+        is_video = detected in ALLOWED_VIDEO_TYPES
+        is_gif = detected == 'image/gif'
 
         if not is_image and not is_video:
-            return jsonify({'success': False, 'error': f'Unsupported file type: {content_type}'}), 400
+            return jsonify({'success': False, 'error': f'Unsupported file type: {detected}'}), 400
 
-        # Read file data and check size
-        file_data = file.read()
+        # Size gates
+        if is_gif and len(file_data) > MAX_GIF_SIZE:
+            return jsonify({'success': False, 'error': f'GIF too large. Max {MAX_GIF_SIZE // (1024*1024)}MB.'}), 400
         max_size = MAX_IMAGE_SIZE if is_image else MAX_VIDEO_SIZE
         if len(file_data) > max_size:
             limit_mb = max_size // (1024 * 1024)
             return jsonify({'success': False, 'error': f'File too large. Max {limit_mb}MB.'}), 400
 
-        # Generate unique filename
-        ext = os.path.splitext(file.filename)[1].lower() or ('.jpg' if is_image else '.mp4')
-        unique_name = f"{uuid.uuid4().hex}{ext}"
-        blob_path = f"media/{unique_name}"
+        # Pillow optimize for static images (not gifs, not videos)
+        final_data = file_data
+        final_mime = detected
+        final_ext = None
+        if is_image and not is_gif:
+            final_data, final_mime, final_ext = _optimize_image(file_data, detected)
+
+        if not final_ext:
+            final_ext = os.path.splitext(file.filename)[1].lower()
+            if not final_ext:
+                final_ext = '.jpg' if is_image else '.mp4'
+
+        month_prefix = datetime.now(CHICAGO_TZ).strftime('%Y-%m')
+        unique_name = f"{uuid.uuid4().hex}{final_ext}"
+        blob_path = f"media/{month_prefix}/{unique_name}"
 
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(blob_path)
-        blob.upload_from_string(file_data, content_type=content_type)
+        blob.upload_from_string(final_data, content_type=final_mime)
 
-        # Construct public URL directly (bucket uses uniform bucket-level access)
         public_url = f"https://storage.googleapis.com/{GCS_DRAFTS_BUCKET}/{blob_path}"
-        safe_print(f"[MEDIA] Uploaded {blob_path} ({len(file_data)} bytes)")
+        safe_print(f"[MEDIA] Uploaded {blob_path} ({len(final_data)} bytes, was {len(file_data)})")
 
         return jsonify({
             'success': True,
             'url': public_url,
             'filename': unique_name,
-            'type': 'image' if is_image else 'video',
-            'size': len(file_data),
+            'type': 'gif' if is_gif else ('image' if is_image else 'video'),
+            'size': len(final_data),
+            'original_size': len(file_data),
+            'mime': final_mime,
         })
 
     except Exception as e:
         safe_print(f"[MEDIA UPLOAD ERROR] {str(e)}")
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Helpers for OG / YouTube preview (SSRF-safe URL fetching)
+# ---------------------------------------------------------------------------
+
+import ipaddress as _ipaddress
+import socket as _socket
+from urllib.parse import urlparse as _urlparse, parse_qs as _parse_qs
+
+try:
+    from bs4 import BeautifulSoup as _BeautifulSoup
+    BS4_AVAILABLE = True
+except Exception as _bs4_err:
+    BS4_AVAILABLE = False
+    print(f"[WARNING] beautifulsoup4 not available: {_bs4_err}")
+
+MEDIA_FETCH_TIMEOUT = 5
+MEDIA_FETCH_MAX_BYTES = 2 * 1024 * 1024
+
+
+def _is_public_host(hostname):
+    """Resolve hostname and confirm every returned IP is publicly routable."""
+    if not hostname:
+        return False
+    try:
+        infos = _socket.getaddrinfo(hostname, None)
+    except _socket.gaierror:
+        return False
+    for info in infos:
+        ip = info[4][0]
+        try:
+            addr = _ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved or addr.is_multicast or addr.is_unspecified:
+            return False
+    return True
+
+
+def _safe_fetch(url):
+    """Fetch an external URL with SSRF + timeout + size limits.
+    Returns (status_code, content_bytes, content_type) or raises ValueError."""
+    parsed = _urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError('Only http(s) URLs are allowed')
+    if not _is_public_host(parsed.hostname or ''):
+        raise ValueError('Host is not publicly routable')
+
+    resp = http_requests.get(
+        url,
+        timeout=MEDIA_FETCH_TIMEOUT,
+        allow_redirects=False,
+        stream=True,
+        headers={'User-Agent': 'BriteSide-Preview/1.0 (+https://brite.co)'},
+    )
+    # Redirect handling: only follow redirect if new host is still public
+    if resp.is_redirect or resp.is_permanent_redirect:
+        loc = resp.headers.get('Location', '')
+        if not loc:
+            raise ValueError('Redirect without Location header')
+        new_parsed = _urlparse(loc)
+        if new_parsed.scheme and not _is_public_host(new_parsed.hostname or ''):
+            raise ValueError('Redirect target is not publicly routable')
+        resp = http_requests.get(
+            loc, timeout=MEDIA_FETCH_TIMEOUT, allow_redirects=False, stream=True,
+            headers={'User-Agent': 'BriteSide-Preview/1.0 (+https://brite.co)'},
+        )
+
+    buf = bytearray()
+    for chunk in resp.iter_content(chunk_size=16384):
+        buf.extend(chunk)
+        if len(buf) > MEDIA_FETCH_MAX_BYTES:
+            break
+    return resp.status_code, bytes(buf), resp.headers.get('Content-Type', '')
+
+
+def _extract_og(html_text, base_url):
+    """Extract Open Graph and basic metadata tags from an HTML page."""
+    result = {'title': '', 'description': '', 'image': '', 'site_name': '', 'url': base_url}
+    if not BS4_AVAILABLE:
+        return result
+    try:
+        soup = _BeautifulSoup(html_text, 'lxml')
+    except Exception:
+        soup = _BeautifulSoup(html_text, 'html.parser')
+
+    def meta(prop_or_name):
+        tag = soup.find('meta', attrs={'property': prop_or_name}) or soup.find('meta', attrs={'name': prop_or_name})
+        return (tag.get('content') or '').strip() if tag else ''
+
+    result['title'] = meta('og:title') or (soup.title.string.strip() if soup.title and soup.title.string else '')
+    result['description'] = meta('og:description') or meta('description') or meta('twitter:description')
+    result['image'] = meta('og:image') or meta('twitter:image')
+    result['site_name'] = meta('og:site_name')
+    og_url = meta('og:url')
+    if og_url:
+        result['url'] = og_url
+    return result
+
+
+@app.route('/api/media/og-preview')
+def media_og_preview():
+    """Fetch a URL and return its Open Graph / meta preview data."""
+    url = (request.args.get('url') or '').strip()
+    if not url:
+        return jsonify({'success': False, 'error': 'url parameter is required'}), 400
+    try:
+        status, body, ctype = _safe_fetch(url)
+        if status >= 400:
+            return jsonify({'success': False, 'error': f'Source returned {status}'}), 502
+        if 'text/html' not in (ctype or '').lower():
+            return jsonify({'success': False, 'error': 'URL is not an HTML page'}), 400
+        data = _extract_og(body.decode('utf-8', errors='replace'), url)
+        return jsonify({'success': True, 'og': data})
+    except ValueError as ve:
+        return jsonify({'success': False, 'error': str(ve)}), 400
+    except Exception as e:
+        safe_print(f"[MEDIA OG ERROR] {e}")
+        return jsonify({'success': False, 'error': 'Preview failed'}), 500
+
+
+def _extract_youtube_id(url):
+    """Pull the 11-char YouTube video ID out of any of the common URL shapes."""
+    if not url:
+        return None
+    try:
+        parsed = _urlparse(url)
+    except Exception:
+        return None
+    host = (parsed.hostname or '').lower()
+    if host in ('youtu.be',):
+        return parsed.path.lstrip('/').split('/')[0] or None
+    if 'youtube.com' in host:
+        qs = _parse_qs(parsed.query)
+        if 'v' in qs and qs['v']:
+            return qs['v'][0]
+        # /embed/<id>, /shorts/<id>, /live/<id>
+        parts = [p for p in parsed.path.split('/') if p]
+        if len(parts) >= 2 and parts[0] in ('embed', 'shorts', 'live', 'v'):
+            return parts[1]
+    return None
+
+
+def _resolve_youtube_thumbnail(video_id):
+    """Return the best available YouTube thumbnail URL. Falls back when maxres is missing."""
+    for variant in ('maxresdefault', 'hqdefault', 'mqdefault', '0'):
+        candidate = f"https://i.ytimg.com/vi/{video_id}/{variant}.jpg"
+        try:
+            head = http_requests.head(candidate, timeout=MEDIA_FETCH_TIMEOUT, allow_redirects=True)
+            if head.status_code == 200:
+                return candidate
+        except Exception:
+            continue
+    return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+
+
+@app.route('/api/media/youtube')
+def media_youtube():
+    """Resolve a YouTube URL to a thumbnail + title via oEmbed."""
+    url = (request.args.get('url') or '').strip()
+    if not url:
+        return jsonify({'success': False, 'error': 'url parameter is required'}), 400
+    video_id = _extract_youtube_id(url)
+    if not video_id:
+        return jsonify({'success': False, 'error': 'Not a recognizable YouTube URL'}), 400
+    try:
+        title = ''
+        try:
+            oembed = http_requests.get(
+                'https://www.youtube.com/oembed',
+                params={'url': f'https://www.youtube.com/watch?v={video_id}', 'format': 'json'},
+                timeout=MEDIA_FETCH_TIMEOUT,
+            )
+            if oembed.status_code == 200:
+                title = oembed.json().get('title', '')
+        except Exception:
+            pass
+        thumbnail = _resolve_youtube_thumbnail(video_id)
+        return jsonify({
+            'success': True,
+            'video_id': video_id,
+            'title': title,
+            'thumbnail': thumbnail,
+            'url': f'https://www.youtube.com/watch?v={video_id}',
+        })
+    except Exception as e:
+        safe_print(f"[MEDIA YT ERROR] {e}")
+        return jsonify({'success': False, 'error': 'YouTube lookup failed'}), 500
 
 
 # ============================================================================
@@ -945,6 +1217,94 @@ def get_previous_game():
 # ROUTES - EMAIL RENDERING & SENDING
 # ============================================================================
 
+def _build_media_html(media, FONT):
+    """Render the optional Intro-addon media block.
+    Returns a full <tr>...</tr> block, or '' if disabled/empty."""
+    if not media or not media.get('enabled'):
+        return ''
+
+    kind = (media.get('type') or '').lower()
+    if not kind:
+        return ''
+
+    alt = esc(media.get('alt_text', '')) or esc(media.get('og', {}).get('title', '')) or 'Featured media'
+    link_url = (media.get('link_url') or '').strip()
+    source_url = (media.get('og', {}).get('source_url') or media.get('og', {}).get('url') or '').strip()
+    image_url = (media.get('image_url') or '').strip()
+    og = media.get('og') or {}
+
+    img_style = (
+        'display:block; width:100%; max-width:600px; height:auto; '
+        'border:0; border-radius:12px; margin:0 auto;'
+    )
+
+    def _wrap(inner_html):
+        return (
+            '<tr style="display: {{MEDIA_DISPLAY_INNER}};">'
+            '<td style="padding: 24px 40px 8px 40px;" class="mobile-padding">'
+            '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
+            '<tr><td>' + inner_html + '</td></tr>'
+            '</table></td></tr>'
+        )
+
+    # Simple image/gif/meme/social-screenshot — full-width responsive image
+    if kind in ('image', 'gif', 'meme', 'social'):
+        if not image_url:
+            return ''
+        href = link_url or source_url
+        img_tag = f'<img src="{image_url}" alt="{alt}" width="600" style="{img_style}">'
+        inner = f'<a href="{href}" target="_blank" style="text-decoration:none;">{img_tag}</a>' if href else img_tag
+        return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
+
+    # YouTube — thumbnail + title + Watch button
+    if kind == 'youtube':
+        thumb = (og.get('image') or '').strip()
+        yt_url = (og.get('source_url') or og.get('url') or '').strip()
+        title = esc(og.get('title') or 'Watch on YouTube')
+        if not thumb or not yt_url:
+            return ''
+        play_badge = (
+            '<div style="position:relative; line-height:0;">'
+            f'<img src="{thumb}" alt="{alt}" width="600" style="{img_style}">'
+            '</div>'
+        )
+        inner = (
+            f'<a href="{yt_url}" target="_blank" style="text-decoration:none; color:inherit;">'
+            f'{play_badge}'
+            f'<p style="margin:12px 0 4px 0; font-family:{FONT}; font-size:17px; font-weight:700; color:#272D3F;">{title}</p>'
+            f'<p style="margin:0; font-family:{FONT}; font-size:13px; font-weight:600; color:#31D7CA; text-transform:uppercase; letter-spacing:1px;">Watch on YouTube &rarr;</p>'
+            f'</a>'
+        )
+        return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
+
+    # News / article — hotlinked OG card
+    if kind == 'news':
+        title = esc(og.get('title') or '')
+        desc = esc((og.get('description') or '')[:200])
+        site = esc(og.get('site_name') or '')
+        img = (og.get('image') or '').strip()
+        url_out = (og.get('source_url') or og.get('url') or '').strip()
+        if not url_out or not title:
+            return ''
+
+        img_html = (
+            f'<img src="{img}" alt="{alt}" width="600" style="{img_style}">'
+            if img else ''
+        )
+        inner = (
+            f'<a href="{url_out}" target="_blank" style="text-decoration:none; color:inherit;">'
+            + (f'<div style="line-height:0; margin-bottom:14px;">{img_html}</div>' if img_html else '')
+            + (f'<p style="margin:0 0 4px 0; font-family:{FONT}; font-size:12px; font-weight:700; color:#31D7CA; text-transform:uppercase; letter-spacing:1px;">{site}</p>' if site else '')
+            + f'<p style="margin:0 0 6px 0; font-family:{FONT}; font-size:18px; font-weight:700; color:#272D3F; line-height:24px;">{title}</p>'
+            + (f'<p style="margin:0 0 10px 0; font-family:{FONT}; font-size:14px; color:#6b7280; line-height:20px;">{desc}</p>' if desc else '')
+            + f'<p style="margin:0; font-family:{FONT}; font-size:13px; font-weight:700; color:#31D7CA; text-transform:uppercase; letter-spacing:1px;">Read more &rarr;</p>'
+            + '</a>'
+        )
+        return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
+
+    return ''
+
+
 @app.route('/api/render-email', methods=['POST'])
 def render_email():
     """Render the newsletter email template with provided content"""
@@ -964,6 +1324,7 @@ def render_email():
         welcome_hires = data.get('welcome_hires', [])
         welcome_enabled = data.get('welcome_enabled', False)
         game = data.get('game', {})
+        media = data.get('media', {}) or {}
 
         # Template selection (default to classic)
         template_file = data.get('template', 'briteside-email.html')
@@ -1257,6 +1618,9 @@ def render_email():
         game_display = 'table-row' if game_section_html else 'none'
         punchline_display = 'table-row' if joke_punchline else 'none'
 
+        # Build media (optional Intro add-on) section — full <tr> block or ''
+        media_html = _build_media_html(media, FONT)
+
         # Preheader text (short preview text for email clients)
         preheader = f"The BriteSide - {month} {year}"
         if joke_setup:
@@ -1277,6 +1641,7 @@ def render_email():
         html = html.replace('{{JOKE_SETUP}}', joke_setup)
         html = html.replace('{{JOKE_PUNCHLINE}}', joke_punchline)
         html = html.replace('{{PUNCHLINE_DISPLAY}}', punchline_display)
+        html = html.replace('{{MEDIA_SECTION}}', media_html)
         html = html.replace('{{BIRTHDAY_DISPLAY}}', birthday_display)
         html = html.replace('{{BIRTHDAY_SECTION}}', birthday_html)
         html = html.replace('{{WELCOME_DISPLAY}}', welcome_display)
@@ -1470,6 +1835,7 @@ def save_draft():
             'welcomeHires': data.get('welcomeHires'),
             'welcomeEnabled': data.get('welcomeEnabled', False),
             'game': data.get('game'),
+            'media': data.get('media'),
             'subject': data.get('subject'),
             'lastSavedBy': data.get('savedBy', 'unknown'),
             'lastSavedAt': datetime.now(CHICAGO_TZ).isoformat(),

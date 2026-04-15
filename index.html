@@ -432,6 +432,83 @@
         }
 
         /* ============================================
+           STEP 2: MEDIA BLOCK (optional)
+           ============================================ */
+        .media-block {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px dashed #e5e7eb;
+        }
+        .media-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #018181;
+        }
+        .media-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #018181;
+        }
+        .media-hint {
+            margin: 6px 0 0 28px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .media-area {
+            margin-top: 14px;
+            padding: 16px;
+            background: #F6FBFB;
+            border: 1px solid #E3F1F0;
+            border-radius: 10px;
+        }
+        .media-subgroup {
+            margin-top: 4px;
+        }
+        .media-status {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .media-status.error { color: #dc3545; }
+        .media-status.ok { color: #018181; }
+        .media-preview {
+            margin-top: 14px;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .media-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            display: block;
+        }
+        .media-preview .mp-meta {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+        .media-preview .mp-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #272D3F;
+            margin: 6px 0 4px 0;
+        }
+        .media-preview .mp-desc {
+            font-size: 13px;
+            color: #555;
+            margin: 0;
+        }
+
+        /* ============================================
            STEP 3: BIRTHDAY CARDS
            ============================================ */
         .birthday-list {
@@ -1700,6 +1777,70 @@
                 </div>
             </div>
 
+            <!-- Media add-on block (optional) -->
+            <div class="media-block">
+                <label class="media-toggle">
+                    <input type="checkbox" id="mediaToggle" onchange="toggleMediaBlock()">
+                    Add Media (optional)
+                </label>
+                <p class="media-hint">Add an image, gif, meme, YouTube video, or article link below the joke.</p>
+
+                <div id="mediaArea" class="media-area" style="display:none;">
+                    <div class="form-group">
+                        <label>Media Type</label>
+                        <select id="mediaTypeSelect" onchange="onMediaTypeChange()">
+                            <option value="">-- Select --</option>
+                            <option value="image">Image</option>
+                            <option value="gif">GIF</option>
+                            <option value="meme">Meme</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="news">News / Article</option>
+                            <option value="social">Social Post (screenshot)</option>
+                        </select>
+                    </div>
+
+                    <!-- Upload group (image / gif / meme / social) -->
+                    <div id="mediaUploadGroup" class="media-subgroup" style="display:none;">
+                        <div class="form-group">
+                            <label>Upload File <span id="mediaUploadHint" style="color:#6b7280;font-weight:400;"></span></label>
+                            <input type="file" id="mediaUploadInput" accept="image/*" onchange="handleMediaUpload(event)">
+                            <div id="mediaUploadStatus" class="media-status"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Alt text <span style="color:#dc3545;">*</span> <span style="color:#6b7280;font-weight:400;">(what the image shows, for accessibility)</span></label>
+                            <input type="text" id="mediaAltText" placeholder="e.g. Team at the Q2 kickoff dinner" onchange="syncMediaState()">
+                        </div>
+                        <div class="form-group">
+                            <label>Link URL <span style="color:#6b7280;font-weight:400;">(optional — where the image should click to)</span></label>
+                            <input type="url" id="mediaLinkUrl" placeholder="https://..." onchange="syncMediaState()">
+                        </div>
+                        <div id="mediaSocialSource" class="form-group" style="display:none;">
+                            <label>Original Post URL <span style="color:#6b7280;font-weight:400;">(where the screenshot came from)</span></label>
+                            <input type="url" id="mediaSocialSourceUrl" placeholder="https://x.com/..." onchange="syncMediaState()">
+                        </div>
+                    </div>
+
+                    <!-- URL group (youtube / news) -->
+                    <div id="mediaUrlGroup" class="media-subgroup" style="display:none;">
+                        <div class="form-group">
+                            <label id="mediaUrlLabel">URL</label>
+                            <div style="display:flex; gap:8px;">
+                                <input type="url" id="mediaSourceUrl" placeholder="https://..." style="flex:1;">
+                                <button type="button" class="btn btn-secondary" onclick="fetchMediaPreview()" style="white-space:nowrap;">Fetch Preview</button>
+                            </div>
+                            <div id="mediaUrlStatus" class="media-status"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live preview -->
+                    <div id="mediaPreview" class="media-preview" style="display:none;"></div>
+
+                    <div style="text-align:right; margin-top:8px;">
+                        <a href="javascript:void(0)" onclick="clearMediaBlock()" style="color:#dc3545; font-size:13px; text-decoration:underline;">Remove media</a>
+                    </div>
+                </div>
+            </div>
+
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(1)">&larr; Back</button>
                 <button id="step2NextBtn" class="btn" disabled onclick="goToStep(3)">Next &rarr;</button>
@@ -2343,6 +2484,16 @@
     let selectedJokeIndex = -1;
     let birthdays = [];
 
+    // Optional media block (Intro add-on)
+    let mediaBlock = {
+        enabled: false,
+        type: null,       // 'image' | 'gif' | 'meme' | 'youtube' | 'news' | 'social'
+        image_url: '',
+        alt_text: '',
+        link_url: '',
+        og: { title: '', description: '', image: '', site_name: '', source_url: '' }
+    };
+
     // Welcome new hires
     let welcomeEnabled = false;
     let welcomeHires = [];
@@ -2897,6 +3048,253 @@
         } else if (selectedJokeIndex >= 0 && jokeOptions[selectedJokeIndex]) {
             joke = jokeOptions[selectedJokeIndex];
         }
+    }
+
+    /* ============================================================
+       STEP 2 — OPTIONAL MEDIA BLOCK
+       ============================================================ */
+    function toggleMediaBlock() {
+        var checked = document.getElementById('mediaToggle').checked;
+        mediaBlock.enabled = checked;
+        document.getElementById('mediaArea').style.display = checked ? 'block' : 'none';
+        if (!checked) {
+            clearMediaPreview();
+        }
+    }
+
+    function onMediaTypeChange() {
+        var type = document.getElementById('mediaTypeSelect').value;
+        mediaBlock.type = type || null;
+
+        var uploadGroup = document.getElementById('mediaUploadGroup');
+        var urlGroup = document.getElementById('mediaUrlGroup');
+        var socialSrc = document.getElementById('mediaSocialSource');
+        var accept = document.getElementById('mediaUploadInput');
+        var hint = document.getElementById('mediaUploadHint');
+        var urlLabel = document.getElementById('mediaUrlLabel');
+
+        uploadGroup.style.display = 'none';
+        urlGroup.style.display = 'none';
+        socialSrc.style.display = 'none';
+
+        if (type === 'image' || type === 'meme') {
+            uploadGroup.style.display = 'block';
+            accept.accept = 'image/jpeg,image/png,image/webp';
+            hint.textContent = '(JPG/PNG/WEBP, max 10MB — auto-resized)';
+        } else if (type === 'gif') {
+            uploadGroup.style.display = 'block';
+            accept.accept = 'image/gif';
+            hint.textContent = '(animated GIF, max 3MB)';
+        } else if (type === 'social') {
+            uploadGroup.style.display = 'block';
+            socialSrc.style.display = 'block';
+            accept.accept = 'image/jpeg,image/png,image/webp';
+            hint.textContent = '(screenshot of the post — JPG/PNG, max 10MB)';
+        } else if (type === 'youtube') {
+            urlGroup.style.display = 'block';
+            urlLabel.textContent = 'YouTube Video URL';
+            document.getElementById('mediaSourceUrl').placeholder = 'https://www.youtube.com/watch?v=...';
+        } else if (type === 'news') {
+            urlGroup.style.display = 'block';
+            urlLabel.textContent = 'Article / News URL';
+            document.getElementById('mediaSourceUrl').placeholder = 'https://...';
+        }
+
+        renderMediaPreview();
+    }
+
+    function syncMediaState() {
+        mediaBlock.alt_text = (document.getElementById('mediaAltText') || {}).value || '';
+        mediaBlock.link_url = (document.getElementById('mediaLinkUrl') || {}).value || '';
+        var socialSrcEl = document.getElementById('mediaSocialSourceUrl');
+        if (mediaBlock.type === 'social' && socialSrcEl) {
+            mediaBlock.og.source_url = socialSrcEl.value || '';
+        }
+        renderMediaPreview();
+    }
+
+    function handleMediaUpload(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+
+        var status = document.getElementById('mediaUploadStatus');
+        status.className = 'media-status';
+        status.textContent = 'Uploading...';
+
+        var fd = new FormData();
+        fd.append('file', file);
+        fetch(API_BASE + '/api/upload-media', { method: 'POST', body: fd })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success && data.url) {
+                    mediaBlock.image_url = data.url;
+                    status.className = 'media-status ok';
+                    status.textContent = 'Uploaded (' + Math.round((data.size || 0) / 1024) + 'KB)';
+                    renderMediaPreview();
+                } else {
+                    status.className = 'media-status error';
+                    status.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+                }
+            })
+            .catch(function(err) {
+                status.className = 'media-status error';
+                status.textContent = 'Upload failed: ' + err.message;
+            });
+    }
+
+    function fetchMediaPreview() {
+        var url = (document.getElementById('mediaSourceUrl').value || '').trim();
+        if (!url) return;
+
+        var status = document.getElementById('mediaUrlStatus');
+        status.className = 'media-status';
+        status.textContent = 'Fetching preview...';
+
+        var endpoint = mediaBlock.type === 'youtube' ? '/api/media/youtube' : '/api/media/og-preview';
+        fetch(API_BASE + endpoint + '?url=' + encodeURIComponent(url))
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    status.className = 'media-status error';
+                    status.textContent = data.error || 'Preview failed';
+                    return;
+                }
+                if (mediaBlock.type === 'youtube') {
+                    mediaBlock.og = {
+                        title: data.title || '',
+                        description: '',
+                        image: data.thumbnail || '',
+                        site_name: 'YouTube',
+                        source_url: data.url || url
+                    };
+                } else {
+                    var og = data.og || {};
+                    mediaBlock.og = {
+                        title: og.title || '',
+                        description: og.description || '',
+                        image: og.image || '',
+                        site_name: og.site_name || '',
+                        source_url: og.url || url
+                    };
+                }
+                status.className = 'media-status ok';
+                status.textContent = 'Preview loaded';
+                renderMediaPreview();
+            })
+            .catch(function(err) {
+                status.className = 'media-status error';
+                status.textContent = 'Preview failed: ' + err.message;
+            });
+    }
+
+    function renderMediaPreview() {
+        var el = document.getElementById('mediaPreview');
+        if (!el) return;
+
+        var t = mediaBlock.type;
+        var html = '';
+
+        if ((t === 'image' || t === 'gif' || t === 'meme' || t === 'social') && mediaBlock.image_url) {
+            html = '<img src="' + escapeAttr(mediaBlock.image_url) + '" alt="' + escapeAttr(mediaBlock.alt_text || '') + '">';
+            if (mediaBlock.alt_text) {
+                html += '<p class="mp-meta" style="margin-top:8px;">Alt: ' + escapeHtml(mediaBlock.alt_text) + '</p>';
+            }
+        } else if (t === 'youtube' && mediaBlock.og.image) {
+            html = '<img src="' + escapeAttr(mediaBlock.og.image) + '" alt="YouTube thumbnail">';
+            html += '<p class="mp-title">' + escapeHtml(mediaBlock.og.title || 'YouTube Video') + '</p>';
+            html += '<p class="mp-meta">Watch on YouTube</p>';
+        } else if (t === 'news' && mediaBlock.og.title) {
+            if (mediaBlock.og.image) {
+                html += '<img src="' + escapeAttr(mediaBlock.og.image) + '" alt="">';
+            }
+            if (mediaBlock.og.site_name) {
+                html += '<p class="mp-meta">' + escapeHtml(mediaBlock.og.site_name) + '</p>';
+            }
+            html += '<p class="mp-title">' + escapeHtml(mediaBlock.og.title) + '</p>';
+            if (mediaBlock.og.description) {
+                html += '<p class="mp-desc">' + escapeHtml(mediaBlock.og.description) + '</p>';
+            }
+        }
+
+        if (html) {
+            el.innerHTML = html;
+            el.style.display = 'block';
+        } else {
+            clearMediaPreview();
+        }
+    }
+
+    function clearMediaPreview() {
+        var el = document.getElementById('mediaPreview');
+        if (el) {
+            el.innerHTML = '';
+            el.style.display = 'none';
+        }
+    }
+
+    function clearMediaBlock() {
+        mediaBlock = {
+            enabled: false,
+            type: null,
+            image_url: '',
+            alt_text: '',
+            link_url: '',
+            og: { title: '', description: '', image: '', site_name: '', source_url: '' }
+        };
+        document.getElementById('mediaToggle').checked = false;
+        document.getElementById('mediaTypeSelect').value = '';
+        document.getElementById('mediaAltText').value = '';
+        document.getElementById('mediaLinkUrl').value = '';
+        var su = document.getElementById('mediaSocialSourceUrl'); if (su) su.value = '';
+        var uu = document.getElementById('mediaSourceUrl'); if (uu) uu.value = '';
+        var fi = document.getElementById('mediaUploadInput'); if (fi) fi.value = '';
+        document.getElementById('mediaUploadStatus').textContent = '';
+        document.getElementById('mediaUrlStatus').textContent = '';
+        document.getElementById('mediaArea').style.display = 'none';
+        onMediaTypeChange();
+    }
+
+    function collectMediaData() {
+        mediaBlock.enabled = document.getElementById('mediaToggle').checked;
+        syncMediaState();
+
+        if (!mediaBlock.enabled || !mediaBlock.type) return null;
+
+        // Validate required fields before sending
+        var t = mediaBlock.type;
+        if ((t === 'image' || t === 'gif' || t === 'meme' || t === 'social') && !mediaBlock.image_url) return null;
+        if ((t === 'image' || t === 'gif' || t === 'meme' || t === 'social') && !mediaBlock.alt_text) {
+            alert('Please add alt text for the media image.');
+            return null;
+        }
+        if (t === 'youtube' && !mediaBlock.og.source_url) return null;
+        if (t === 'news' && !mediaBlock.og.title) return null;
+
+        return mediaBlock;
+    }
+
+    function applyMediaDraft(saved) {
+        if (!saved || typeof saved !== 'object') {
+            clearMediaBlock();
+            return;
+        }
+        mediaBlock = {
+            enabled: !!saved.enabled,
+            type: saved.type || null,
+            image_url: saved.image_url || '',
+            alt_text: saved.alt_text || '',
+            link_url: saved.link_url || '',
+            og: Object.assign({ title: '', description: '', image: '', site_name: '', source_url: '' }, saved.og || {})
+        };
+        document.getElementById('mediaToggle').checked = mediaBlock.enabled;
+        document.getElementById('mediaArea').style.display = mediaBlock.enabled ? 'block' : 'none';
+        document.getElementById('mediaTypeSelect').value = mediaBlock.type || '';
+        document.getElementById('mediaAltText').value = mediaBlock.alt_text;
+        document.getElementById('mediaLinkUrl').value = mediaBlock.link_url;
+        var su = document.getElementById('mediaSocialSourceUrl'); if (su) su.value = mediaBlock.og.source_url || '';
+        var uu = document.getElementById('mediaSourceUrl'); if (uu) uu.value = mediaBlock.og.source_url || '';
+        onMediaTypeChange();
+        renderMediaPreview();
     }
 
     function updateStep2NextButton() {
@@ -3618,6 +4016,8 @@
         var templateSelect = document.getElementById('templateSelect');
         var templateVal = templateSelect ? templateSelect.value : 'briteside-email.html';
 
+        var mediaPayload = collectMediaData();
+
         return {
             month: selectedMonth,
             month_num: selectedMonthNum,
@@ -3631,6 +4031,7 @@
             welcome_hires: welcomeEnabled ? welcomeHires.filter(function(h) { return h.name; }) : [],
             welcome_enabled: welcomeEnabled,
             game: gamePayload,
+            media: mediaPayload,
             special_section: specialData,
             special_sections: specialSections.length > 0 ? specialSections : null,
             subject: subject,
@@ -3924,6 +4325,7 @@
                 },
                 specialSection: specialSection,
                 specialSections: specialSections,
+                media: mediaBlock,
                 subject: subject,
                 savedBy: userEmail
             })
@@ -4030,6 +4432,9 @@
                 gameAnswer = d.game.answer || '';
                 gamePreviousAnswer = d.game.previousAnswer || '';
             }
+
+            // Media block
+            applyMediaDraft(d.media);
 
             // Restore UI - month selection
             var monthCards = document.querySelectorAll('.month-card');
@@ -4236,6 +4641,8 @@
                 gameAnswer = d.game.answer || '';
                 gamePreviousAnswer = d.game.previousAnswer || '';
             }
+
+            applyMediaDraft(d.media);
 
             if (subject) document.getElementById('subjectLineInput').value = subject;
 
