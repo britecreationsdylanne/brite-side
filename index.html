@@ -1787,6 +1787,15 @@
 
                 <div id="mediaArea" class="media-area" style="display:none;">
                     <div class="form-group">
+                        <label>Header <span style="color:#6b7280;font-weight:400;">(optional — small label above the media, e.g. "In the news")</span></label>
+                        <input type="text" id="mediaHeader" placeholder="In the news" onchange="syncMediaState()">
+                    </div>
+                    <div class="form-group">
+                        <label>Intro Note <span style="color:#6b7280;font-weight:400;">(optional — short context that appears above the media)</span></label>
+                        <textarea id="mediaIntroText" rows="2" placeholder="A quick note for readers..." onchange="syncMediaState()"></textarea>
+                    </div>
+
+                    <div class="form-group">
                         <label>Media Type</label>
                         <select id="mediaTypeSelect" onchange="onMediaTypeChange()">
                             <option value="">-- Select --</option>
@@ -1829,6 +1838,17 @@
                                 <button type="button" class="btn btn-secondary" onclick="fetchMediaPreview()" style="white-space:nowrap;">Fetch Preview</button>
                             </div>
                             <div id="mediaUrlStatus" class="media-status"></div>
+                        </div>
+                        <div id="mediaEditableGroup" style="display:none;">
+                            <p style="font-size:12px; color:#6b7280; margin:4px 0 8px 0;">Auto-pulled from the URL &mdash; edit these if you want.</p>
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" id="mediaOgTitle" onchange="syncMediaState()">
+                            </div>
+                            <div id="mediaOgDescGroup" class="form-group">
+                                <label>Description</label>
+                                <textarea id="mediaOgDesc" rows="2" onchange="syncMediaState()"></textarea>
+                            </div>
                         </div>
                     </div>
 
@@ -2488,6 +2508,8 @@
     let mediaBlock = {
         enabled: false,
         type: null,       // 'image' | 'gif' | 'meme' | 'youtube' | 'news' | 'social'
+        header: '',
+        intro_text: '',
         image_url: '',
         alt_text: '',
         link_url: '',
@@ -3076,6 +3098,8 @@
         uploadGroup.style.display = 'none';
         urlGroup.style.display = 'none';
         socialSrc.style.display = 'none';
+        var editGrp = document.getElementById('mediaEditableGroup');
+        if (editGrp) editGrp.style.display = 'none';
 
         if (type === 'image' || type === 'meme') {
             uploadGroup.style.display = 'block';
@@ -3104,12 +3128,18 @@
     }
 
     function syncMediaState() {
+        mediaBlock.header = (document.getElementById('mediaHeader') || {}).value || '';
+        mediaBlock.intro_text = (document.getElementById('mediaIntroText') || {}).value || '';
         mediaBlock.alt_text = (document.getElementById('mediaAltText') || {}).value || '';
         mediaBlock.link_url = (document.getElementById('mediaLinkUrl') || {}).value || '';
         var socialSrcEl = document.getElementById('mediaSocialSourceUrl');
         if (mediaBlock.type === 'social' && socialSrcEl) {
             mediaBlock.og.source_url = socialSrcEl.value || '';
         }
+        var ogTitleEl = document.getElementById('mediaOgTitle');
+        var ogDescEl = document.getElementById('mediaOgDesc');
+        if (ogTitleEl) mediaBlock.og.title = ogTitleEl.value || '';
+        if (ogDescEl) mediaBlock.og.description = ogDescEl.value || '';
         renderMediaPreview();
     }
 
@@ -3177,6 +3207,16 @@
                         source_url: og.url || url
                     };
                 }
+                // Reveal editable fields pre-populated with fetched values
+                var grp = document.getElementById('mediaEditableGroup');
+                var tEl = document.getElementById('mediaOgTitle');
+                var dEl = document.getElementById('mediaOgDesc');
+                var dGroup = document.getElementById('mediaOgDescGroup');
+                if (tEl) tEl.value = mediaBlock.og.title;
+                if (dEl) dEl.value = mediaBlock.og.description;
+                if (dGroup) dGroup.style.display = (mediaBlock.type === 'news') ? 'block' : 'none';
+                if (grp) grp.style.display = 'block';
+
                 status.className = 'media-status ok';
                 status.textContent = 'Preview loaded';
                 renderMediaPreview();
@@ -3194,26 +3234,38 @@
         var t = mediaBlock.type;
         var html = '';
 
+        var headerHtml = mediaBlock.header
+            ? '<p class="mp-meta" style="text-align:center;">' + escapeHtml(mediaBlock.header) + '</p>'
+            : '';
+        var introHtml = mediaBlock.intro_text
+            ? '<p style="text-align:center;font-size:14px;color:#272D3F;margin:0 0 10px 0;">' + escapeHtml(mediaBlock.intro_text) + '</p>'
+            : '';
+
+        var core = '';
         if ((t === 'image' || t === 'gif' || t === 'meme' || t === 'social') && mediaBlock.image_url) {
-            html = '<img src="' + escapeAttr(mediaBlock.image_url) + '" alt="' + escapeAttr(mediaBlock.alt_text || '') + '">';
+            core = '<img src="' + escapeAttr(mediaBlock.image_url) + '" alt="' + escapeAttr(mediaBlock.alt_text || '') + '">';
             if (mediaBlock.alt_text) {
-                html += '<p class="mp-meta" style="margin-top:8px;">Alt: ' + escapeHtml(mediaBlock.alt_text) + '</p>';
+                core += '<p class="mp-meta" style="margin-top:8px;">Alt: ' + escapeHtml(mediaBlock.alt_text) + '</p>';
             }
         } else if (t === 'youtube' && mediaBlock.og.image) {
-            html = '<img src="' + escapeAttr(mediaBlock.og.image) + '" alt="YouTube thumbnail">';
-            html += '<p class="mp-title">' + escapeHtml(mediaBlock.og.title || 'YouTube Video') + '</p>';
-            html += '<p class="mp-meta">Watch on YouTube</p>';
+            core = '<img src="' + escapeAttr(mediaBlock.og.image) + '" alt="YouTube thumbnail">';
+            core += '<p class="mp-title">' + escapeHtml(mediaBlock.og.title || 'YouTube Video') + '</p>';
+            core += '<p class="mp-meta">Watch on YouTube</p>';
         } else if (t === 'news' && mediaBlock.og.title) {
             if (mediaBlock.og.image) {
-                html += '<img src="' + escapeAttr(mediaBlock.og.image) + '" alt="">';
+                core += '<img src="' + escapeAttr(mediaBlock.og.image) + '" alt="">';
             }
             if (mediaBlock.og.site_name) {
-                html += '<p class="mp-meta">' + escapeHtml(mediaBlock.og.site_name) + '</p>';
+                core += '<p class="mp-meta">' + escapeHtml(mediaBlock.og.site_name) + '</p>';
             }
-            html += '<p class="mp-title">' + escapeHtml(mediaBlock.og.title) + '</p>';
+            core += '<p class="mp-title">' + escapeHtml(mediaBlock.og.title) + '</p>';
             if (mediaBlock.og.description) {
-                html += '<p class="mp-desc">' + escapeHtml(mediaBlock.og.description) + '</p>';
+                core += '<p class="mp-desc">' + escapeHtml(mediaBlock.og.description) + '</p>';
             }
+        }
+
+        if (core) {
+            html = headerHtml + introHtml + core;
         }
 
         if (html) {
@@ -3236,6 +3288,8 @@
         mediaBlock = {
             enabled: false,
             type: null,
+            header: '',
+            intro_text: '',
             image_url: '',
             alt_text: '',
             link_url: '',
@@ -3243,11 +3297,15 @@
         };
         document.getElementById('mediaToggle').checked = false;
         document.getElementById('mediaTypeSelect').value = '';
+        document.getElementById('mediaHeader').value = '';
+        document.getElementById('mediaIntroText').value = '';
         document.getElementById('mediaAltText').value = '';
         document.getElementById('mediaLinkUrl').value = '';
         var su = document.getElementById('mediaSocialSourceUrl'); if (su) su.value = '';
         var uu = document.getElementById('mediaSourceUrl'); if (uu) uu.value = '';
         var fi = document.getElementById('mediaUploadInput'); if (fi) fi.value = '';
+        var t = document.getElementById('mediaOgTitle'); if (t) t.value = '';
+        var d = document.getElementById('mediaOgDesc'); if (d) d.value = '';
         document.getElementById('mediaUploadStatus').textContent = '';
         document.getElementById('mediaUrlStatus').textContent = '';
         document.getElementById('mediaArea').style.display = 'none';
@@ -3281,6 +3339,8 @@
         mediaBlock = {
             enabled: !!saved.enabled,
             type: saved.type || null,
+            header: saved.header || '',
+            intro_text: saved.intro_text || '',
             image_url: saved.image_url || '',
             alt_text: saved.alt_text || '',
             link_url: saved.link_url || '',
@@ -3289,11 +3349,24 @@
         document.getElementById('mediaToggle').checked = mediaBlock.enabled;
         document.getElementById('mediaArea').style.display = mediaBlock.enabled ? 'block' : 'none';
         document.getElementById('mediaTypeSelect').value = mediaBlock.type || '';
+        document.getElementById('mediaHeader').value = mediaBlock.header;
+        document.getElementById('mediaIntroText').value = mediaBlock.intro_text;
         document.getElementById('mediaAltText').value = mediaBlock.alt_text;
         document.getElementById('mediaLinkUrl').value = mediaBlock.link_url;
         var su = document.getElementById('mediaSocialSourceUrl'); if (su) su.value = mediaBlock.og.source_url || '';
         var uu = document.getElementById('mediaSourceUrl'); if (uu) uu.value = mediaBlock.og.source_url || '';
         onMediaTypeChange();
+        // If this is a URL-based type with fetched data, show/populate editable fields
+        if ((mediaBlock.type === 'youtube' || mediaBlock.type === 'news') && (mediaBlock.og.title || mediaBlock.og.description)) {
+            var grp = document.getElementById('mediaEditableGroup');
+            var tEl = document.getElementById('mediaOgTitle');
+            var dEl = document.getElementById('mediaOgDesc');
+            var dGroup = document.getElementById('mediaOgDescGroup');
+            if (tEl) tEl.value = mediaBlock.og.title;
+            if (dEl) dEl.value = mediaBlock.og.description;
+            if (dGroup) dGroup.style.display = (mediaBlock.type === 'news') ? 'block' : 'none';
+            if (grp) grp.style.display = 'block';
+        }
         renderMediaPreview();
     }
 

@@ -1232,6 +1232,17 @@ def _build_media_html(media, FONT):
     source_url = (media.get('og', {}).get('source_url') or media.get('og', {}).get('url') or '').strip()
     image_url = (media.get('image_url') or '').strip()
     og = media.get('og') or {}
+    header_text = esc((media.get('header') or '').strip())
+    intro_text = esc((media.get('intro_text') or '').strip())
+
+    header_html = (
+        f'<p style="margin:0 0 8px 0; font-family:{FONT}; font-size:13px; font-weight:800; '
+        f'color:#31D7CA; text-transform:uppercase; letter-spacing:2px; text-align:center;">{header_text}</p>'
+    ) if header_text else ''
+    intro_html = (
+        f'<p style="margin:0 0 14px 0; font-family:{FONT}; font-size:15px; color:#272D3F; '
+        f'line-height:22px; text-align:center;">{intro_text}</p>'
+    ) if intro_text else ''
 
     img_style = (
         'display:block; width:100%; max-width:600px; height:auto; '
@@ -1253,31 +1264,28 @@ def _build_media_html(media, FONT):
             return ''
         href = link_url or source_url
         img_tag = f'<img src="{image_url}" alt="{alt}" width="600" style="{img_style}">'
-        inner = f'<a href="{href}" target="_blank" style="text-decoration:none;">{img_tag}</a>' if href else img_tag
+        media_el = f'<a href="{href}" target="_blank" style="text-decoration:none;">{img_tag}</a>' if href else img_tag
+        inner = header_html + intro_html + media_el
         return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
 
-    # YouTube — thumbnail + title + Watch button
+    # YouTube — thumbnail + (editable) title + Watch button
     if kind == 'youtube':
         thumb = (og.get('image') or '').strip()
         yt_url = (og.get('source_url') or og.get('url') or '').strip()
         title = esc(og.get('title') or 'Watch on YouTube')
         if not thumb or not yt_url:
             return ''
-        play_badge = (
-            '<div style="position:relative; line-height:0;">'
-            f'<img src="{thumb}" alt="{alt}" width="600" style="{img_style}">'
-            '</div>'
-        )
-        inner = (
+        media_el = (
             f'<a href="{yt_url}" target="_blank" style="text-decoration:none; color:inherit;">'
-            f'{play_badge}'
+            f'<div style="line-height:0;"><img src="{thumb}" alt="{alt}" width="600" style="{img_style}"></div>'
             f'<p style="margin:12px 0 4px 0; font-family:{FONT}; font-size:17px; font-weight:700; color:#272D3F;">{title}</p>'
             f'<p style="margin:0; font-family:{FONT}; font-size:13px; font-weight:600; color:#31D7CA; text-transform:uppercase; letter-spacing:1px;">Watch on YouTube &rarr;</p>'
             f'</a>'
         )
+        inner = header_html + intro_html + media_el
         return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
 
-    # News / article — hotlinked OG card
+    # News / article — hotlinked OG card (title + desc editable upstream)
     if kind == 'news':
         title = esc(og.get('title') or '')
         desc = esc((og.get('description') or '')[:200])
@@ -1291,7 +1299,7 @@ def _build_media_html(media, FONT):
             f'<img src="{img}" alt="{alt}" width="600" style="{img_style}">'
             if img else ''
         )
-        inner = (
+        media_el = (
             f'<a href="{url_out}" target="_blank" style="text-decoration:none; color:inherit;">'
             + (f'<div style="line-height:0; margin-bottom:14px;">{img_html}</div>' if img_html else '')
             + (f'<p style="margin:0 0 4px 0; font-family:{FONT}; font-size:12px; font-weight:700; color:#31D7CA; text-transform:uppercase; letter-spacing:1px;">{site}</p>' if site else '')
@@ -1300,6 +1308,7 @@ def _build_media_html(media, FONT):
             + f'<p style="margin:0; font-family:{FONT}; font-size:13px; font-weight:700; color:#31D7CA; text-transform:uppercase; letter-spacing:1px;">Read more &rarr;</p>'
             + '</a>'
         )
+        inner = header_html + intro_html + media_el
         return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
 
     return ''
