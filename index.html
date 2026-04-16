@@ -1849,6 +1849,14 @@
                                 <label>Description</label>
                                 <textarea id="mediaOgDesc" rows="2" onchange="syncMediaState()"></textarea>
                             </div>
+                            <div class="form-group">
+                                <label>Custom Thumbnail <span style="color:#6b7280;font-weight:400;">(optional &mdash; overrides the auto-fetched image)</span></label>
+                                <input type="file" id="mediaThumbUploadInput" accept="image/jpeg,image/png,image/webp" onchange="handleThumbnailUpload(event)">
+                                <div id="mediaThumbStatus" class="media-status"></div>
+                                <div style="margin-top:6px;">
+                                    <a href="javascript:void(0)" id="mediaThumbResetLink" onclick="resetThumbnailToFetched()" style="display:none; color:#018181; font-size:12px; text-decoration:underline;">Reset to auto-fetched thumbnail</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2515,6 +2523,8 @@
         link_url: '',
         og: { title: '', description: '', image: '', site_name: '', source_url: '' }
     };
+    // Last auto-fetched thumbnail — kept so user can Reset after a custom upload
+    let mediaFetchedThumb = '';
 
     // Welcome new hires
     let welcomeEnabled = false;
@@ -3172,6 +3182,49 @@
             });
     }
 
+    function handleThumbnailUpload(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+
+        var status = document.getElementById('mediaThumbStatus');
+        var resetLink = document.getElementById('mediaThumbResetLink');
+        status.className = 'media-status';
+        status.textContent = 'Uploading thumbnail...';
+
+        var fd = new FormData();
+        fd.append('file', file);
+        fetch(API_BASE + '/api/upload-media', { method: 'POST', body: fd })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success && data.url) {
+                    mediaBlock.og.image = data.url;
+                    status.className = 'media-status ok';
+                    status.textContent = 'Custom thumbnail set (' + Math.round((data.size || 0) / 1024) + 'KB)';
+                    if (resetLink) resetLink.style.display = mediaFetchedThumb ? 'inline' : 'none';
+                    renderMediaPreview();
+                } else {
+                    status.className = 'media-status error';
+                    status.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+                }
+            })
+            .catch(function(err) {
+                status.className = 'media-status error';
+                status.textContent = 'Upload failed: ' + err.message;
+            });
+    }
+
+    function resetThumbnailToFetched() {
+        if (!mediaFetchedThumb) return;
+        mediaBlock.og.image = mediaFetchedThumb;
+        var input = document.getElementById('mediaThumbUploadInput');
+        var status = document.getElementById('mediaThumbStatus');
+        var resetLink = document.getElementById('mediaThumbResetLink');
+        if (input) input.value = '';
+        if (status) { status.className = 'media-status'; status.textContent = ''; }
+        if (resetLink) resetLink.style.display = 'none';
+        renderMediaPreview();
+    }
+
     function fetchMediaPreview() {
         var url = (document.getElementById('mediaSourceUrl').value || '').trim();
         if (!url) return;
@@ -3207,6 +3260,14 @@
                         source_url: og.url || url
                     };
                 }
+                mediaFetchedThumb = mediaBlock.og.image || '';
+                // Hide "Reset" link and clear any prior custom upload state
+                var thumbStatus = document.getElementById('mediaThumbStatus');
+                var thumbReset = document.getElementById('mediaThumbResetLink');
+                var thumbInput = document.getElementById('mediaThumbUploadInput');
+                if (thumbStatus) thumbStatus.textContent = '';
+                if (thumbReset) thumbReset.style.display = 'none';
+                if (thumbInput) thumbInput.value = '';
                 // Reveal editable fields pre-populated with fetched values
                 var grp = document.getElementById('mediaEditableGroup');
                 var tEl = document.getElementById('mediaOgTitle');
@@ -3306,6 +3367,10 @@
         var fi = document.getElementById('mediaUploadInput'); if (fi) fi.value = '';
         var t = document.getElementById('mediaOgTitle'); if (t) t.value = '';
         var d = document.getElementById('mediaOgDesc'); if (d) d.value = '';
+        var tu = document.getElementById('mediaThumbUploadInput'); if (tu) tu.value = '';
+        var ts = document.getElementById('mediaThumbStatus'); if (ts) ts.textContent = '';
+        var tr = document.getElementById('mediaThumbResetLink'); if (tr) tr.style.display = 'none';
+        mediaFetchedThumb = '';
         document.getElementById('mediaUploadStatus').textContent = '';
         document.getElementById('mediaUrlStatus').textContent = '';
         document.getElementById('mediaArea').style.display = 'none';
