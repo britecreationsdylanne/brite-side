@@ -1250,9 +1250,15 @@ def _build_media_html(media, FONT):
     )
 
     def _wrap(inner_html):
+        divider = (
+            '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 20px 0;">'
+            '<tr><td style="height:2px; background-color:#31D7CA; font-size:1px; line-height:1px; border-radius:1px;">&nbsp;</td></tr>'
+            '</table>'
+        )
         return (
             '<tr style="display: {{MEDIA_DISPLAY_INNER}};">'
-            '<td style="padding: 24px 40px 8px 40px;" class="mobile-padding">'
+            '<td style="padding: 8px 40px 16px 40px;" class="mobile-padding">'
+            + divider +
             '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'
             '<tr><td>' + inner_html + '</td></tr>'
             '</table></td></tr>'
