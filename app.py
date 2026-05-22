@@ -1331,6 +1331,7 @@ def render_email():
         year = data.get('year', datetime.now(CHICAGO_TZ).year)
         joke = data.get('joke', '')
         birthdays = data.get('birthdays', [])
+        birthday_headings = data.get('birthday_headings') or {}
         spotlight = data.get('spotlight', {})
         spotlights = data.get('spotlights', [])
         updates = data.get('updates', [])
@@ -1364,21 +1365,110 @@ def render_email():
         # Consistent font family for all dynamically generated HTML
         FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"
 
-        # Build birthday HTML rows
+        # Build birthday HTML rows (grouped by month if multiple months supplied)
         birthday_html = ''
-        month_display = str(month).capitalize() if month else ''
-        if birthdays:
-            birthday_items = []
-            for bday in birthdays:
-                bday_name = esc(bday.get('name', ''))
-                bday_day = esc(bday.get('birthday_day', ''))
-                bday_dept = esc(bday.get('department', ''))
-                birthday_items.append(
-                    f'<tr><td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; font-weight: 600; color: #272D3F;">{bday_name}</td>'
-                    f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{month_display} {bday_day}</td>'
-                    f'<td style="padding: 6px 12px; font-family: {FONT}; font-size: 15px; color: #6b7280;">{bday_dept}</td></tr>'
+        primary_month_display = str(month).capitalize() if month else ''
+        primary_month_num = data.get('month_num') or 0
+
+        def _month_abbrev(month_num, fallback_full):
+            full = MONTH_NAMES.get(int(month_num)) if month_num else None
+            full = full or fallback_full
+            return (full or '')[:3]
+
+        def _initials(name):
+            parts = [p for p in (name or '').strip().split() if p]
+            if not parts:
+                return '?'
+            if len(parts) == 1:
+                return parts[0][0].upper()
+            return (parts[0][0] + parts[-1][0]).upper()
+
+        # Stable palette for initials circles
+        _AVATAR_COLORS = ['#31D7CA', '#5B6CF7', '#F59E0B', '#EF4444', '#8B5CF6', '#10B981', '#EC4899']
+
+        def _avatar_cell(bday):
+            img_url = (bday.get('image_url') or '').strip()
+            name = bday.get('name', '')
+            if img_url:
+                avatar = (
+                    f'<img src="{esc(img_url)}" width="60" height="60" alt="{esc(name)}" '
+                    f'style="display:block; width:60px; height:60px; border-radius:50%; object-fit:cover; border:0;">'
                 )
-            birthday_html = '\n'.join(birthday_items)
+            else:
+                initials = esc(_initials(name))
+                color = _AVATAR_COLORS[(sum(ord(c) for c in name) if name else 0) % len(_AVATAR_COLORS)]
+                avatar = (
+                    f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="60" height="60" '
+                    f'style="width:60px; height:60px; border-radius:50%; background-color:{color};">'
+                    f'<tr><td align="center" valign="middle" '
+                    f'style="font-family:{FONT}; font-size:22px; font-weight:700; color:#ffffff; line-height:60px;">{initials}</td></tr>'
+                    f'</table>'
+                )
+            return (
+                f'<td width="76" valign="middle" style="width:76px; padding: 10px 12px 10px 0;">{avatar}</td>'
+            )
+
+        def _row_for(bday, month_num_for_row):
+            bday_name = esc(bday.get('name', ''))
+            bday_day = esc(bday.get('birthday_day', ''))
+            bday_dept = esc(bday.get('department', ''))
+            mon_abbrev = esc(_month_abbrev(month_num_for_row, primary_month_display))
+            meta_bits = []
+            if mon_abbrev and bday_day:
+                meta_bits.append(f'{mon_abbrev} {bday_day}')
+            if bday_dept:
+                meta_bits.append(bday_dept)
+            meta = ' &middot; '.join(meta_bits)
+            return (
+                '<tr>'
+                + _avatar_cell(bday)
+                + f'<td valign="middle" style="padding: 10px 0;">'
+                f'<div style="font-family:{FONT}; font-size:15px; font-weight:600; color:#272D3F; text-align:left;">{bday_name}</div>'
+                f'<div style="font-family:{FONT}; font-size:14px; color:#6b7280; text-align:left;">{meta}</div>'
+                f'</td>'
+                '</tr>'
+            )
+
+        def _subheading_row(label):
+            return (
+                f'<tr><td colspan="2" style="padding: 18px 0 6px 0; '
+                f'font-family:{FONT}; font-size:15px; font-weight:700; color:#272D3F; text-align:center;">{esc(label)}</td></tr>'
+            )
+
+        if birthdays:
+            # Group by month_num; treat missing month_num as primary
+            primary_group = []
+            secondary_groups = {}  # month_num -> list
+            for bday in birthdays:
+                m = bday.get('month_num') or primary_month_num or 0
+                if not primary_month_num or m == primary_month_num:
+                    primary_group.append(bday)
+                else:
+                    secondary_groups.setdefault(int(m), []).append(bday)
+
+            has_secondary = any(secondary_groups.values())
+            user_primary_heading = (birthday_headings.get('primary') or '').strip()
+            user_secondary_heading = (birthday_headings.get('secondary') or '').strip()
+
+            items = []
+            if has_secondary and primary_group:
+                primary_label = user_primary_heading or f'{primary_month_display} Birthdays'
+                items.append(_subheading_row(primary_label))
+            for bday in primary_group:
+                items.append(_row_for(bday, primary_month_num))
+            for sec_month_num in sorted(secondary_groups.keys()):
+                sec_name = MONTH_NAMES.get(sec_month_num, '')
+                # Only use the user's secondary heading for the first secondary month;
+                # subsequent ones (rare — user can only pick one in the UI today) fall back to the default.
+                if has_secondary and sec_month_num == sorted(secondary_groups.keys())[0]:
+                    sec_label = user_secondary_heading or f'Also celebrating in {sec_name}'
+                else:
+                    sec_label = f'Also celebrating in {sec_name}'
+                items.append(_subheading_row(sec_label))
+                for bday in secondary_groups[sec_month_num]:
+                    items.append(_row_for(bday, sec_month_num))
+
+            birthday_html = '\n'.join(items)
 
         # Build welcome hires HTML
         welcome_html = ''

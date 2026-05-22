@@ -579,6 +579,88 @@
             font-size: 14px;
             line-height: 1.5;
         }
+        .birthday-month-heading {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin: 18px 0 8px 0;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .birthday-month-heading:first-child {
+            margin-top: 0;
+        }
+        .birthday-heading-input {
+            width: 100%;
+            font-size: 14px;
+            font-weight: 700;
+            color: #272d3f;
+            border: none;
+            border-bottom: 1px dashed #d1d5db;
+            background: transparent;
+            padding: 6px 0;
+            margin: 18px 0 8px 0;
+            font-family: inherit;
+        }
+        .birthday-heading-input:first-child {
+            margin-top: 0;
+        }
+        .birthday-heading-input:focus {
+            outline: none;
+            border-bottom-color: #018181;
+        }
+        .birthday-heading-hint {
+            font-size: 11px;
+            color: #9ca3af;
+            margin: -4px 0 6px 0;
+        }
+        .birthday-avatar-wrap {
+            flex-shrink: 0;
+            position: relative;
+        }
+        .birthday-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .birthday-avatar-initials {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .birthday-photo-controls {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+        .birthday-photo-controls label,
+        .birthday-photo-controls button {
+            color: #018181;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            font-size: 11px;
+            text-decoration: underline;
+        }
+        .birthday-photo-controls button {
+            color: #b91c1c;
+        }
 
         /* ============================================
            STEP 4: SPOTLIGHT
@@ -1718,6 +1800,25 @@
 
             <div id="monthGrid" class="month-grid"></div>
 
+            <div id="secondaryMonthArea" style="text-align: center; display: none; margin-top: 16px;">
+                <label for="secondaryMonthSelect" style="font-size: 13px; color: #6b7280; margin-right: 8px;">Also include birthdays from:</label>
+                <select id="secondaryMonthSelect" onchange="onSecondaryMonthChange()" style="font-size: 13px; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff;">
+                    <option value="">— none —</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+
             <div id="birthdayCountArea" style="text-align: center; display: none;">
                 <span class="birthday-count-badge" id="birthdayCountBadge"></span>
             </div>
@@ -2507,6 +2608,32 @@
 
     let selectedMonth = '';
     let selectedMonthNum = 0;
+    let secondaryMonthNum = 0;
+    let birthdayPrimaryHeading = '';
+    let birthdaySecondaryHeading = '';
+    let _lastPrimaryHeadingDefault = '';
+    let _lastSecondaryHeadingDefault = '';
+
+    function defaultBirthdayHeadings() {
+        var primary = selectedMonth ? (selectedMonth + ' Birthdays') : '';
+        var secondary = (secondaryMonthNum && MONTH_NAMES[secondaryMonthNum])
+            ? ('Also celebrating in ' + MONTH_NAMES[secondaryMonthNum])
+            : '';
+        return { primary: primary, secondary: secondary };
+    }
+
+    function syncBirthdayHeadings() {
+        var d = defaultBirthdayHeadings();
+        // Update primary only if user hasn't customized (empty or matches the last default)
+        if (!birthdayPrimaryHeading || birthdayPrimaryHeading === _lastPrimaryHeadingDefault) {
+            birthdayPrimaryHeading = d.primary;
+        }
+        if (!birthdaySecondaryHeading || birthdaySecondaryHeading === _lastSecondaryHeadingDefault) {
+            birthdaySecondaryHeading = d.secondary;
+        }
+        _lastPrimaryHeadingDefault = d.primary;
+        _lastSecondaryHeadingDefault = d.secondary;
+    }
     let joke = '';
     let jokeOptions = [];
     let selectedJokeIndex = -1;
@@ -2786,6 +2913,15 @@
 
         selectedMonth = '';
         selectedMonthNum = 0;
+        secondaryMonthNum = 0;
+        birthdayPrimaryHeading = '';
+        birthdaySecondaryHeading = '';
+        _lastPrimaryHeadingDefault = '';
+        _lastSecondaryHeadingDefault = '';
+        var _secondarySelect = document.getElementById('secondaryMonthSelect');
+        if (_secondarySelect) _secondarySelect.value = '';
+        var _secondaryArea = document.getElementById('secondaryMonthArea');
+        if (_secondaryArea) _secondaryArea.style.display = 'none';
         joke = '';
         jokeOptions = [];
         selectedJokeIndex = -1;
@@ -2892,9 +3028,37 @@
         subject = 'The BriteSide \u2014 ' + selectedMonth + ' ' + year;
         document.getElementById('subjectLineInput').value = subject;
 
-        // Fetch birthday count
+        // Reveal secondary-month picker and hide the primary month from its options
+        var secondaryArea = document.getElementById('secondaryMonthArea');
+        var secondarySelect = document.getElementById('secondaryMonthSelect');
+        if (secondaryArea && secondarySelect) {
+            secondaryArea.style.display = 'block';
+            for (var i = 0; i < secondarySelect.options.length; i++) {
+                var opt = secondarySelect.options[i];
+                var val = parseInt(opt.value);
+                opt.disabled = (val === monthNum);
+            }
+            // If secondary equals new primary, reset it
+            if (secondaryMonthNum === monthNum) {
+                secondarySelect.value = '';
+                secondaryMonthNum = 0;
+            }
+        }
+
+        // Sync headings to the new primary month (preserves user customizations)
+        syncBirthdayHeadings();
+
+        // Fetch birthday count (will also include secondary month if set)
         fetchBirthdayCount(monthNum);
 
+    }
+
+    function onSecondaryMonthChange() {
+        var sel = document.getElementById('secondaryMonthSelect');
+        var val = parseInt(sel.value);
+        secondaryMonthNum = isNaN(val) ? 0 : val;
+        syncBirthdayHeadings();
+        if (selectedMonthNum) fetchBirthdayCount(selectedMonthNum);
     }
 
     function fetchBirthdayCount(monthNum) {
@@ -2903,34 +3067,64 @@
         countArea.style.display = 'block';
         badge.textContent = 'Loading birthdays...';
 
-        fetch(API_BASE + '/api/employees/birthdays?month=' + monthNum)
-            .then(function(res) {
-                if (!res.ok) throw new Error('Failed to fetch birthdays');
-                return res.json();
-            })
-            .then(function(data) {
-                birthdays = (data.birthdays || data || []).map(function(b) {
-                    return {
-                        name: b.name,
-                        department: b.department,
-                        birthday_day: b.birthday_day,
-                        message: ''
-                    };
+        // Preserve existing per-celebrant edits (notes, photos) keyed by name+day+month
+        var existingByKey = {};
+        birthdays.forEach(function(b) {
+            if (b._manual) return;
+            var key = (b.name || '') + '|' + (b.birthday_day || '') + '|' + (b.month_num || monthNum);
+            existingByKey[key] = b;
+        });
+        var manualEntries = birthdays.filter(function(b) { return b._manual; });
+
+        var monthsToFetch = [monthNum];
+        if (secondaryMonthNum && secondaryMonthNum !== monthNum) {
+            monthsToFetch.push(secondaryMonthNum);
+        }
+
+        Promise.all(monthsToFetch.map(function(m) {
+            return fetch(API_BASE + '/api/employees/birthdays?month=' + m)
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Failed to fetch birthdays for ' + m);
+                    return res.json();
+                })
+                .then(function(data) {
+                    return (data.birthdays || data || []).map(function(b) {
+                        var key = (b.name || '') + '|' + (b.birthday_day || '') + '|' + m;
+                        var prior = existingByKey[key] || {};
+                        return {
+                            name: b.name,
+                            department: b.department,
+                            birthday_day: b.birthday_day,
+                            month_num: m,
+                            message: prior.message || '',
+                            image_url: prior.image_url || ''
+                        };
+                    });
                 });
-                var count = birthdays.length;
-                if (count === 0) {
-                    badge.textContent = 'No birthdays in ' + MONTH_NAMES[monthNum];
-                } else if (count === 1) {
-                    badge.innerHTML = '&#127874; 1 birthday this month!';
+        }))
+        .then(function(groups) {
+            var merged = [];
+            groups.forEach(function(arr) { merged = merged.concat(arr); });
+            birthdays = merged.concat(manualEntries);
+
+            var count = birthdays.length;
+            if (count === 0) {
+                badge.textContent = 'No birthdays in ' + MONTH_NAMES[monthNum] +
+                    (secondaryMonthNum ? ' or ' + MONTH_NAMES[secondaryMonthNum] : '');
+            } else {
+                var label = count + ' birthday' + (count === 1 ? '' : 's');
+                if (secondaryMonthNum) {
+                    badge.innerHTML = '&#127874; ' + label + ' across ' + MONTH_NAMES[monthNum] + ' &amp; ' + MONTH_NAMES[secondaryMonthNum] + '!';
                 } else {
-                    badge.innerHTML = '&#127874; ' + count + ' birthdays this month!';
+                    badge.innerHTML = '&#127874; ' + label + ' this month!';
                 }
-            })
-            .catch(function(err) {
-                console.error('Error fetching birthdays:', err);
-                badge.textContent = 'Could not load birthdays';
-                birthdays = [];
-            });
+            }
+        })
+        .catch(function(err) {
+            console.error('Error fetching birthdays:', err);
+            badge.textContent = 'Could not load birthdays';
+            birthdays = manualEntries;
+        });
     }
 
     /* ============================================================
@@ -3457,13 +3651,32 @@
     /* ============================================================
        STEP 3: BIRTHDAY SHOUTOUTS
        ============================================================ */
+    var BIRTHDAY_AVATAR_COLORS = ['#31D7CA', '#5B6CF7', '#F59E0B', '#EF4444', '#8B5CF6', '#10B981', '#EC4899'];
+    function birthdayInitials(name) {
+        var parts = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return '?';
+        if (parts.length === 1) return parts[0][0].toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    function birthdayAvatarColor(name) {
+        var hash = 0;
+        for (var i = 0; i < (name || '').length; i++) hash += name.charCodeAt(i);
+        return BIRTHDAY_AVATAR_COLORS[hash % BIRTHDAY_AVATAR_COLORS.length];
+    }
+
     function renderBirthdayList() {
         var area = document.getElementById('birthdayListArea');
         var header = document.getElementById('birthdayHeader');
         var desc = document.getElementById('birthdayDescription');
 
-        header.innerHTML = selectedMonth + ' Birthdays &#127874;';
-        desc.textContent = "Celebrate this month's birthday stars! Add a personal note if you'd like.";
+        var hasSecondary = !!secondaryMonthNum;
+        if (hasSecondary) {
+            header.innerHTML = selectedMonth + ' &amp; ' + MONTH_NAMES[secondaryMonthNum] + ' Birthdays &#127874;';
+            desc.textContent = "Celebrate the birthday stars from both months. Upload a photo (square works best) and add a personal note.";
+        } else {
+            header.innerHTML = selectedMonth + ' Birthdays &#127874;';
+            desc.textContent = "Celebrate this month's birthday stars! Upload a photo (square works best) and add a personal note.";
+        }
 
         if (birthdays.length === 0) {
             area.innerHTML =
@@ -3475,36 +3688,133 @@
             return;
         }
 
-        var html = '<div class="birthday-list">';
+        // Group by month_num for display (primary first, then secondary)
+        var primaryList = [];
+        var secondaryList = [];
+        var manualList = [];
         birthdays.forEach(function(b, idx) {
-            var isManual = !b.birthday_day && !b.name;
-            html += '<div class="birthday-card">';
-            html += '<div class="birthday-icon">&#127874;</div>';
-            html += '<div class="birthday-info">';
-            if (isManual || b._manual) {
-                b._manual = true;
-                html += '<div style="display:flex;gap:8px;margin-bottom:6px;">';
-                html += '<input type="text" placeholder="Name" value="' + escapeAttr(b.name) + '" onchange="birthdays[' + idx + '].name=this.value" style="flex:2;">';
-                html += '<input type="text" placeholder="Department" value="' + escapeAttr(b.department) + '" onchange="birthdays[' + idx + '].department=this.value" style="flex:1;">';
-                html += '<input type="text" placeholder="Day (e.g. 15)" value="' + escapeAttr(b.birthday_day) + '" onchange="birthdays[' + idx + '].birthday_day=this.value" style="width:80px;">';
-                html += '</div>';
+            var entry = { b: b, idx: idx };
+            if (b._manual) {
+                manualList.push(entry);
+            } else if (b.month_num && secondaryMonthNum && b.month_num === secondaryMonthNum) {
+                secondaryList.push(entry);
             } else {
-                var dayStr = selectedMonth.substring(0, 3) + ' ' + b.birthday_day;
-                html += '<div class="birthday-name">' + escapeHtml(b.name) + '</div>';
-                html += '<div class="birthday-meta">' + escapeHtml(b.department) + ' &middot; ' + dayStr + '</div>';
+                primaryList.push(entry);
             }
-            html += '<textarea class="birthday-message-input" id="birthdayMsg' + idx + '" data-idx="' + idx + '" placeholder="Add a personal note..." rows="2">' + escapeHtml(b.message || '') + '</textarea>';
-            html += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'birthdayMsg' + idx + '\', \'warm and celebratory\')">AI Rewrite</button>';
-            if (b._manual) html += '<button class="welcome-remove-btn" onclick="birthdays.splice(' + idx + ',1);renderBirthdayList()" style="margin-top:6px;">Remove</button>';
-            html += '</div>';
-            html += '</div>';
         });
+
+        function renderCard(entry) {
+            var b = entry.b;
+            var idx = entry.idx;
+            var isManual = b._manual;
+            var monthLabelForRow = isManual
+                ? selectedMonth
+                : (MONTH_NAMES[b.month_num] || selectedMonth);
+            var h = '';
+            h += '<div class="birthday-card">';
+
+            // Avatar
+            h += '<div class="birthday-avatar-wrap">';
+            if (b.image_url) {
+                h += '<img class="birthday-avatar" src="' + escapeAttr(b.image_url) + '" alt="' + escapeAttr(b.name) + '">';
+            } else {
+                var initials = birthdayInitials(b.name);
+                var color = birthdayAvatarColor(b.name || ('' + idx));
+                h += '<div class="birthday-avatar-initials" style="background-color:' + color + ';">' + escapeHtml(initials) + '</div>';
+            }
+            h += '<div class="birthday-photo-controls">';
+            h += '<label><input type="file" accept="image/*" style="display:none" onchange="handleBirthdayPhotoUpload(' + idx + ', this)">' +
+                 (b.image_url ? 'Change photo' : 'Upload photo') + '</label>';
+            if (b.image_url) {
+                h += '<button type="button" onclick="birthdays[' + idx + '].image_url=\'\';renderBirthdayList()">Remove</button>';
+            }
+            h += '</div>';
+            h += '</div>';
+
+            // Info
+            h += '<div class="birthday-info">';
+            if (isManual) {
+                h += '<div style="display:flex;gap:8px;margin-bottom:6px;">';
+                h += '<input type="text" placeholder="Name" value="' + escapeAttr(b.name) + '" onchange="birthdays[' + idx + '].name=this.value" style="flex:2;">';
+                h += '<input type="text" placeholder="Department" value="' + escapeAttr(b.department) + '" onchange="birthdays[' + idx + '].department=this.value" style="flex:1;">';
+                h += '<input type="text" placeholder="Day (e.g. 15)" value="' + escapeAttr(b.birthday_day) + '" onchange="birthdays[' + idx + '].birthday_day=this.value" style="width:80px;">';
+                h += '</div>';
+            } else {
+                var dayStr = (monthLabelForRow || '').substring(0, 3) + ' ' + b.birthday_day;
+                h += '<div class="birthday-name">' + escapeHtml(b.name) + '</div>';
+                h += '<div class="birthday-meta">' + escapeHtml(b.department || '') + (b.department ? ' &middot; ' : '') + escapeHtml(dayStr) + '</div>';
+            }
+            h += '<textarea class="birthday-message-input" id="birthdayMsg' + idx + '" data-idx="' + idx + '" placeholder="Add a personal note..." rows="2">' + escapeHtml(b.message || '') + '</textarea>';
+            h += '<button class="btn-ai-rewrite" onclick="aiRewrite(\'birthdayMsg' + idx + '\', \'warm and celebratory\')">AI Rewrite</button>';
+            if (b._manual) h += '<button class="welcome-remove-btn" onclick="birthdays.splice(' + idx + ',1);renderBirthdayList()" style="margin-top:6px;">Remove</button>';
+            h += '</div>';
+
+            h += '</div>';
+            return h;
+        }
+
+        syncBirthdayHeadings();
+
+        var html = '<div class="birthday-list">';
+        if (hasSecondary || primaryList.length > 0) {
+            html += '<input class="birthday-heading-input" id="birthdayPrimaryHeadingInput" type="text" placeholder="Section heading (shown in the email)" value="' + escapeAttr(birthdayPrimaryHeading) + '">';
+            html += '<div class="birthday-heading-hint">This becomes the sub-heading above the ' + escapeHtml(selectedMonth) + ' celebrants in the email.</div>';
+        }
+        primaryList.forEach(function(e) { html += renderCard(e); });
+        if (hasSecondary && secondaryList.length > 0) {
+            html += '<input class="birthday-heading-input" id="birthdaySecondaryHeadingInput" type="text" placeholder="Sub-heading for the second month" value="' + escapeAttr(birthdaySecondaryHeading) + '">';
+            html += '<div class="birthday-heading-hint">Shown above the ' + escapeHtml(MONTH_NAMES[secondaryMonthNum]) + ' celebrants. Edit to match the tone you want.</div>';
+            secondaryList.forEach(function(e) { html += renderCard(e); });
+        }
+        if (manualList.length > 0) {
+            html += '<div class="birthday-month-heading">Added manually</div>';
+            manualList.forEach(function(e) { html += renderCard(e); });
+        }
         html += '</div>';
         area.innerHTML = html;
+
+        // Wire heading inputs
+        var primaryHeadingInput = document.getElementById('birthdayPrimaryHeadingInput');
+        if (primaryHeadingInput) {
+            primaryHeadingInput.addEventListener('input', function() {
+                birthdayPrimaryHeading = primaryHeadingInput.value;
+            });
+        }
+        var secondaryHeadingInput = document.getElementById('birthdaySecondaryHeadingInput');
+        if (secondaryHeadingInput) {
+            secondaryHeadingInput.addEventListener('input', function() {
+                birthdaySecondaryHeading = secondaryHeadingInput.value;
+            });
+        }
+
+        // Wire up the message inputs to keep state in sync (textareas use defaultValue otherwise)
+        birthdays.forEach(function(b, idx) {
+            var el = document.getElementById('birthdayMsg' + idx);
+            if (el) el.addEventListener('input', function() { birthdays[idx].message = el.value; });
+        });
+    }
+
+    function handleBirthdayPhotoUpload(idx, input) {
+        if (!input.files || !input.files[0]) return;
+        var file = input.files[0];
+        // Reuse the same cropper as spotlights so faces come out square + centered
+        if (typeof showCropperModal === 'function') {
+            showCropperModal(file, function(url) {
+                if (!birthdays[idx]) return;
+                birthdays[idx].image_url = url;
+                renderBirthdayList();
+            });
+        } else {
+            uploadMediaFile(file, function(url) {
+                if (!birthdays[idx]) return;
+                birthdays[idx].image_url = url;
+                renderBirthdayList();
+            });
+        }
     }
 
     function addManualBirthday() {
-        birthdays.push({ name: '', department: '', birthday_day: '', message: '', _manual: true });
+        birthdays.push({ name: '', department: '', birthday_day: '', month_num: selectedMonthNum, message: '', image_url: '', _manual: true });
         renderBirthdayList();
     }
 
@@ -4097,8 +4407,19 @@
 
         // Build birthday data
         var birthdayData = birthdays.map(function(b) {
-            return { name: b.name, department: b.department, birthday_day: b.birthday_day, message: b.message || '' };
+            return {
+                name: b.name,
+                department: b.department,
+                birthday_day: b.birthday_day,
+                month_num: b.month_num || selectedMonthNum,
+                image_url: b.image_url || '',
+                message: b.message || ''
+            };
         });
+        var birthdayHeadingsData = {
+            primary: birthdayPrimaryHeading || '',
+            secondary: birthdaySecondaryHeading || ''
+        };
 
         // Build spotlights array for rendering
         var spotlightsData = spotlights.filter(function(sp) { return sp.employee; }).map(function(sp) {
@@ -4162,6 +4483,7 @@
             year: new Date().getFullYear(),
             joke: joke,
             birthdays: birthdayData,
+            birthday_headings: birthdayHeadingsData,
             spotlight: spotlightData,
             spotlights: spotlightsData,
             updates: activeUpdates,
@@ -4447,6 +4769,9 @@
                 jokeOptions: jokeOptions,
                 selectedJokeIndex: selectedJokeIndex,
                 birthdays: birthdays,
+                secondary_month_num: secondaryMonthNum,
+                birthday_primary_heading: birthdayPrimaryHeading,
+                birthday_secondary_heading: birthdaySecondaryHeading,
                 spotlight: spotlight,
                 spotlights: spotlights,
                 updates: updates,
@@ -4531,6 +4856,9 @@
             jokeOptions = d.jokeOptions || [];
             selectedJokeIndex = d.selectedJokeIndex != null ? d.selectedJokeIndex : -1;
             birthdays = d.birthdays || [];
+            secondaryMonthNum = parseInt(d.secondary_month_num) || 0;
+            birthdayPrimaryHeading = d.birthday_primary_heading || '';
+            birthdaySecondaryHeading = d.birthday_secondary_heading || '';
             spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
             updates = d.updates || [{ title: '', body: '' }, { title: '', body: '' }];
             specialSection = d.specialSection || { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
@@ -4584,6 +4912,20 @@
                 }
             }
             document.getElementById('step1NextBtn').disabled = !selectedMonth;
+
+            // Restore secondary month UI
+            var _secondaryArea = document.getElementById('secondaryMonthArea');
+            var _secondarySelect = document.getElementById('secondaryMonthSelect');
+            if (_secondaryArea && _secondarySelect) {
+                if (selectedMonthNum) {
+                    _secondaryArea.style.display = 'block';
+                    for (var si = 0; si < _secondarySelect.options.length; si++) {
+                        var sOpt = _secondarySelect.options[si];
+                        sOpt.disabled = (parseInt(sOpt.value) === selectedMonthNum);
+                    }
+                }
+                _secondarySelect.value = secondaryMonthNum ? String(secondaryMonthNum) : '';
+            }
 
             // Restore joke
             if (joke) {
@@ -4749,6 +5091,9 @@
             selectedMonthNum = MONTH_NAMES.indexOf(selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1));
             joke = d.joke || '';
             birthdays = d.birthdays || [];
+            secondaryMonthNum = parseInt(d.secondary_month_num) || 0;
+            birthdayPrimaryHeading = d.birthday_primary_heading || '';
+            birthdaySecondaryHeading = d.birthday_secondary_heading || '';
             spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
             updates = d.updates || [{ title: '', body: '' }, { title: '', body: '' }];
             specialSection = d.specialSection || { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
