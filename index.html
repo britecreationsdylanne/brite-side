@@ -1776,7 +1776,8 @@
             <div class="header-right">
                 <span class="header-user-greeting" id="headerUserGreeting"></span>
 
-                <button class="start-over-btn" onclick="startOver()">Start Over</button>
+                <button class="start-over-btn" id="viewToggleBtn" onclick="toggleAppView()" style="display:none;">Submit an Entry</button>
+                <button class="start-over-btn" id="startOverBtn" onclick="startOver()">Start Over</button>
             </div>
         </div>
 
@@ -2035,6 +2036,12 @@
         <div id="step5" class="step">
             <h2>Employee Spotlight &#11088;</h2>
             <p class="step-description">Shine the spotlight on someone special this month. Add up to 3 spotlights.</p>
+
+            <div id="spotlightPickerArea" style="margin-bottom:16px;padding:12px 14px;background:#f0faf9;border-radius:10px;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">Pull from submitted Spotlight entries</label>
+                <select id="spotlightSubmissionPicker" style="max-width:340px;"><option value="">&mdash; select a submitted entry &mdash;</option></select>
+                <button type="button" class="btn btn-secondary" onclick="applySpotlightSubmission()" style="margin-left:8px;">Load into a spotlight</button>
+            </div>
 
             <div id="spotlightsContainer"></div>
 
@@ -2571,6 +2578,133 @@
         <div class="team-count" id="teamCount"></div>
     </div>
 
+    <!-- ============================================
+         SUBMIT AN ENTRY (contributor form)
+         ============================================ -->
+    <div class="drafts-section" id="submitSection" style="display:none;">
+        <h2>Submit to The BriteSide</h2>
+        <p class="section-subtitle">Share something for BriteCo's internal newsletter. Pick what you're submitting &mdash; you'll only see the questions that apply.</p>
+
+        <div id="submitRouter" class="submit-router" style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;">
+            <button type="button" class="btn" id="submitBtn-spotlight" onclick="showSubmitFlow('spotlight')">My Spotlight Entry</button>
+            <button type="button" class="btn" id="submitBtn-nomination" onclick="showSubmitFlow('nomination')">Nominate a Colleague</button>
+            <button type="button" class="btn" id="submitBtn-update" onclick="showSubmitFlow('update')">Company Update</button>
+            <button type="button" class="btn" id="submitBtn-culture" onclick="showSubmitFlow('culture')">Culture / Industry</button>
+            <button type="button" class="btn" id="submitBtn-correction" onclick="showSubmitFlow('correction')">Correction</button>
+        </div>
+
+        <div id="submitStatus" style="display:none;padding:14px 16px;border-radius:10px;background:#f0faf9;font-weight:600;margin-bottom:16px;"></div>
+
+        <div style="max-width:680px;">
+
+        <!-- SPOTLIGHT -->
+        <div class="submit-flow" id="submitFlow-spotlight" style="display:none;">
+            <h3>Employee Spotlight &mdash; Your Entry</h3>
+            <p style="color:#6b7280;font-size:14px;">Help coworkers get to know you: what you do, how you collaborate, and a little of who you are outside your role. Share what you're comfortable featuring internally.</p>
+            <div class="form-group"><label>Employee Type *</label><br>
+                <label><input type="radio" name="sp_emptype" value="Full-time Direct Hire"> Full-time Direct Hire</label><br>
+                <label><input type="radio" name="sp_emptype" value="Agency Hire"> Agency Hire</label><br>
+                <label><input type="radio" name="sp_emptype" value="Independent Contractor"> Independent Contractor</label>
+            </div>
+            <div class="form-group"><label>Your Name</label><input type="text" id="sp_name" placeholder="Full name"></div>
+            <div class="form-group"><label>Job Title / Role *</label><input type="text" id="sp_title"></div>
+            <div class="form-group"><label>Birth Date</label><input type="text" id="sp_birth" placeholder="MM-DD-YYYY"></div>
+            <div class="form-group"><label>Hire Date (month &amp; year is fine)</label><input type="text" id="sp_hire" placeholder="MM-DD-YYYY"></div>
+            <div class="form-group"><label>Are you residing in IL, USA? *</label><br>
+                <label><input type="radio" name="sp_residence" value="IL, USA"> Yes</label>
+                <label style="margin-left:16px;"><input type="radio" name="sp_residence" value="Elsewhere"> Somewhere else</label>
+                <input type="text" id="sp_residence_loc" placeholder="City, Country (if elsewhere)" style="margin-top:6px;">
+            </div>
+            <div class="form-group"><label>How would you describe what you do at BriteCo, in your own terms? *</label><textarea id="sp_describe" style="min-height:90px;"></textarea></div>
+            <div class="form-group"><label>How do you work with others in practice?</label><textarea id="sp_work" style="min-height:90px;"></textarea></div>
+            <div class="form-group"><label>Portrait photo (optional)</label>
+                <input type="file" id="sp_photo" accept="image/*" onchange="submitFileUpload('sp_photo','sp_photo_list',_spotlightPhotos)">
+                <div id="sp_photo_list"></div>
+            </div>
+            <div class="form-group"><label>Answer a few questions about yourself</label>
+                <div id="sp_qa_rows">
+                    <div class="qa-pair" style="margin-bottom:12px;"><input class="qa-q" type="text" placeholder="Paste a question you'd like to answer" style="width:100%;margin-bottom:6px;"><textarea class="qa-a" placeholder="Your answer" style="width:100%;min-height:60px;"></textarea></div>
+                    <div class="qa-pair" style="margin-bottom:12px;"><input class="qa-q" type="text" placeholder="Paste a question you'd like to answer" style="width:100%;margin-bottom:6px;"><textarea class="qa-a" placeholder="Your answer" style="width:100%;min-height:60px;"></textarea></div>
+                    <div class="qa-pair" style="margin-bottom:12px;"><input class="qa-q" type="text" placeholder="Paste a question you'd like to answer" style="width:100%;margin-bottom:6px;"><textarea class="qa-a" placeholder="Your answer" style="width:100%;min-height:60px;"></textarea></div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addQARow()">+ Answer More</button>
+            </div>
+            <button class="btn btn-orange" onclick="submitSpotlight()">Submit My Spotlight Entry</button>
+        </div>
+
+        <!-- NOMINATION -->
+        <div class="submit-flow" id="submitFlow-nomination" style="display:none;">
+            <h3>Nominate a Colleague for the Spotlight</h3>
+            <p style="color:#6b7280;font-size:14px;">Spotlights are generally selected at random and everyone is featured over time. Nominations help us understand who others would love to get to know sooner.</p>
+            <div class="form-group"><label>Have you submitted your own Spotlight entry?</label><br>
+                <label><input type="radio" name="nom_own" value="yes"> Yes</label>
+                <label style="margin-left:16px;"><input type="radio" name="nom_own" value="not_yet"> Not yet</label>
+            </div>
+            <div class="form-group"><label>Who would you like to nominate? *</label><input type="text" id="nom_name" placeholder="Colleague name"></div>
+            <button class="btn btn-orange" onclick="submitNomination()">Submit Nomination</button>
+        </div>
+
+        <!-- COMPANY UPDATE -->
+        <div class="submit-flow" id="submitFlow-update" style="display:none;">
+            <h3>Company Update</h3>
+            <p style="color:#6b7280;font-size:14px;">For work-related updates that deserve broader visibility across the company &mdash; notable outcomes, upcoming events, or items needing company awareness. Keep the monthly publishing schedule in mind.</p>
+            <div class="form-group"><label>Update Summary *</label><textarea id="up_summary" style="min-height:110px;" placeholder="List in detail as many updates as you'd like featured. For videos, paste links here."></textarea></div>
+            <div class="form-group"><label>Supporting materials (optional)</label>
+                <input type="file" id="up_files" multiple onchange="submitFileUpload('up_files','up_files_list',_updateFiles)">
+                <div id="up_files_list"></div>
+            </div>
+            <div class="form-group"><label>Co-contributors (optional, comma-separated)</label><input type="text" id="up_cocontrib" placeholder="Colleague names"></div>
+            <div class="form-group"><label>When should this be featured?</label><br>
+                <label><input type="radio" name="up_when" value="next"> Next available issue</label>
+                <label style="margin-left:16px;"><input type="radio" name="up_when" value="specific"> Specific month</label>
+                <input type="text" id="up_month" placeholder="Which month?" style="margin-top:6px;">
+            </div>
+            <div class="form-group"><label>Additional notes</label><textarea id="up_notes" style="min-height:70px;"></textarea></div>
+            <button class="btn btn-orange" onclick="submitUpdate()">Submit Update</button>
+        </div>
+
+        <!-- CULTURE -->
+        <div class="submit-flow" id="submitFlow-culture" style="display:none;">
+            <h3>Culture / Industry Content</h3>
+            <p style="color:#6b7280;font-size:14px;">Jokes, memes, links, or media with your own caption. Entries are subject to approval due to volume.</p>
+            <div class="form-group"><label>What type of content are you sharing? *</label><br>
+                <label><input type="checkbox" name="cul_type" value="Original joke or catchphrase"> Original joke or catchphrase</label><br>
+                <label><input type="checkbox" name="cul_type" value="Meme"> Meme (image, gif, video, or link)</label><br>
+                <label><input type="checkbox" name="cul_type" value="Educational/informational link"> Educational / informational web link or social content</label><br>
+                <label><input type="checkbox" name="cul_type" value="Media with own caption"> Any media (own or borrowed) with your own caption</label><br>
+                <label><input type="checkbox" name="cul_type" value="Other"> Other</label>
+            </div>
+            <div class="form-group"><label>Upload files (if needed)</label>
+                <input type="file" id="cul_files" multiple onchange="submitFileUpload('cul_files','cul_files_list',_cultureFiles)">
+                <div id="cul_files_list"></div>
+            </div>
+            <div class="form-group"><label>Your content *</label><textarea id="cul_content" style="min-height:100px;" placeholder="Always include links to borrowed content here. Use this for captions and descriptions. For videos, paste links here."></textarea></div>
+            <div class="form-group"><label>Why does this fit the newsletter?</label><textarea id="cul_why" style="min-height:70px;"></textarea></div>
+            <button class="btn btn-orange" onclick="submitCulture()">Submit Content</button>
+        </div>
+
+        <!-- CORRECTION -->
+        <div class="submit-flow" id="submitFlow-correction" style="display:none;">
+            <h3>Update / Correction to a Previous Submission</h3>
+            <div class="form-group"><label>What category and topic of your previous submission would you like to correct? *</label><input type="text" id="cor_topic" placeholder="Example: Company Update - Project X"></div>
+            <div class="form-group"><label>When did you submit it?</label><input type="text" id="cor_date" placeholder="MM-DD-YYYY"></div>
+            <div class="form-group"><label>What are you changing or adding? *</label><textarea id="cor_changes" style="min-height:100px;"></textarea></div>
+            <div class="form-group"><label>Upload files (if needed)</label>
+                <input type="file" id="cor_files" multiple onchange="submitFileUpload('cor_files','cor_files_list',_correctionFiles)">
+                <div id="cor_files_list"></div>
+            </div>
+            <div class="form-group"><label>If already published, how should we handle the correction?</label><br>
+                <label><input type="radio" name="cor_handling" value="note_next"> Note it in the next issue</label><br>
+                <label><input type="radio" name="cor_handling" value="announce"> Announce via Slack / Email on behalf of the team</label><br>
+                <label><input type="radio" name="cor_handling" value="other"> Other</label>
+                <input type="text" id="cor_handling_other" placeholder="If other, explain" style="margin-top:6px;">
+            </div>
+            <button class="btn btn-orange" onclick="submitCorrection()">Submit Correction</button>
+        </div>
+
+        </div>
+    </div>
+
     <!-- ====================================================
          JAVASCRIPT
          ==================================================== -->
@@ -2813,6 +2947,19 @@
                 email: window.AUTH_USER.email,
                 id: window.AUTH_USER.email
             });
+        }
+        // Role gating: editors get the full builder plus a Submit toggle;
+        // contributors get only the submission form.
+        var isEditor = !!(window.AUTH_USER && window.AUTH_USER.is_editor);
+        var toggleBtn = document.getElementById('viewToggleBtn');
+        var startBtn = document.getElementById('startOverBtn');
+        if (isEditor) {
+            if (toggleBtn) toggleBtn.style.display = '';
+            showAppView('build');
+        } else {
+            if (toggleBtn) toggleBtn.style.display = 'none';
+            if (startBtn) startBtn.style.display = 'none';
+            showAppView('submit');
         }
     }
 
@@ -3982,6 +4129,8 @@
     }
 
     function renderSpotlightBlocks() {
+        // Populate the "pull from submitted entries" picker once (editors only).
+        if (!window._spotlightSubsLoaded) { window._spotlightSubsLoaded = true; loadSpotlightSubmissions(); }
         var container = document.getElementById('spotlightsContainer');
         var html = '';
         spotlights.forEach(function(sp, idx) {
@@ -5997,6 +6146,217 @@
         });
     }
 
+    /* ==================== SUBMISSIONS (contributor form) ==================== */
+    window._appView = 'build';
+    var _spotlightPhotos = [];
+    var _updateFiles = [];
+    var _cultureFiles = [];
+    var _correctionFiles = [];
+
+    function showAppView(view) {
+        var isSubmit = (view === 'submit');
+        var buildEls = [document.querySelector('.container'),
+                        document.getElementById('draftsSection'),
+                        document.getElementById('publishedSection'),
+                        document.getElementById('teamSection')];
+        buildEls.forEach(function(el) { if (el) el.style.display = isSubmit ? 'none' : ''; });
+        var submitEl = document.getElementById('submitSection');
+        if (submitEl) submitEl.style.display = isSubmit ? 'block' : 'none';
+        var btn = document.getElementById('viewToggleBtn');
+        if (btn) btn.textContent = isSubmit ? '← Back to Builder' : 'Submit an Entry';
+        window._appView = view;
+        window.scrollTo(0, 0);
+    }
+    function toggleAppView() { showAppView(window._appView === 'submit' ? 'build' : 'submit'); }
+
+    function showSubmitFlow(which) {
+        ['spotlight', 'nomination', 'update', 'culture', 'correction'].forEach(function(f) {
+            var el = document.getElementById('submitFlow-' + f);
+            if (el) el.style.display = (f === which) ? 'block' : 'none';
+            var b = document.getElementById('submitBtn-' + f);
+            if (b) b.classList.toggle('active', f === which);
+        });
+        var status = document.getElementById('submitStatus');
+        if (status) status.style.display = 'none';
+    }
+
+    function _sv(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+    function _sradio(name) { var el = document.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; }
+    function _schecks(name) {
+        var out = [];
+        document.querySelectorAll('input[name="' + name + '"]:checked').forEach(function(c) { out.push(c.value); });
+        return out;
+    }
+
+    function submitFileUpload(inputId, listId, storeArr) {
+        var input = document.getElementById(inputId);
+        if (!input || !input.files || !input.files.length) return;
+        Array.prototype.forEach.call(input.files, function(file) {
+            uploadMediaFile(file, function(url) {
+                storeArr.push(url);
+                var list = document.getElementById(listId);
+                if (list) {
+                    list.innerHTML = storeArr.map(function(u) {
+                        return '<div style="font-size:12px;color:#0d9488;">Uploaded: ' + escapeHtml(u.split('/').pop()) + '</div>';
+                    }).join('');
+                }
+            });
+        });
+        input.value = '';
+    }
+
+    function addQARow() {
+        var wrap = document.getElementById('sp_qa_rows');
+        if (!wrap) return;
+        var div = document.createElement('div');
+        div.className = 'qa-pair';
+        div.style.marginBottom = '12px';
+        div.innerHTML = '<input class="qa-q" type="text" placeholder="Paste a question you’d like to answer" style="width:100%;margin-bottom:6px;">' +
+                        '<textarea class="qa-a" placeholder="Your answer" style="width:100%;min-height:60px;"></textarea>';
+        wrap.appendChild(div);
+    }
+    function _collectQA() {
+        var pairs = [];
+        document.querySelectorAll('#sp_qa_rows .qa-pair').forEach(function(row) {
+            var q = row.querySelector('.qa-q').value.trim();
+            var a = row.querySelector('.qa-a').value.trim();
+            if (q || a) pairs.push({ q: q, a: a });
+        });
+        return pairs;
+    }
+
+    function submitPost(url, body, successMsg) {
+        var status = document.getElementById('submitStatus');
+        fetch(API_BASE + url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
+        .then(function(r) {
+            if (r.ok && r.data && r.data.success) {
+                status.style.display = 'block';
+                status.style.color = '#0d9488';
+                status.textContent = successMsg || 'Thanks — your submission was received!';
+                ['spotlight', 'nomination', 'update', 'culture', 'correction'].forEach(function(f) {
+                    var el = document.getElementById('submitFlow-' + f);
+                    if (el) el.style.display = 'none';
+                });
+            } else {
+                status.style.display = 'block';
+                status.style.color = '#dc3545';
+                status.textContent = 'Sorry, that could not be submitted: ' + ((r.data && r.data.error) || 'please try again.');
+            }
+            window.scrollTo(0, 0);
+        })
+        .catch(function() {
+            status.style.display = 'block';
+            status.style.color = '#dc3545';
+            status.textContent = 'Network error — please try again.';
+        });
+    }
+
+    function submitSpotlight() {
+        submitPost('/api/submit/spotlight', {
+            name: _sv('sp_name'),
+            employee_type: _sradio('sp_emptype'),
+            job_title: _sv('sp_title'),
+            birth_date: _sv('sp_birth'),
+            hire_date: _sv('sp_hire'),
+            residence: _sradio('sp_residence'),
+            residence_location: _sv('sp_residence_loc'),
+            describe_work: _sv('sp_describe'),
+            work_with_others: _sv('sp_work'),
+            photo_url: _spotlightPhotos[0] || '',
+            qa: _collectQA()
+        }, 'Your Employee Spotlight entry was saved. Thank you!');
+    }
+    function submitNomination() {
+        submitPost('/api/submit/nomination', {
+            nominee: _sv('nom_name'),
+            has_own_entry: _sradio('nom_own') === 'yes'
+        }, 'Thanks for the nomination!');
+    }
+    function submitUpdate() {
+        var co = _sv('up_cocontrib');
+        submitPost('/api/submit/update', {
+            summary: _sv('up_summary'),
+            files: _updateFiles.slice(),
+            co_contributors: co ? co.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [],
+            when_featured: _sradio('up_when'),
+            specific_month: _sv('up_month'),
+            notes: _sv('up_notes')
+        }, 'Your company update was submitted.');
+    }
+    function submitCulture() {
+        submitPost('/api/submit/culture', {
+            content_types: _schecks('cul_type'),
+            files: _cultureFiles.slice(),
+            content: _sv('cul_content'),
+            why_fits: _sv('cul_why')
+        }, 'Your culture / industry submission was received (subject to approval).');
+    }
+    function submitCorrection() {
+        submitPost('/api/submit/correction', {
+            prev_category_topic: _sv('cor_topic'),
+            prev_submitted_date: _sv('cor_date'),
+            changes: _sv('cor_changes'),
+            files: _correctionFiles.slice(),
+            handling: _sradio('cor_handling'),
+            handling_other: _sv('cor_handling_other')
+        }, 'Your correction was submitted.');
+    }
+
+    /* ---- Editor selection: pull submitted spotlight profiles into the builder ---- */
+    var submittedSpotlights = [];
+    function loadSpotlightSubmissions() {
+        fetch(API_BASE + '/api/submissions/spotlight')
+        .then(function(res) { return res.ok ? res.json() : { success: false }; })
+        .then(function(data) {
+            if (!data.success) return;
+            submittedSpotlights = data.submissions || [];
+            var sel = document.getElementById('spotlightSubmissionPicker');
+            if (!sel) return;
+            var html = '<option value="">— select a submitted entry —</option>';
+            submittedSpotlights.forEach(function(s, i) {
+                var label = (s.name || s.email || 'Unknown') + (s.job_title ? ' — ' + s.job_title : '');
+                html += '<option value="' + i + '">' + escapeHtml(label) + '</option>';
+            });
+            sel.innerHTML = html;
+        })
+        .catch(function() {});
+    }
+    function applySpotlightSubmission() {
+        var sel = document.getElementById('spotlightSubmissionPicker');
+        if (!sel || sel.value === '') return;
+        var sub = submittedSpotlights[parseInt(sel.value)];
+        if (!sub) return;
+        // Reuse an empty spotlight block, else add one (cap 3).
+        var idx = -1;
+        for (var i = 0; i < spotlights.length; i++) {
+            if (!spotlights[i].employee && !spotlights[i].blurb) { idx = i; break; }
+        }
+        if (idx === -1) {
+            if (spotlights.length >= 3) { alert('You already have 3 spotlights. Remove one first.'); return; }
+            spotlights.push({ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [] });
+            idx = spotlights.length - 1;
+        }
+        // Match to the roster when possible so the employee dropdown lines up.
+        var empMatch = null;
+        for (var j = 0; j < (allEmployees || []).length; j++) {
+            if ((allEmployees[j].email || '').toLowerCase() === (sub.email || '').toLowerCase()) { empMatch = allEmployees[j]; break; }
+        }
+        spotlights[idx].employee = empMatch || { name: sub.name || '', title: sub.job_title || '', department: '', email: sub.email || '' };
+        spotlights[idx].display_title = sub.job_title || spotlights[idx].employee.title || '';
+        spotlights[idx].blurb = sub.describe_work || spotlights[idx].blurb || '';
+        spotlights[idx].fun_facts = sub.work_with_others || spotlights[idx].fun_facts || '';
+        spotlights[idx].image_url = sub.photo_url || spotlights[idx].image_url || '';
+        var qa = Array.isArray(sub.qa) ? sub.qa.slice(0, 3) : [];
+        while (qa.length < 3) qa.push({ q: '', a: '' });
+        spotlights[idx].qa = qa;
+        renderSpotlightBlocks();
+        sel.value = '';
+    }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 </body>
