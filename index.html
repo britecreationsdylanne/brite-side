@@ -2599,7 +2599,12 @@
          ============================================ -->
     <div class="team-section" id="teamSection">
         <h2>Manage Team</h2>
-        <p class="section-subtitle">Add new hires or remove departing team members</p>
+        <p class="section-subtitle">Add new hires or remove departing team members. Or pull the latest roster from BigQuery.</p>
+
+        <div style="text-align:center;margin-bottom:16px;">
+            <button class="btn" id="syncBtn" onclick="syncFromBigQuery()">&#128260; Sync employees from BigQuery</button>
+            <p id="syncStatus" style="margin:8px 0 0 0;font-size:13px;color:rgba(255,255,255,0.85);display:none;"></p>
+        </div>
 
         <div class="team-add-form">
             <div class="form-col">
@@ -4721,8 +4726,11 @@
         var listEl = document.getElementById('recipientList');
         var html = '';
 
-        // Sort employees by last name
-        var sorted = allEmployees.map(function(emp, idx) { return { emp: emp, idx: idx }; });
+        // Active employees only, sorted by last name (deactivated people stay in
+        // the roster but are never sent the newsletter).
+        var sorted = allEmployees
+            .map(function(emp, idx) { return { emp: emp, idx: idx }; })
+            .filter(function(item) { return item.emp.active !== false; });
         sorted.sort(function(a, b) {
             var aLast = a.emp.name.split(' ').slice(-1)[0].toLowerCase();
             var bLast = b.emp.name.split(' ').slice(-1)[0].toLowerCase();
@@ -5445,7 +5453,8 @@
         allEmployees.forEach(function(emp) {
             var safeEmail = escapeAttr(emp.email);
             var isEditing = editingTeamEmail && editingTeamEmail.toLowerCase() === emp.email.toLowerCase();
-            html += '<div class="team-row">';
+            var isActive = emp.active !== false;
+            html += '<div class="team-row"' + (isActive ? '' : ' style="opacity:0.55;"') + '>';
 
             if (isEditing) {
                 html += '<div><input type="text" class="team-edit-input" id="teamName_' + safeEmail + '" value="' + escapeAttr(emp.name || '') + '" placeholder="Name"></div>';
@@ -5466,7 +5475,8 @@
                 html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\')">Remove</button>';
                 html += '</div>';
             } else {
-                html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
+                var nameLabel = escapeHtml(emp.name) + (isActive ? '' : ' <span style="font-size:10px;color:#f0913f;font-weight:700;">INACTIVE</span>');
+                html += '<div class="name">' + nameLabel + '</div>';
                 html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
                 html += '<div class="title-read">' + escapeHtml(emp.title || '—') + '</div>';
                 var bdayText = (emp.birthday_month && emp.birthday_day)
@@ -5475,6 +5485,11 @@
                 html += '<div class="bday-read">' + bdayText + '</div>';
                 html += '<div class="team-actions">';
                 html += '<button class="team-edit-btn" onclick="editEmployee(\'' + safeEmail + '\')">Edit</button>';
+                if (isActive) {
+                    html += '<button class="team-remove-btn" onclick="setEmployeeActive(\'' + safeEmail + '\', false)">Deactivate</button>';
+                } else {
+                    html += '<button class="team-edit-btn" onclick="setEmployeeActive(\'' + safeEmail + '\', true)">Reactivate</button>';
+                }
                 html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\')">Remove</button>';
                 html += '</div>';
             }
@@ -5482,7 +5497,54 @@
         });
 
         listEl.innerHTML = html;
-        countEl.textContent = allEmployees.length + ' team member' + (allEmployees.length !== 1 ? 's' : '');
+        var activeCount = allEmployees.filter(function(e) { return e.active !== false; }).length;
+        countEl.textContent = allEmployees.length + ' team member' + (allEmployees.length !== 1 ? 's' : '') + ' · ' + activeCount + ' active';
+    }
+
+    function setEmployeeActive(email, active) {
+        var verb = active ? 'reactivate' : 'deactivate';
+        if (!active && !confirm('Deactivate this person? They stay in the roster but won’t receive the newsletter or appear in birthdays, and the BigQuery sync won’t re-activate them.')) return;
+        fetch(API_BASE + '/api/employees/set-active', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, active: active })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) { fetchAllEmployees(); }
+            else { alert('Could not ' + verb + ': ' + (data.error || 'please try again')); }
+        })
+        .catch(function(err) { alert('Error: ' + err.message); });
+    }
+
+    function syncFromBigQuery() {
+        var btn = document.getElementById('syncBtn');
+        var status = document.getElementById('syncStatus');
+        var orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = 'Syncing…';
+        status.style.display = 'block';
+        status.textContent = 'Pulling from BigQuery — this can take a minute…';
+        fetch(API_BASE + '/api/sync-users', { method: 'POST' })
+        .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, statusCode: res.status, data: d }; }); })
+        .then(function(r) {
+            btn.disabled = false; btn.innerHTML = orig;
+            if (r.ok && r.data && r.data.success) {
+                var s = r.data.summary || {};
+                status.textContent = 'Synced: ' + (s.created || 0) + ' added, ' + (s.updated || 0) + ' updated, ' +
+                    (s.birthdays_filled || 0) + ' birthdays filled, ' + (s.deactivated || 0) + ' deactivated (' +
+                    (s.total_in_bigquery || 0) + ' in BigQuery).';
+                fetchAllEmployees();
+            } else if (r.statusCode === 409) {
+                status.textContent = 'Sync paused for safety: ' + ((r.data && r.data.error) || 'too many deactivations') + ' No statuses were changed.';
+            } else {
+                status.textContent = 'Sync failed: ' + ((r.data && r.data.error) || 'please try again.');
+            }
+        })
+        .catch(function() {
+            btn.disabled = false; btn.innerHTML = orig;
+            status.textContent = 'Sync failed — network error.';
+        });
     }
 
     function editEmployee(email) {

@@ -626,6 +626,7 @@ def get_employees():
                 "title": emp.get("title", ""),
                 "birthday_month": _as_bday_int(emp.get("birthday_month")),
                 "birthday_day": _as_bday_int(emp.get("birthday_day")),
+                "active": emp.get("active", True),
             }
             for emp in list_employees(strict=True)
         ]
@@ -657,7 +658,7 @@ def get_birthdays():
                 "birthday_month": _as_bday_int(emp.get("birthday_month")),
             }
             for emp in list_employees(strict=True)
-            if _as_bday_int(emp.get("birthday_month")) == month
+            if _as_bday_int(emp.get("birthday_month")) == month and emp.get("active", True)
         ]
 
         # Sort by day of month (values coerced to int above, so no None/str crash)
@@ -797,6 +798,30 @@ def update_employee():
 
     except Exception as e:
         safe_print(f"[API] Error updating employee: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/employees/set-active', methods=['POST'])
+def set_employee_active():
+    """Deactivate / reactivate an employee. A deactivated person STAYS in the
+    roster (so the sync won't re-create them), is excluded from the newsletter
+    audience and birthdays, and is NEVER auto-reactivated by the BigQuery sync."""
+    try:
+        data = request.json or {}
+        email = (data.get('email') or '').strip().lower()
+        active = bool(data.get('active', True))
+        if not email:
+            return jsonify({"success": False, "error": "Employee email is required"}), 400
+        emp = get_employee(email)
+        if not emp:
+            return jsonify({"success": False, "error": "Employee not found"}), 404
+        emp['active'] = active
+        if not upsert_employee(email, emp):
+            return jsonify({"success": False, "error": "Database write failed"}), 500
+        safe_print(f"[API] Set {email} active={active}")
+        return jsonify({"success": True, "email": email, "active": active})
+    except Exception as e:
+        safe_print(f"[API] Error setting active: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
