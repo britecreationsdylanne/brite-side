@@ -2082,6 +2082,24 @@
                 </div>
             </div>
 
+            <div id="anniversarySection" style="margin-top: 24px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                <div class="toggle-row">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="anniversaryToggle" onchange="toggleAnniversarySection()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div>
+                        <div class="toggle-label">Include work anniversaries?</div>
+                        <div class="toggle-helper">Auto-pulled from BigQuery for this month. Uncheck to hide the section.</div>
+                    </div>
+                </div>
+                <div id="anniversaryArea" style="display:none;">
+                    <h3 id="anniversaryHeader" style="margin: 12px 0 4px;">Work Anniversaries &#127881;</h3>
+                    <p class="step-description" style="margin-top:0;">Celebrating another year with these teammates. Add a personal note if you like.</p>
+                    <div id="anniversaryListArea"></div>
+                </div>
+            </div>
+
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Back</button>
                 <button class="btn" onclick="goToStep(4)">Next &rarr;</button>
@@ -2892,6 +2910,8 @@
     let jokeOptions = [];
     let selectedJokeIndex = -1;
     let birthdays = [];
+    let anniversaries = [];
+    let anniversariesEnabled = false;
 
     // Optional media block (Intro add-on)
     let mediaBlock = {
@@ -3196,6 +3216,11 @@
         jokeOptions = [];
         selectedJokeIndex = -1;
         birthdays = [];
+        anniversaries = [];
+        anniversariesEnabled = false;
+        window._anniversaryTouched = false;
+        var _annTgl = document.getElementById('anniversaryToggle'); if (_annTgl) _annTgl.checked = false;
+        var _annArea = document.getElementById('anniversaryArea'); if (_annArea) _annArea.style.display = 'none';
         welcomeEnabled = false;
         welcomeHires = [];
         spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] }];
@@ -3319,6 +3344,8 @@
 
         // Fetch birthday count (will also include secondary month if set)
         fetchBirthdayCount(monthNum);
+        // Auto-pull work anniversaries for the issue month
+        fetchAnniversaries(monthNum);
 
     }
 
@@ -3397,6 +3424,87 @@
             badge.textContent = 'Could not load birthdays';
             birthdays = manualEntries;
         });
+    }
+
+    function fetchAnniversaries(monthNum) {
+        if (!monthNum) return;
+        fetch(API_BASE + '/api/employees/anniversaries?month=' + monthNum)
+            .then(function(res) { return res.ok ? res.json() : { success: false }; })
+            .then(function(data) {
+                if (!data.success) { anniversaries = []; renderAnniversaryList(); return; }
+                // Preserve any note the editor already typed for a given person.
+                var priorByEmail = {};
+                anniversaries.forEach(function(a) { if (a.email) priorByEmail[a.email] = a; });
+                anniversaries = (data.anniversaries || []).map(function(a) {
+                    var prior = priorByEmail[a.email] || {};
+                    return {
+                        name: a.name, email: a.email, department: a.department,
+                        anniversary_day: a.anniversary_day, anniversary_month: a.anniversary_month,
+                        anniversary_year: a.anniversary_year, years: a.years,
+                        image_url: prior.image_url || a.image_url || '',
+                        message: prior.message || ''
+                    };
+                });
+                // Auto-enable the first time we find anniversaries, unless the editor
+                // has already made a choice on the toggle.
+                if (!window._anniversaryTouched && anniversaries.length) {
+                    anniversariesEnabled = true;
+                    var t = document.getElementById('anniversaryToggle'); if (t) t.checked = true;
+                }
+                var area = document.getElementById('anniversaryArea');
+                if (area) area.style.display = anniversariesEnabled ? 'block' : 'none';
+                renderAnniversaryList();
+            })
+            .catch(function() { anniversaries = []; renderAnniversaryList(); });
+    }
+    function toggleAnniversarySection() {
+        window._anniversaryTouched = true;
+        var t = document.getElementById('anniversaryToggle');
+        anniversariesEnabled = t ? t.checked : false;
+        var area = document.getElementById('anniversaryArea');
+        if (area) area.style.display = anniversariesEnabled ? 'block' : 'none';
+    }
+    function renderAnniversaryList() {
+        var area = document.getElementById('anniversaryListArea');
+        if (!area) return;
+        if (!anniversaries.length) {
+            area.innerHTML = '<div class="no-birthdays"><div class="no-birthday-text">No work anniversaries in ' + escapeHtml(selectedMonth || 'this month') + '.</div></div>';
+            return;
+        }
+        var html = '<div class="birthday-list">';
+        anniversaries.forEach(function(a, idx) {
+            var yrs = parseInt(a.years) || 0;
+            var yrsLabel = yrs >= 1 ? (yrs + ' year' + (yrs === 1 ? '' : 's')) : 'Celebrating this month';
+            html += '<div class="birthday-card">';
+            html += '<div class="birthday-avatar-wrap">';
+            if (a.image_url) {
+                html += '<img class="birthday-avatar" src="' + escapeAttr(a.image_url) + '" alt="' + escapeAttr(a.name) + '">';
+            } else {
+                html += '<div class="birthday-avatar-initials" style="background-color:' + birthdayAvatarColor(a.name || ('' + idx)) + ';">' + escapeHtml(birthdayInitials(a.name)) + '</div>';
+            }
+            html += '</div>';
+            html += '<div class="birthday-info">';
+            html += '<div class="birthday-name">' + escapeHtml(a.name) + '</div>';
+            html += '<div class="birthday-meta">&#127881; ' + escapeHtml(yrsLabel) + (a.department ? ' &middot; ' + escapeHtml(a.department) : '') + '</div>';
+            html += '<textarea class="birthday-message-input" id="anniversaryMsg' + idx + '" placeholder="Add a personal note (optional)..." rows="2" oninput="anniversaries[' + idx + '].message=this.value">' + escapeHtml(a.message || '') + '</textarea>';
+            html += '<button class="welcome-remove-btn" onclick="anniversaries.splice(' + idx + ',1);renderAnniversaryList()" style="margin-top:6px;">Remove</button>';
+            html += '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        area.innerHTML = html;
+    }
+    function collectAnniversaryData() {
+        return anniversaries
+            .filter(function(a) { return a.name; })
+            .map(function(a) {
+                return {
+                    name: a.name, department: a.department || '',
+                    anniversary_day: a.anniversary_day, anniversary_month: a.anniversary_month,
+                    anniversary_year: a.anniversary_year, years: a.years,
+                    image_url: a.image_url || '', message: a.message || ''
+                };
+            });
     }
 
     /* ============================================================
@@ -4786,6 +4894,8 @@
             updates_enabled: updatesEnabled,
             welcome_hires: welcomeEnabled ? welcomeHires.filter(function(h) { return h.name; }) : [],
             welcome_enabled: welcomeEnabled,
+            anniversaries: anniversariesEnabled ? collectAnniversaryData() : [],
+            anniversaries_enabled: anniversariesEnabled,
             game: gamePayload,
             media: mediaPayload,
             special_section: specialData,
@@ -5093,6 +5203,8 @@
                 updatesEnabled: updatesEnabled,
                 welcomeHires: welcomeHires,
                 welcomeEnabled: welcomeEnabled,
+                anniversaries: anniversaries,
+                anniversariesEnabled: anniversariesEnabled,
                 game: {
                     enabled: gameEnabled,
                     type: gameType,
@@ -5219,6 +5331,12 @@
             // Welcome hires
             welcomeEnabled = d.welcomeEnabled || false;
             welcomeHires = d.welcomeHires || [];
+            anniversaries = d.anniversaries || [];
+            anniversariesEnabled = d.anniversariesEnabled || false;
+            window._anniversaryTouched = true;
+            var _at = document.getElementById('anniversaryToggle'); if (_at) _at.checked = anniversariesEnabled;
+            var _aa = document.getElementById('anniversaryArea'); if (_aa) _aa.style.display = anniversariesEnabled ? 'block' : 'none';
+            renderAnniversaryList();
 
             // Updates enabled
             updatesEnabled = d.updatesEnabled !== undefined ? d.updatesEnabled : true;
@@ -5469,6 +5587,12 @@
             }
             welcomeEnabled = d.welcomeEnabled || false;
             welcomeHires = d.welcomeHires || [];
+            anniversaries = d.anniversaries || [];
+            anniversariesEnabled = d.anniversariesEnabled || false;
+            window._anniversaryTouched = true;
+            var _at = document.getElementById('anniversaryToggle'); if (_at) _at.checked = anniversariesEnabled;
+            var _aa = document.getElementById('anniversaryArea'); if (_aa) _aa.style.display = anniversariesEnabled ? 'block' : 'none';
+            renderAnniversaryList();
             updatesEnabled = d.updatesEnabled !== undefined ? d.updatesEnabled : true;
             if (d.game) {
                 gameEnabled = d.game.enabled || false;

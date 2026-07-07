@@ -705,6 +705,54 @@ def get_birthdays():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/employees/anniversaries')
+def get_anniversaries():
+    """Return active employees with a work anniversary in the given month.
+
+    `years` = current year − anniversary_year (0 when we have no start year, e.g.
+    a first-run seed record). Someone in their first year shows as 0 and the UI
+    can treat that as a plain anniversary rather than an "N years" milestone."""
+    try:
+        month = request.args.get('month', type=int)
+        if not month or month < 1 or month > 12:
+            return jsonify({"success": False, "error": "Valid month parameter (1-12) required"}), 400
+
+        current_year = datetime.now(CHICAGO_TZ).year
+        anniversary_employees = []
+        for emp in list_employees(strict=True):
+            if _as_bday_int(emp.get("anniversary_month")) != month or not emp.get("active", True):
+                continue
+            yr = _as_bday_int(emp.get("anniversary_year"))
+            anniversary_employees.append({
+                "name": emp.get("name", ""),
+                "email": emp.get("email", ""),
+                "department": emp.get("department", ""),
+                "title": emp.get("title", ""),
+                "anniversary_day": _as_bday_int(emp.get("anniversary_day")),
+                "anniversary_month": _as_bday_int(emp.get("anniversary_month")),
+                "anniversary_year": yr,
+                "years": (current_year - yr) if yr else 0,
+                "image_url": emp.get("photo_url", ""),
+            })
+
+        anniversary_employees.sort(key=lambda x: x["anniversary_day"])
+        month_name = MONTH_NAMES.get(month, str(month))
+        safe_print(f"[API] Found {len(anniversary_employees)} anniversaries in {month_name}")
+        return jsonify({
+            "success": True,
+            "month": month,
+            "month_name": month_name,
+            "anniversaries": anniversary_employees,
+        })
+
+    except DataUnavailable as e:
+        safe_print(f"[API] Employee directory unavailable: {e}")
+        return jsonify({"success": False, "error": str(e)}), 503
+    except Exception as e:
+        safe_print(f"[API] Error fetching anniversaries: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route('/api/employees/add', methods=['POST'])
 def add_employee():
     """Add a new employee to the list"""
@@ -1734,6 +1782,40 @@ def render_email():
 
             birthday_html = '\n'.join(items)
 
+        # Build work anniversary rows (auto-pulled for the issue month)
+        anniversaries = data.get('anniversaries', [])
+        anniversaries_enabled = data.get('anniversaries_enabled', True)
+        anniversary_html = ''
+        if anniversaries_enabled and anniversaries:
+            ann_items = []
+            for a in anniversaries:
+                a_name = esc(a.get('name', ''))
+                a_dept = esc(a.get('department', ''))
+                try:
+                    yrs = int(a.get('years') or 0)
+                except (TypeError, ValueError):
+                    yrs = 0
+                a_day = esc(a.get('anniversary_day', ''))
+                mon_abbrev = esc(_month_abbrev(a.get('anniversary_month') or primary_month_num, primary_month_display))
+                bits = []
+                if yrs >= 1:
+                    bits.append(f"{yrs} year" + ("s" if yrs != 1 else ""))
+                if mon_abbrev and a_day:
+                    bits.append(f"{mon_abbrev} {a_day}")
+                if a_dept:
+                    bits.append(a_dept)
+                meta = ' &middot; '.join(bits)
+                ann_items.append(
+                    '<tr>'
+                    + _avatar_cell(a)
+                    + f'<td valign="middle" style="padding: 10px 0;">'
+                    f'<div style="font-family:{FONT}; font-size:15px; font-weight:600; color:#272D3F; text-align:left;">{a_name}</div>'
+                    f'<div style="font-family:{FONT}; font-size:14px; color:#6b7280; text-align:left;">&#127881; {meta}</div>'
+                    f'</td>'
+                    '</tr>'
+                )
+            anniversary_html = '\n'.join(ann_items)
+
         # Build welcome hires HTML
         welcome_html = ''
         if welcome_enabled and welcome_hires:
@@ -1979,6 +2061,7 @@ def render_email():
 
         # Conditional display values
         birthday_display = 'table-row' if birthdays else 'none'
+        anniversary_display = 'table-row' if (anniversaries_enabled and anniversary_html) else 'none'
         welcome_display = 'table-row' if (welcome_enabled and welcome_hires) else 'none'
         update_2_display = 'table-row' if (update_2_title or update_2_body) else 'none'
         update_3_display = 'table-row' if (update_3_title or update_3_body) else 'none'
@@ -2019,6 +2102,8 @@ def render_email():
             'MEDIA_SECTION': media_html,
             'BIRTHDAY_DISPLAY': birthday_display,
             'BIRTHDAY_SECTION': birthday_html,
+            'ANNIVERSARY_DISPLAY': anniversary_display,
+            'ANNIVERSARY_SECTION': anniversary_html,
             'WELCOME_DISPLAY': welcome_display,
             'WELCOME_SECTION': welcome_html,
             'SPOTLIGHT_DISPLAY': spotlight_display,

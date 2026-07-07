@@ -56,11 +56,11 @@ def _as_int(value):
 
 
 def _anniv(start_date):
-    """Return (month, day) from a BigQuery date/datetime start_date, or None."""
+    """Return (month, day, year) from a BigQuery date/datetime start_date, or None."""
     if start_date is None:
         return None
     try:
-        return (int(start_date.month), int(start_date.day))
+        return (int(start_date.month), int(start_date.day), int(start_date.year))
     except Exception:
         return None
 
@@ -193,6 +193,10 @@ def run(db, gcs_client=None, media_bucket=None, collection='employees',
             if bq_ann and not _as_int(current.get('anniversary_month')):
                 patch['anniversary_month'] = bq_ann[0]
                 patch['anniversary_day'] = bq_ann[1]
+                patch['anniversary_year'] = bq_ann[2]
+            elif bq_ann and not _as_int(current.get('anniversary_year')):
+                # Backfill the year for docs synced before we captured it.
+                patch['anniversary_year'] = bq_ann[2]
 
             # Photo: cache once.
             if not current.get('photo_cached'):
@@ -226,6 +230,7 @@ def run(db, gcs_client=None, media_bucket=None, collection='employees',
             if bq_ann:
                 new_doc['anniversary_month'] = bq_ann[0]
                 new_doc['anniversary_day'] = bq_ann[1]
+                new_doc['anniversary_year'] = bq_ann[2]
             url = _cache_photo(gcs_client, media_bucket, email, bq_thumb)
             if url:
                 new_doc['photo_url'] = url
