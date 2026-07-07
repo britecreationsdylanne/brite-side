@@ -1,0 +1,27 @@
+# Keep secrets, local state, and build cruft out of the image (COPY . .)
+.git
+.gitignore
+.dockerignore
+.env
+.env.local
+.env.*.local
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.so
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
+node_modules/
+
+# Local-only artifacts / credentials that must never ship
+*-key.json
+*_key.json
+service-account*.json
+gcp-credentials*.json
+credentials.json

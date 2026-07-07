@@ -1,5 +1,14 @@
 # Environment variables
 .env
+.env.local
+.env.*.local
+
+# GCP service-account keys / credentials (never commit)
+*-key.json
+*_key.json
+service-account*.json
+gcp-credentials*.json
+credentials.json
 
 # Python
 __pycache__/

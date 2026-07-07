@@ -11,6 +11,7 @@ import secrets
 import traceback
 import requests as http_requests
 import uuid
+import re
 from datetime import datetime
 
 import pytz
@@ -42,10 +43,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 # Import Claude client
 from backend.integrations.claude_client import ClaudeClient
 
+# Import BigQuery employee sync
+from backend.integrations import user_sync
+
 # Import config
 from config.briteside_config import (
     EMPLOYEES as CONFIG_EMPLOYEES,
-    CONFIG_EMPLOYEES_VERSION,
     MONTH_NAMES,
     BRITESIDE_SYSTEM_PROMPT,
     AI_PROMPTS,
@@ -62,8 +65,11 @@ from config.briteside_config import (
 # APP INITIALIZATION
 # ============================================================================
 
-app = Flask(__name__, static_folder='.', static_url_path='')
-CORS(app)
+app = Flask(__name__, static_folder=None)
+# CORS is intentionally NOT enabled app-wide: the SPA is served from the same
+# origin as the API, and wide-open CORS combined with cookie auth invites
+# cross-origin calls. Add specific trusted origins here only if a separate
+# front-end is ever introduced.
 
 # Fix for running behind Cloud Run's proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -94,10 +100,51 @@ google = oauth.register(
 
 ALLOWED_DOMAIN = 'brite.co'
 
+# ---------------------------------------------------------------------------
+# Access control
+# ---------------------------------------------------------------------------
+# Two roles:
+#   - contributor: any signed-in @brite.co user. Can submit spotlight/update/
+#     culture/correction entries and manage their own submissions.
+#   - editor: the newsletter team. Can build/send the newsletter, manage the
+#     roster, run AI generation, and curate submissions.
+# EDITOR_EMAILS is a comma-separated allow-list (env). It falls back to a small
+# default so the tool is usable on first deploy; set the env var in prod.
+_DEFAULT_EDITORS = 'dylanne.crugnale@brite.co,dove@brite.co'
+EDITOR_EMAILS = {
+    e.strip().lower()
+    for e in os.environ.get('EDITOR_EMAILS', _DEFAULT_EDITORS).split(',')
+    if e.strip()
+}
+
+# Machine-to-machine secret for Cloud Scheduler job endpoints (/api/jobs/*).
+JOB_SECRET = os.environ.get('JOB_SECRET', '')
+
+# Dev auth bypass is OPT-IN only (DEV_AUTH_MODE=true). It must never turn on
+# just because GOOGLE_CLIENT_ID is missing — that previously served the whole
+# app to anyone as a fake "Local Developer" if a prod substitution was dropped.
+DEV_AUTH_MODE = os.environ.get('DEV_AUTH_MODE', '').lower() == 'true'
+
 
 def get_current_user():
-    """Get current authenticated user from session"""
-    return session.get('user')
+    """Get current authenticated user from session (dict with email/name/...).
+
+    In DEV_AUTH_MODE (opt-in only) a stand-in editor user is returned so the app
+    is usable locally without OAuth. This never fires in production.
+    """
+    user = session.get('user')
+    if user:
+        return user
+    if DEV_AUTH_MODE:
+        return {'email': 'dylanne.crugnale@brite.co', 'name': 'Local Developer (dev)', 'picture': ''}
+    return None
+
+
+def is_editor(user):
+    """True when the user is on the newsletter-team allow-list."""
+    if not user:
+        return False
+    return (user.get('email') or '').strip().lower() in EDITOR_EMAILS
 
 
 # ============================================================================
@@ -118,6 +165,12 @@ except Exception as e:
 # ============================================================================
 
 GCS_DRAFTS_BUCKET = GCS_CONFIG['drafts_bucket']
+# Public bucket for newsletter media. Images/gifs/videos are hotlinked from sent
+# emails, so this bucket — and ONLY this bucket — is world-readable. Defaults to
+# the drafts bucket for backward compatibility; set GCS_MEDIA_BUCKET to a
+# dedicated public bucket so drafts, published issues, saved games, and the
+# employee roster (config/employees.json) are NOT exposed to the internet.
+GCS_MEDIA_BUCKET = os.environ.get('GCS_MEDIA_BUCKET', GCS_DRAFTS_BUCKET)
 gcs_client = None
 
 try:
@@ -125,22 +178,31 @@ try:
     gcs_client = gcs_storage.Client()
     print("[OK] GCS initialized")
 
-    # Ensure bucket allows public reads (uniform bucket-level access)
-    try:
-        _bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
-        _policy = _bucket.get_iam_policy(requested_policy_version=3)
-        _has_public = any(
-            b.get('role') == 'roles/storage.objectViewer' and 'allUsers' in b.get('members', set())
-            for b in _policy.bindings
+    # Grant public read ONLY on a dedicated media bucket. We never auto-grant
+    # public access on the drafts bucket (it holds drafts + employee PII), and we
+    # never re-apply a public grant the app previously forced (the old
+    # "self-healing" misconfig). When no dedicated media bucket is configured,
+    # media stays in the drafts bucket and we do NOT touch its IAM — move media
+    # to a public bucket and make the drafts bucket private to close the exposure.
+    if GCS_MEDIA_BUCKET != GCS_DRAFTS_BUCKET:
+        try:
+            _mb = gcs_client.bucket(GCS_MEDIA_BUCKET)
+            _policy = _mb.get_iam_policy(requested_policy_version=3)
+            _has_public = any(
+                b.get('role') == 'roles/storage.objectViewer' and 'allUsers' in b.get('members', set())
+                for b in _policy.bindings
+            )
+            if not _has_public:
+                _policy.bindings.append({'role': 'roles/storage.objectViewer', 'members': {'allUsers'}})
+                _mb.set_iam_policy(_policy)
+                print(f"[OK] Public read enabled on media bucket '{GCS_MEDIA_BUCKET}'")
+        except Exception as iam_err:
+            print(f"[WARNING] Could not set media bucket IAM policy: {iam_err}")
+    else:
+        print(
+            "[WARNING] GCS_MEDIA_BUCKET not set: media shares the drafts bucket. "
+            "Set a dedicated public media bucket so drafts and employee PII stay private."
         )
-        if not _has_public:
-            _policy.bindings.append({'role': 'roles/storage.objectViewer', 'members': {'allUsers'}})
-            _bucket.set_iam_policy(_policy)
-            print("[OK] Bucket public read access enabled via IAM")
-        else:
-            print("[OK] Bucket already has public read access")
-    except Exception as iam_err:
-        print(f"[WARNING] Could not set bucket IAM policy: {iam_err}")
 except Exception as e:
     print(f"[WARNING] GCS not available: {e}")
 
@@ -168,8 +230,12 @@ def _emp_key(email):
     return (email or '').strip().lower()
 
 
-def list_employees():
-    """Return all employees sorted by name (case-insensitive)."""
+def list_employees(strict=False):
+    """Return all employees sorted by name (case-insensitive).
+
+    On a Firestore error: raise DataUnavailable when strict=True (so read
+    endpoints can return 503 rather than an empty roster that reads as "no
+    employees"); otherwise return [] so internal callers degrade gracefully."""
     if not firestore_client:
         return list(CONFIG_EMPLOYEES)
     try:
@@ -179,6 +245,8 @@ def list_employees():
         return employees
     except Exception as e:
         print(f"[WARNING] Firestore list failed: {e}")
+        if strict:
+            raise DataUnavailable("Employee directory is temporarily unavailable") from e
         return []
 
 
@@ -269,10 +337,72 @@ seed_employees_if_empty()
 # ============================================================================
 
 def esc(text):
-    """HTML-escape user-generated text to prevent broken rendering"""
+    """HTML-escape user-generated text to prevent broken rendering.
+    html.escape escapes &, <, >, " and ' — safe for both element text and
+    double/single-quoted attribute values."""
     if not text:
         return text or ''
     return html_mod.escape(str(text))
+
+
+_SAFE_URL_SCHEMES = ('http://', 'https://', 'mailto:')
+
+
+def safe_url(url):
+    """Attribute-safe URL for src/href interpolation.
+
+    Returns the escaped URL when it uses an allowed scheme (http/https/mailto)
+    or is root-relative ('/static/...'), otherwise ''. Blocks javascript:,
+    data:, and any value trying to break out of the attribute with a quote."""
+    u = (url or '').strip()
+    if not u:
+        return ''
+    low = u.lower()
+    if low.startswith(_SAFE_URL_SCHEMES) or u.startswith('/'):
+        return esc(u)
+    return ''
+
+
+def _as_bday_int(value):
+    """Coerce a birthday month/day to a plain int, mapping null / '' / bad input
+    to 0 (= unknown). Guards the birthdays endpoint against a TypeError when a
+    None or string value would otherwise be compared to an int while sorting."""
+    if value is None or value == '':
+        return 0
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+class DataUnavailable(Exception):
+    """Raised when a backing datastore read genuinely failed (as opposed to
+    returning no rows), so callers can answer 503 instead of masking an outage
+    as an empty result."""
+
+
+def _validate_gcs_key(filename, allowed_prefixes):
+    """Return filename when it sits under one of allowed_prefixes with no path
+    traversal, else None. Stops a client from reading/deleting/publishing an
+    arbitrary object (e.g. config/employees.json) via the draft endpoints."""
+    if not filename or not isinstance(filename, str):
+        return None
+    if '..' in filename or filename.startswith('/'):
+        return None
+    if not any(filename.startswith(p) for p in allowed_prefixes):
+        return None
+    return filename
+
+
+def _strip_code_fences(text):
+    """Remove a leading ```json / ``` fence and a trailing ``` from model output
+    so the JSON inside can be parsed."""
+    t = (text or '').strip()
+    if t.startswith('```'):
+        t = t.split('\n', 1)[1] if '\n' in t else ''
+        if t.rstrip().endswith('```'):
+            t = t.rstrip()[:-3]
+    return t.strip()
 
 
 def safe_print(text):
@@ -284,13 +414,63 @@ def safe_print(text):
 
 
 def is_local_dev():
-    """Check if running in local dev mode (no OAuth configured)"""
-    return not os.environ.get('GOOGLE_CLIENT_ID')
+    """Dev auth bypass — OPT-IN only via DEV_AUTH_MODE=true. Never enabled just
+    because OAuth env vars happen to be missing (that would fail open in prod)."""
+    return DEV_AUTH_MODE
 
 
-def require_auth(f):
-    """Decorator placeholder - auth is checked inline per the consumer-newsletter pattern"""
-    pass  # Not used; auth is checked inline in routes
+# Paths reachable without a signed-in session.
+_PUBLIC_EXACT = {'/', '/health', '/auth/login', '/auth/callback', '/auth/logout'}
+
+
+@app.before_request
+def _auth_gate():
+    """Global authentication + authorization gate for every request.
+
+    - Public: '/', /health, the OAuth routes, and /static/* (the logo is
+      embedded in sent emails and the preview iframe, so it must be anonymously
+      fetchable).
+    - '/api/jobs/*': machine endpoints that authenticate via the X-Job-Secret
+      header inside the handler — allowed past the session gate here.
+    - Contributor endpoints (/api/submit*, /api/me*): any signed-in @brite.co user.
+    - Everything else under /api/: newsletter-team (editor) only.
+    - Any other page (e.g. /templates/*): requires a signed-in session.
+
+    Dev mode (DEV_AUTH_MODE=true) bypasses enforcement; handlers still see the
+    stand-in editor user from get_current_user().
+    """
+    if is_local_dev():
+        return
+
+    path = request.path
+    if path in _PUBLIC_EXACT or path.startswith('/static/'):
+        return
+    if path.startswith('/api/jobs/'):
+        return  # authenticated by X-Job-Secret in the handler
+
+    user = get_current_user()
+    if not user:
+        if path.startswith('/api/'):
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        return redirect('/auth/login')
+
+    if path.startswith('/api/'):
+        # Contributor-accessible surface: any signed-in @brite.co user.
+        if path == '/api/me' or path.startswith('/api/me/') or path.startswith('/api/submit'):
+            return
+        # Editor-only for everything else (roster, AI, render, send, drafts, ...).
+        if not is_editor(user):
+            return jsonify({'success': False, 'error': 'Editor access required'}), 403
+
+
+def require_job_secret():
+    """Validate the X-Job-Secret header for Cloud Scheduler job endpoints.
+    Returns None when authorized, or a (response, status) tuple to abort with.
+    Fails closed: a missing/blank JOB_SECRET rejects every request."""
+    provided = request.headers.get('X-Job-Secret', '')
+    if not JOB_SECRET or not secrets.compare_digest(provided, JOB_SECRET):
+        return jsonify({'success': False, 'error': 'Invalid or missing job secret'}), 401
+    return None
 
 
 def find_employee(name):
@@ -373,30 +553,8 @@ def auth_logout():
 
 @app.route('/')
 def serve_index():
-    """Serve the main app with auth check"""
-
-    # Local dev mode: skip OAuth when GOOGLE_CLIENT_ID is not set
-    if is_local_dev():
-        try:
-            with open('index.html', 'r', encoding='utf-8') as f:
-                html = f.read()
-
-            dev_user = {
-                'email': 'dev@brite.co',
-                'name': 'Local Developer',
-                'picture': ''
-            }
-            user_script = f'''<script>
-    window.AUTH_USER = {json.dumps(dev_user)};
-    </script>
-</head>'''
-            html = html.replace('</head>', user_script, 1)
-            return Response(html, mimetype='text/html')
-
-        except FileNotFoundError:
-            return 'index.html not found', 404
-
-    # Production: require auth
+    """Serve the main app. The _auth_gate before_request handles enforcement;
+    here we just inject the authenticated user (with role) into the page."""
     user = get_current_user()
     if not user:
         return redirect('/auth/login')
@@ -407,8 +565,14 @@ def serve_index():
     except FileNotFoundError:
         return 'index.html not found', 404
 
+    auth_user = {
+        'email': user.get('email', ''),
+        'name': user.get('name', ''),
+        'picture': user.get('picture', ''),
+        'is_editor': is_editor(user),
+    }
     user_script = f'''<script>
-    window.AUTH_USER = {json.dumps(user)};
+    window.AUTH_USER = {json.dumps(auth_user)};
     </script>
 </head>'''
     html = html.replace('</head>', user_script, 1)
@@ -442,13 +606,16 @@ def get_employees():
                 "email": emp.get("email", ""),
                 "department": emp.get("department", ""),
                 "title": emp.get("title", ""),
-                "birthday_month": emp.get("birthday_month", 0),
-                "birthday_day": emp.get("birthday_day", 0),
+                "birthday_month": _as_bday_int(emp.get("birthday_month")),
+                "birthday_day": _as_bday_int(emp.get("birthday_day")),
             }
-            for emp in list_employees()
+            for emp in list_employees(strict=True)
         ]
         return jsonify({"success": True, "employees": employees})
 
+    except DataUnavailable as e:
+        safe_print(f"[API] Employee directory unavailable: {e}")
+        return jsonify({"success": False, "error": str(e)}), 503
     except Exception as e:
         safe_print(f"[API] Error fetching employees: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -468,14 +635,14 @@ def get_birthdays():
                 "email": emp.get("email", ""),
                 "department": emp.get("department", ""),
                 "title": emp.get("title", ""),
-                "birthday_day": emp.get("birthday_day", 0),
-                "birthday_month": emp.get("birthday_month", 0),
+                "birthday_day": _as_bday_int(emp.get("birthday_day")),
+                "birthday_month": _as_bday_int(emp.get("birthday_month")),
             }
-            for emp in list_employees()
-            if emp.get("birthday_month") == month
+            for emp in list_employees(strict=True)
+            if _as_bday_int(emp.get("birthday_month")) == month
         ]
 
-        # Sort by day of month
+        # Sort by day of month (values coerced to int above, so no None/str crash)
         birthday_employees.sort(key=lambda x: x["birthday_day"])
 
         month_name = MONTH_NAMES.get(month, str(month))
@@ -488,6 +655,9 @@ def get_birthdays():
             "birthdays": birthday_employees,
         })
 
+    except DataUnavailable as e:
+        safe_print(f"[API] Employee directory unavailable: {e}")
+        return jsonify({"success": False, "error": str(e)}), 503
     except Exception as e:
         safe_print(f"[API] Error fetching birthdays: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -512,10 +682,10 @@ def add_employee():
         new_employee = {
             "name": name,
             "email": email,
-            "birthday_month": data.get('birthday_month', 0),
-            "birthday_day": data.get('birthday_day', 0),
-            "department": data.get('department', ''),
-            "title": data.get('title', ''),
+            "birthday_month": _as_bday_int(data.get('birthday_month')),
+            "birthday_day": _as_bday_int(data.get('birthday_day')),
+            "department": (data.get('department') or '').strip(),
+            "title": (data.get('title') or '').strip(),
         }
 
         if not upsert_employee(email, new_employee):
@@ -543,7 +713,8 @@ def remove_employee():
         if not get_employee(email):
             return jsonify({"success": False, "error": f"Employee with email {email} not found"}), 404
 
-        delete_employee(email)
+        if not delete_employee(email):
+            return jsonify({"success": False, "error": "Database delete failed"}), 500
 
         safe_print(f"[API] Removed employee: {email}")
         return jsonify({"success": True, "total": len(list_employees())})
@@ -575,22 +746,33 @@ def update_employee():
                 return jsonify({"success": False, "error": f"Email {new_email} is already in use"}), 400
 
         if 'name' in data:
-            emp['name'] = data['name'].strip()
+            emp['name'] = (data.get('name') or '').strip()
         if 'department' in data:
-            emp['department'] = data['department'].strip()
+            emp['department'] = (data.get('department') or '').strip()
         if 'title' in data:
-            emp['title'] = data['title'].strip()
+            emp['title'] = (data.get('title') or '').strip()
         if 'birthday_month' in data:
-            emp['birthday_month'] = data['birthday_month']
+            emp['birthday_month'] = _as_bday_int(data.get('birthday_month'))
         if 'birthday_day' in data:
-            emp['birthday_day'] = data['birthday_day']
+            emp['birthday_day'] = _as_bday_int(data.get('birthday_day'))
 
         if new_email and new_email != email:
+            # Write the NEW record first, then remove the old key. A failure
+            # partway through leaves the employee under the old email rather than
+            # deleting them outright (the previous delete-then-set order could
+            # permanently lose the record on a transient write error).
             emp['email'] = new_email
-            delete_employee(email)
-            upsert_employee(new_email, emp)
+            if not upsert_employee(new_email, emp):
+                return jsonify({"success": False, "error": "Database write failed"}), 500
+            if not delete_employee(email):
+                return jsonify({
+                    "success": True,
+                    "employee": emp,
+                    "warning": f"Saved as {new_email}, but the old record {email} could not be removed",
+                })
         else:
-            upsert_employee(email, emp)
+            if not upsert_employee(email, emp):
+                return jsonify({"success": False, "error": "Database write failed"}), 500
 
         safe_print(f"[API] Updated employee: {emp.get('name', '')} ({emp.get('email', '')})")
         return jsonify({"success": True, "employee": emp})
@@ -882,11 +1064,11 @@ def upload_media():
         unique_name = f"{uuid.uuid4().hex}{final_ext}"
         blob_path = f"media/{month_prefix}/{unique_name}"
 
-        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        bucket = gcs_client.bucket(GCS_MEDIA_BUCKET)
         blob = bucket.blob(blob_path)
         blob.upload_from_string(final_data, content_type=final_mime)
 
-        public_url = f"https://storage.googleapis.com/{GCS_DRAFTS_BUCKET}/{blob_path}"
+        public_url = f"https://storage.googleapis.com/{GCS_MEDIA_BUCKET}/{blob_path}"
         safe_print(f"[MEDIA] Uploaded {blob_path} ({len(final_data)} bytes, was {len(file_data)})")
 
         return jsonify({
@@ -1127,11 +1309,26 @@ def generate_game():
 
         game_text = response.get('content', '').strip()
 
-        safe_print(f"[API] Game generated ({response.get('tokens', 0)} tokens)")
+        # The model is asked for raw JSON but sometimes wraps it in ```json fences
+        # or truncates at the token cap. Strip fences and validate here so the
+        # frontend gets clean JSON (or a clear parse_ok=false) instead of silently
+        # saving a blank game.
+        cleaned = _strip_code_fences(game_text)
+        parsed = None
+        parse_ok = False
+        try:
+            parsed = json.loads(cleaned)
+            parse_ok = True
+        except (ValueError, TypeError):
+            pass
+
+        safe_print(f"[API] Game generated ({response.get('tokens', 0)} tokens, parse_ok={parse_ok})")
 
         return jsonify({
             "success": True,
-            "game_content": game_text,
+            "game_content": cleaned,
+            "game": parsed,
+            "parse_ok": parse_ok,
             "model": response.get('model', ''),
             "tokens": response.get('tokens', 0),
             "cost_estimate": response.get('cost_estimate', ''),
@@ -1266,18 +1463,19 @@ def _build_media_html(media, FONT):
 
     # Simple image/gif/meme/social-screenshot — full-width responsive image
     if kind in ('image', 'gif', 'meme', 'social'):
-        if not image_url:
+        safe_image = safe_url(image_url)
+        if not safe_image:
             return ''
-        href = link_url or source_url
-        img_tag = f'<img src="{image_url}" alt="{alt}" width="600" style="{img_style}">'
+        href = safe_url(link_url or source_url)
+        img_tag = f'<img src="{safe_image}" alt="{alt}" width="600" style="{img_style}">'
         media_el = f'<a href="{href}" target="_blank" style="text-decoration:none;">{img_tag}</a>' if href else img_tag
         inner = header_html + intro_html + media_el
         return _wrap(inner).replace('{{MEDIA_DISPLAY_INNER}}', 'table-row')
 
     # YouTube — thumbnail + (editable) title + Watch button
     if kind == 'youtube':
-        thumb = (og.get('image') or '').strip()
-        yt_url = (og.get('source_url') or og.get('url') or '').strip()
+        thumb = safe_url((og.get('image') or '').strip())
+        yt_url = safe_url((og.get('source_url') or og.get('url') or '').strip())
         title = esc(og.get('title') or 'Watch on YouTube')
         if not thumb or not yt_url:
             return ''
@@ -1296,8 +1494,8 @@ def _build_media_html(media, FONT):
         title = esc(og.get('title') or '')
         desc = esc((og.get('description') or '')[:200])
         site = esc(og.get('site_name') or '')
-        img = (og.get('image') or '').strip()
-        url_out = (og.get('source_url') or og.get('url') or '').strip()
+        img = safe_url((og.get('image') or '').strip())
+        url_out = safe_url((og.get('source_url') or og.get('url') or '').strip())
         if not url_out or not title:
             return ''
 
@@ -1497,7 +1695,7 @@ def render_email():
             sp_title = esc(sp.get('title', ''))
             sp_blurb = esc(sp.get('blurb', ''))
             sp_fun_facts = esc(sp.get('fun_facts', ''))
-            sp_image_url = sp.get('image_url', '')
+            sp_image_url = safe_url(sp.get('image_url', ''))
 
             # Add separator between multiple spotlights
             if sp_idx > 0:
@@ -1580,7 +1778,7 @@ def render_email():
         spotlight_name = spotlight.get('name', '')
         spotlight_title_val = spotlight.get('title', '')
         spotlight_blurb = spotlight.get('blurb', '')
-        spotlight_image_url = spotlight.get('image_url', '') if spotlight else ''
+        spotlight_image_url = safe_url(spotlight.get('image_url', '')) if spotlight else ''
         spotlight_image_html = ''
         if spotlight_image_url:
             spotlight_image_html = (
@@ -1609,7 +1807,7 @@ def render_email():
                     continue
                 title = esc(u.get('title', ''))
                 body = esc(u.get('body', ''))
-                photos = [p for p in u.get('photos', []) if p]
+                photos = [s for s in (safe_url(p) for p in u.get('photos', [])) if s]
                 photos_html = ''
                 if len(photos) == 1:
                     # Single photo: full width, fixed height with drag-position
@@ -1666,9 +1864,9 @@ def render_email():
         # Build game section HTML
         if not game:
             game = {}
-        game_content = game.get('content', '')
-        game_image_url = game.get('image_url', '')
-        game_previous_answer = game.get('previous_answer', '')
+        game_content = esc(game.get('content', ''))
+        game_image_url = safe_url(game.get('image_url', ''))
+        game_previous_answer = esc(game.get('previous_answer', ''))
 
         game_section_html = ''
         if game_content or game_image_url:
@@ -1735,44 +1933,57 @@ def render_email():
         base_url = request.host_url.rstrip('/')
         html = html.replace('/static/briteco-logo-white.png', f'{base_url}/static/briteco-logo-white.png')
 
-        # Replace placeholders in template (ensure month is always capitalized)
+        # Placeholder substitution in a SINGLE regex pass. Using one pass (rather
+        # than a chain of str.replace calls) means a replacement value that
+        # happens to contain a literal "{{TOKEN}}" — e.g. an update mentioning
+        # {{GAME_SECTION}} — is never itself re-expanded into a server-built
+        # block. Unknown placeholders are left untouched.
         month_cap = str(month).capitalize() if month else ''
-        html = html.replace('{{MONTH}}', month_cap)
-        html = html.replace('{{YEAR}}', str(year))
-        html = html.replace('{{PREHEADER}}', str(preheader))
-        html = html.replace('{{INTRO_LINE}}', '')
-        html = html.replace('{{INTRO_DISPLAY}}', 'none')
-        html = html.replace('{{JOKE}}', str(joke))
-        html = html.replace('{{JOKE_SETUP}}', joke_setup)
-        html = html.replace('{{JOKE_PUNCHLINE}}', joke_punchline)
-        html = html.replace('{{PUNCHLINE_DISPLAY}}', punchline_display)
-        html = html.replace('{{MEDIA_SECTION}}', media_html)
-        html = html.replace('{{BIRTHDAY_DISPLAY}}', birthday_display)
-        html = html.replace('{{BIRTHDAY_SECTION}}', birthday_html)
-        html = html.replace('{{WELCOME_DISPLAY}}', welcome_display)
-        html = html.replace('{{WELCOME_SECTION}}', welcome_html)
-        html = html.replace('{{SPOTLIGHT_SECTION}}', spotlight_section_html)
-        html = html.replace('{{SPOTLIGHT_IMAGE}}', spotlight_image_html)
-        html = html.replace('{{SPOTLIGHT_NAME}}', str(spotlight_name))
-        html = html.replace('{{SPOTLIGHT_TITLE}}', str(spotlight_title_val))
-        html = html.replace('{{SPOTLIGHT_BLURB}}', str(spotlight_blurb))
-        html = html.replace('{{UPDATES_DISPLAY}}', updates_display)
-        html = html.replace('{{UPDATE_1_TITLE}}', str(update_1_title))
-        html = html.replace('{{UPDATE_1_BODY}}', str(update_1_body))
-        html = html.replace('{{UPDATE_1_PHOTOS}}', update_1_photos_html)
-        html = html.replace('{{UPDATE_2_TITLE}}', str(update_2_title))
-        html = html.replace('{{UPDATE_2_BODY}}', str(update_2_body))
-        html = html.replace('{{UPDATE_2_PHOTOS}}', update_2_photos_html)
-        html = html.replace('{{UPDATE_2_DISPLAY}}', update_2_display)
-        html = html.replace('{{UPDATE_3_TITLE}}', str(update_3_title))
-        html = html.replace('{{UPDATE_3_BODY}}', str(update_3_body))
-        html = html.replace('{{UPDATE_3_PHOTOS}}', update_3_photos_html)
-        html = html.replace('{{UPDATE_3_DISPLAY}}', update_3_display)
-        html = html.replace('{{SPECIAL_TITLE}}', str(special_title))
-        html = html.replace('{{SPECIAL_BODY}}', str(special_body))
-        html = html.replace('{{SPECIAL_SECTION_DISPLAY}}', special_display)
-        html = html.replace('{{GAME_DISPLAY}}', game_display)
-        html = html.replace('{{GAME_SECTION}}', game_section_html)
+        spotlight_display = 'table-row' if valid_spotlights else 'none'
+        replacements = {
+            'MONTH': month_cap,
+            'YEAR': str(year),
+            'PREHEADER': esc(str(preheader)),
+            'INTRO_LINE': '',
+            'INTRO_DISPLAY': 'none',
+            'JOKE': esc(str(joke)),
+            'JOKE_SETUP': joke_setup,
+            'JOKE_PUNCHLINE': joke_punchline,
+            'PUNCHLINE_DISPLAY': punchline_display,
+            'MEDIA_SECTION': media_html,
+            'BIRTHDAY_DISPLAY': birthday_display,
+            'BIRTHDAY_SECTION': birthday_html,
+            'WELCOME_DISPLAY': welcome_display,
+            'WELCOME_SECTION': welcome_html,
+            'SPOTLIGHT_DISPLAY': spotlight_display,
+            'SPOTLIGHT_SECTION': spotlight_section_html,
+            'SPOTLIGHT_IMAGE': spotlight_image_html,
+            'SPOTLIGHT_NAME': esc(str(spotlight_name)),
+            'SPOTLIGHT_TITLE': esc(str(spotlight_title_val)),
+            'SPOTLIGHT_BLURB': esc(str(spotlight_blurb)),
+            'UPDATES_DISPLAY': updates_display,
+            'UPDATE_1_TITLE': str(update_1_title),
+            'UPDATE_1_BODY': str(update_1_body),
+            'UPDATE_1_PHOTOS': update_1_photos_html,
+            'UPDATE_2_TITLE': str(update_2_title),
+            'UPDATE_2_BODY': str(update_2_body),
+            'UPDATE_2_PHOTOS': update_2_photos_html,
+            'UPDATE_2_DISPLAY': update_2_display,
+            'UPDATE_3_TITLE': str(update_3_title),
+            'UPDATE_3_BODY': str(update_3_body),
+            'UPDATE_3_PHOTOS': update_3_photos_html,
+            'UPDATE_3_DISPLAY': update_3_display,
+            'SPECIAL_TITLE': str(special_title),
+            'SPECIAL_BODY': str(special_body),
+            'SPECIAL_SECTION_DISPLAY': special_display,
+            'GAME_DISPLAY': game_display,
+            'GAME_SECTION': game_section_html,
+        }
+        html = re.sub(
+            r'\{\{(\w+)\}\}',
+            lambda m: replacements.get(m.group(1), m.group(0)),
+            html,
+        )
 
         safe_print(f"[API] Email template rendered ({len(html)} chars)")
 
@@ -1909,6 +2120,69 @@ def send_to_slack():
 
 
 # ============================================================================
+# EMPLOYEE SYNC (BigQuery user_master -> Firestore)
+# ============================================================================
+
+def _slack_alert(message):
+    """Best-effort Slack alert for the sync circuit breaker. Never raises."""
+    webhook_url = os.environ.get('SLACK_WEBHOOK_URL') or os.environ.get('_SLACK_WEBHOOK_URL')
+    if not webhook_url:
+        return
+    try:
+        http_requests.post(
+            webhook_url,
+            json={'text': f":rotating_light: *BriteSide employee sync:* {message}"},
+            timeout=10,
+        )
+    except Exception as exc:
+        safe_print(f"[SYNC] Slack alert failed: {exc}")
+
+
+def _run_user_sync(triggered_by):
+    """Run the BigQuery->Firestore employee sync and return a JSON response."""
+    if not firestore_client:
+        return jsonify({'success': False, 'error': 'Firestore not available'}), 503
+    try:
+        summary = user_sync.run(
+            firestore_client,
+            gcs_client=gcs_client,
+            # Only cache photos into a DEDICATED public media bucket; never into
+            # the private drafts bucket.
+            media_bucket=GCS_MEDIA_BUCKET if GCS_MEDIA_BUCKET != GCS_DRAFTS_BUCKET else None,
+            collection=EMPLOYEES_COLLECTION,
+            triggered_by=triggered_by,
+            alert_fn=_slack_alert,
+            now_iso=datetime.now(CHICAGO_TZ).isoformat(),
+        )
+        return jsonify({'success': True, 'status': 'success', 'summary': summary})
+    except user_sync.SyncSafetyTripped as exc:
+        # Circuit breaker fired: creates/updates/backfills were committed, no
+        # deactivations applied. 409 so the scheduler surfaces "needs attention".
+        return jsonify({'success': False, 'status': 'action_required', 'error': str(exc)}), 409
+    except Exception as exc:
+        safe_print(f"[SYNC] Employee sync failed: {exc}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'status': 'failed', 'error': str(exc)}), 500
+
+
+@app.route('/api/jobs/sync-users', methods=['POST'])
+def jobs_sync_users():
+    """Cloud Scheduler entrypoint — authenticated by the X-Job-Secret header
+    (NOT a user session; allowed past the before_request gate)."""
+    auth_error = require_job_secret()
+    if auth_error:
+        return auth_error
+    return _run_user_sync('scheduler')
+
+
+@app.route('/api/sync-users', methods=['POST'])
+def admin_sync_users():
+    """Manual sync trigger for the newsletter team (editor-only via the gate)."""
+    user = get_current_user() or {}
+    return _run_user_sync(f"admin:{user.get('email', 'unknown')}")
+
+
+# ============================================================================
 # DRAFT SAVE / LOAD ROUTES
 # ============================================================================
 
@@ -1918,33 +2192,21 @@ def save_draft():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        data = request.json
-        month = data.get('month', 'unknown').lower()
+        data = request.json or {}
+        month = (data.get('month') or 'unknown').lower()
         year = data.get('year', datetime.now(CHICAGO_TZ).year)
-        saved_by = data.get('savedBy', 'unknown').split('@')[0].replace('.', '-')
+        saved_by = (data.get('savedBy') or 'unknown').split('@')[0].replace('.', '-')
         blob_name = f"drafts/{month}-{year}-{saved_by}.json"
 
-        draft = {
-            'month': month,
-            'year': year,
-            'currentStep': data.get('currentStep'),
-            'joke': data.get('joke'),
-            'jokeOptions': data.get('jokeOptions'),
-            'selectedJokeIndex': data.get('selectedJokeIndex'),
-            'birthdays': data.get('birthdays'),
-            'spotlight': data.get('spotlight'),
-            'spotlights': data.get('spotlights'),
-            'updates': data.get('updates'),
-            'updatesEnabled': data.get('updatesEnabled', True),
-            'specialSection': data.get('specialSection'),
-            'welcomeHires': data.get('welcomeHires'),
-            'welcomeEnabled': data.get('welcomeEnabled', False),
-            'game': data.get('game'),
-            'media': data.get('media'),
-            'subject': data.get('subject'),
-            'lastSavedBy': data.get('savedBy', 'unknown'),
-            'lastSavedAt': datetime.now(CHICAGO_TZ).isoformat(),
-        }
+        # Persist the FULL editor state rather than a hand-maintained whitelist,
+        # so every field (extra birthday months, custom headings, additional
+        # special sections, ...) round-trips on resume instead of being silently
+        # dropped. Media is stored as GCS URLs, so payloads stay small.
+        draft = dict(data)
+        draft['month'] = month
+        draft['year'] = year
+        draft['lastSavedBy'] = data.get('savedBy', 'unknown')
+        draft['lastSavedAt'] = datetime.now(CHICAGO_TZ).isoformat()
 
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(blob_name)
@@ -1969,7 +2231,12 @@ def list_drafts():
         for blob in blobs:
             if not blob.name.endswith('.json'):
                 continue
-            data = json.loads(blob.download_as_text())
+            try:
+                data = json.loads(blob.download_as_text())
+            except Exception as blob_err:
+                # One corrupt/partial object must not blank the whole list.
+                safe_print(f"[DRAFT LIST] Skipping unreadable {blob.name}: {blob_err}")
+                continue
             drafts.append({
                 'month': data.get('month'),
                 'year': data.get('year'),
@@ -1991,11 +2258,13 @@ def load_draft():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.args.get('file')
+        filename = _validate_gcs_key(request.args.get('file'), ('drafts/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid draft file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
+        if not blob.exists():
+            return jsonify({'success': False, 'error': 'Draft not found'}), 404
         data = json.loads(blob.download_as_text())
         return jsonify({'success': True, 'draft': data})
     except Exception as e:
@@ -2007,11 +2276,11 @@ def load_draft():
 def delete_draft():
     """Delete a draft from GCS"""
     if not gcs_client:
-        return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.json.get('file')
+        filename = _validate_gcs_key((request.json or {}).get('file'), ('drafts/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid draft file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if blob.exists():
@@ -2020,7 +2289,7 @@ def delete_draft():
         return jsonify({'success': True})
     except Exception as e:
         safe_print(f"[DRAFT DELETE ERROR] {str(e)}")
-        return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Delete failed'}), 500
 
 
 @app.route('/api/publish-draft', methods=['POST'])
@@ -2029,14 +2298,17 @@ def publish_draft():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.json.get('file')
+        filename = _validate_gcs_key((request.json or {}).get('file'), ('drafts/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid draft file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         source_blob = bucket.blob(filename)
         if not source_blob.exists():
             return jsonify({'success': False, 'error': 'Draft not found'}), 404
-        published_name = filename.replace('drafts/', 'published/', 1)
+        # filename is guaranteed to start with 'drafts/' here, so published_name
+        # is always distinct — no risk of copying an object onto itself and then
+        # deleting it (which previously destroyed non-drafts files).
+        published_name = 'published/' + filename[len('drafts/'):]
         bucket.copy_blob(source_blob, bucket, published_name)
         source_blob.delete()
         safe_print(f"[DRAFT] Published {filename} -> {published_name}")
@@ -2056,15 +2328,20 @@ def list_published():
         blobs = list(bucket.list_blobs(prefix='published/'))
         newsletters = []
         for blob in blobs:
-            if blob.name.endswith('.json'):
+            if not blob.name.endswith('.json'):
+                continue
+            try:
                 data = json.loads(blob.download_as_text())
-                newsletters.append({
-                    'filename': blob.name,
-                    'month': data.get('month'),
-                    'year': data.get('year'),
-                    'lastSavedBy': data.get('lastSavedBy'),
-                    'lastSavedAt': data.get('lastSavedAt'),
-                })
+            except Exception as blob_err:
+                safe_print(f"[PUBLISHED LIST] Skipping unreadable {blob.name}: {blob_err}")
+                continue
+            newsletters.append({
+                'filename': blob.name,
+                'month': data.get('month'),
+                'year': data.get('year'),
+                'lastSavedBy': data.get('lastSavedBy'),
+                'lastSavedAt': data.get('lastSavedAt'),
+            })
         newsletters.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
         return jsonify({'success': True, 'newsletters': newsletters})
     except Exception as e:
@@ -2078,9 +2355,9 @@ def load_published():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.args.get('file')
+        filename = _validate_gcs_key(request.args.get('file'), ('published/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if not blob.exists():
@@ -2096,11 +2373,11 @@ def load_published():
 def delete_published():
     """Delete a published newsletter from GCS"""
     if not gcs_client:
-        return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.json.get('file')
+        filename = _validate_gcs_key((request.json or {}).get('file'), ('published/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if blob.exists():
@@ -2108,7 +2385,7 @@ def delete_published():
         return jsonify({'success': True})
     except Exception as e:
         safe_print(f"[PUBLISHED DELETE ERROR] {str(e)}")
-        return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Delete failed'}), 500
 
 
 # ============================================================================

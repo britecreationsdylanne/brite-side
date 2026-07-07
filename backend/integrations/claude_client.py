@@ -17,8 +17,11 @@ class ClaudeClient:
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY not found in environment")
 
-        self.client = Anthropic(api_key=self.api_key)
-        self.default_model = "claude-opus-4-5-20251101"  # Claude Opus 4.5 (frontier model for writing)
+        # timeout is in SECONDS for the Python SDK (default is 600s per attempt).
+        # Cap it well under gunicorn's worker timeout and limit retries so a
+        # stalled API call can't pin a worker for timeout x (max_retries + 1).
+        self.client = Anthropic(api_key=self.api_key, timeout=90.0, max_retries=1)
+        self.default_model = "claude-opus-4-5-20251101"  # Claude Opus 4.5
 
     def generate_content(
         self,
@@ -60,8 +63,16 @@ class ClaudeClient:
         end_time = time.time()
         latency_ms = int((end_time - start_time) * 1000)
 
-        # Extract content
-        content = response.content[0].text
+        # Extract content — guard against refusals (stop_reason 'refusal' can come
+        # back with an empty content array) and non-text leading blocks, so we
+        # never IndexError on response.content[0].
+        if getattr(response, 'stop_reason', None) == 'refusal':
+            content = ''
+        else:
+            content = next(
+                (b.text for b in response.content if getattr(b, 'type', None) == 'text'),
+                '',
+            )
 
         # Calculate tokens
         input_tokens = response.usage.input_tokens
@@ -84,21 +95,20 @@ class ClaudeClient:
     def _estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
         """Estimate cost based on model pricing"""
 
-        # Claude 3.5 Sonnet pricing (as of 2025)
-        if "sonnet" in model.lower():
-            input_cost = (input_tokens / 1_000_000) * 3.00  # $3 per 1M input tokens
-            output_cost = (output_tokens / 1_000_000) * 15.00  # $15 per 1M output tokens
-        # Claude 3 Haiku (cheaper option)
+        # Current Claude pricing per 1M tokens (input / output). Check "opus"
+        # before the generic fallback so the default Opus model prices correctly.
+        if "opus" in model.lower():
+            input_cost = (input_tokens / 1_000_000) * 5.00    # Opus 4.x: $5 / $25
+            output_cost = (output_tokens / 1_000_000) * 25.00
         elif "haiku" in model.lower():
-            input_cost = (input_tokens / 1_000_000) * 0.25
-            output_cost = (output_tokens / 1_000_000) * 1.25
-        # Claude 3 Opus (premium)
-        elif "opus" in model.lower():
-            input_cost = (input_tokens / 1_000_000) * 15.00
-            output_cost = (output_tokens / 1_000_000) * 75.00
-        else:
-            input_cost = (input_tokens / 1_000_000) * 3.00
+            input_cost = (input_tokens / 1_000_000) * 1.00    # Haiku 4.5: $1 / $5
+            output_cost = (output_tokens / 1_000_000) * 5.00
+        elif "sonnet" in model.lower():
+            input_cost = (input_tokens / 1_000_000) * 3.00    # Sonnet: $3 / $15
             output_cost = (output_tokens / 1_000_000) * 15.00
+        else:
+            input_cost = (input_tokens / 1_000_000) * 5.00
+            output_cost = (output_tokens / 1_000_000) * 25.00
 
         return input_cost + output_cost
 
