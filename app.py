@@ -352,6 +352,23 @@ def esc(text):
     return html_mod.escape(str(text))
 
 
+_ALLOWED_INLINE_TAGS = ('strong', 'b', 'em', 'i', 'u')
+
+
+def sanitize_basic_html(text):
+    """Escape all HTML, then restore a small allow-list of *attribute-free*
+    formatting tags (<br>, <strong>, <b>, <em>, <i>, <u>). Lets AI/code-built
+    content (e.g. the game's numbered "<strong>1.</strong> ... <br>" list) render
+    with intended formatting while still neutralizing scripts, event handlers and
+    attribute-based injection — anything carrying an attribute stays escaped."""
+    s = html_mod.escape(str(text or ''))
+    s = s.replace('&lt;br&gt;', '<br>').replace('&lt;br/&gt;', '<br>').replace('&lt;br /&gt;', '<br>')
+    for tag in _ALLOWED_INLINE_TAGS:
+        s = s.replace('&lt;' + tag + '&gt;', '<' + tag + '>')
+        s = s.replace('&lt;/' + tag + '&gt;', '</' + tag + '>')
+    return s
+
+
 _SAFE_URL_SCHEMES = ('http://', 'https://', 'mailto:')
 
 
@@ -1913,7 +1930,7 @@ def render_email():
         # Build game section HTML
         if not game:
             game = {}
-        game_content = esc(game.get('content', ''))
+        game_content = sanitize_basic_html(game.get('content', ''))
         game_image_url = safe_url(game.get('image_url', ''))
         game_previous_answer = esc(game.get('previous_answer', ''))
 

@@ -2733,6 +2733,7 @@
                 <input type="text" id="sp_residence_loc" placeholder="City, Country" class="conditional" style="display:none;">
             </div>
             <div class="form-group"><label>How would you describe what you do at BriteCo, in your own terms? *</label><textarea id="sp_describe" style="min-height:90px;"></textarea></div>
+            <div class="form-group"><label>A fun fact about you (optional)</label><input type="text" id="sp_funfact" placeholder="e.g. I've visited 30 countries — helps us write your blurb"></div>
             <div class="form-group"><label>Your photo</label>
                 <div id="sp_photo_preview" style="margin-top:4px;"></div>
                 <input type="file" id="sp_photo" accept="image/*" style="display:none;" onchange="submitSpotlightPhoto()">
@@ -3368,7 +3369,7 @@
                             birthday_day: b.birthday_day,
                             month_num: m,
                             message: prior.message || '',
-                            image_url: prior.image_url || ''
+                            image_url: prior.image_url || b.image_url || ''
                         };
                     });
                 });
@@ -4357,10 +4358,14 @@
         if (empIdx === '' || empIdx === null) {
             spotlights[idx].employee = null;
             spotlights[idx].display_title = '';
+            spotlights[idx].image_url = '';
         } else {
             var emp = allEmployees[parseInt(empIdx)];
             spotlights[idx].employee = emp;
             spotlights[idx].display_title = emp.title || '';
+            // Default the spotlight photo to the person's synced directory photo
+            // (an editor can still upload a custom one afterward).
+            spotlights[idx].image_url = emp.photo_url || '';
         }
         if (!spotlights[idx].qa) spotlights[idx].qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
         renderSpotlightBlocks();
@@ -6617,6 +6622,7 @@
             residence: _sradio('sp_residence'),
             residence_location: _sv('sp_residence_loc'),
             describe_work: _sv('sp_describe'),
+            fun_fact: _sv('sp_funfact'),
             photo_url: _spotlightPhotos[0] || '',
             birthday_month: parseInt(_sv('sp_bmonth')) || 0,
             birthday_day: parseInt(_sv('sp_bday')) || 0,
@@ -6701,7 +6707,7 @@
         spotlights[idx].employee = empMatch || { name: sub.name || '', title: sub.job_title || '', department: '', email: sub.email || '' };
         spotlights[idx].display_title = sub.job_title || spotlights[idx].employee.title || '';
         spotlights[idx].blurb = sub.describe_work || spotlights[idx].blurb || '';
-        spotlights[idx].fun_facts = sub.work_with_others || spotlights[idx].fun_facts || '';
+        spotlights[idx].fun_facts = sub.fun_fact || sub.work_with_others || spotlights[idx].fun_facts || '';
         spotlights[idx].image_url = sub.photo_url || spotlights[idx].image_url || '';
         var qa = Array.isArray(sub.qa) ? sub.qa.slice(0, 3) : [];
         while (qa.length < 3) qa.push({ q: '', a: '' });
@@ -6746,6 +6752,7 @@
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s) + '</div>'
               + '<div class="entry-name">' + escapeHtml(s.name || s.email || 'Unknown') + (s.job_title ? ' — ' + escapeHtml(s.job_title) : '') + '</div>'
               + (s.describe_work ? '<div class="entry-body">' + escapeHtml(s.describe_work) + '</div>' : '')
+              + (s.fun_fact ? '<div class="entry-meta">Fun fact: ' + escapeHtml(s.fun_fact) + '</div>' : '')
               + '<div class="entry-actions"><button class="btn" onclick="useSpotlightEntry(' + i + ')">Use in a spotlight</button></div></div>';
         });
         h += '<div class="entry-group-title">Company Updates (' + _allSubs.update.length + ')</div>';

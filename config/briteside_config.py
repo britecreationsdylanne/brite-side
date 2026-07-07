@@ -134,6 +134,7 @@ AI_PROMPTS = {
         "Requirements:\n"
         "- 3-4 sentences, max 80 words\n"
         "- Celebratory and warm tone\n"
+        "- Summarize what they actually do in an approachable way coworkers outside their team would understand; do NOT simply restate the job title verbatim\n"
         "- Weave in the fun facts naturally\n"
         "- Include a jewelry/insurance pun if it fits naturally\n"
         "- Do NOT include any heading or label — return ONLY the blurb text"
