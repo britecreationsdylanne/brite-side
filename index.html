@@ -1441,21 +1441,16 @@
         #submitSection .radio-group input { width:auto; margin:0; flex:0 0 auto; }
         #submitSection .conditional { margin-top:10px; }
         @media (max-width: 640px) { #submitSection { padding: 22px 18px; } }
-        #entriesSection {
-            background: #ffffff; color: #272d3f; max-width: 900px; margin: 30px auto 0;
-            border-radius: 16px; padding: 28px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        #entriesSection h2 { color: #272d3f; font-size: 22px; margin-bottom: 4px; }
-        #entriesSection .section-subtitle { color: #4b5563; font-size: 14px; margin-bottom: 6px; }
-        #entriesSection .entry-group-title { font-size: 15px; font-weight: 700; color: #0d9488; margin: 22px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
-        #entriesSection .entry-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; background: #fafafa; }
-        #entriesSection .entry-meta { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
-        #entriesSection .entry-name { font-weight: 700; font-size: 15px; color: #272d3f; }
-        #entriesSection .entry-body { font-size: 14px; color: #374151; margin: 6px 0; white-space: pre-wrap; }
-        #entriesSection .entry-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
-        #entriesSection .entry-actions .btn { padding: 8px 14px; font-size: 13px; }
-        #entriesSection .entry-empty { color: #9ca3af; font-size: 13px; font-style: italic; }
-        @media (max-width: 640px) { #entriesSection { padding: 22px 18px; } }
+        .subs-panel { margin: 0 0 22px; }
+        .subs-panel .entry-group-title { font-size: 14px; font-weight: 700; color: #0d9488; margin: 0 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+        .subs-panel .entry-group-title a { font-size: 12px; font-weight: 400; color: #0d9488; text-decoration: underline; margin-left: 6px; }
+        .subs-panel .entry-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: #fafafa; }
+        .subs-panel .entry-meta { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
+        .subs-panel .entry-name { font-weight: 700; font-size: 15px; color: #272d3f; }
+        .subs-panel .entry-body { font-size: 14px; color: #374151; margin: 6px 0; white-space: pre-wrap; }
+        .subs-panel .entry-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .subs-panel .entry-actions .btn { padding: 8px 14px; font-size: 13px; }
+        .subs-panel .entry-empty { color: #9ca3af; font-size: 13px; font-style: italic; }
         .drafts-section h2 {
             color: white;
             font-size: 22px;
@@ -1923,6 +1918,8 @@
             <h2>Intro Joke</h2>
             <p class="step-description">Every BriteSide needs a good opener. Pick a theme and generate some jokes, or write your own.</p>
 
+            <div id="cultureSubsPanel" class="subs-panel"></div>
+
             <div class="theme-selector">
                 <div class="form-group">
                     <label>Joke Theme</label>
@@ -2159,6 +2156,8 @@
                 </div>
             </div>
 
+            <div id="correctionSubsPanel" class="subs-panel" style="margin-top:24px;"></div>
+
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
                 <button id="step5NextBtn" class="btn" onclick="goToStep(6)">Next &rarr;</button>
@@ -2171,6 +2170,8 @@
         <div id="step6" class="step">
             <h2>Company Updates</h2>
             <p class="step-description">Share what's new at BriteCo this month.</p>
+
+            <div id="updateSubsPanel" class="subs-panel"></div>
 
             <div class="toggle-row">
                 <label class="toggle-switch">
@@ -2686,18 +2687,6 @@
 
         <div class="team-list" id="teamList"></div>
         <div class="team-count" id="teamCount"></div>
-    </div>
-
-    <!-- ============================================
-         SUBMITTED ENTRIES INBOX (editors browse & pick)
-         ============================================ -->
-    <div id="entriesSection" style="display:none;">
-        <h2>Submitted Entries &#128229;</h2>
-        <p class="section-subtitle">Everything your team submits lands here. Review it and pull it straight into the newsletter you're building.</p>
-        <div style="margin:10px 0 4px;">
-            <button class="btn" onclick="loadAllSubmissions()">&#128260; Refresh</button>
-        </div>
-        <div id="entriesInbox"><p class="entry-empty">Loading&hellip;</p></div>
     </div>
 
     <!-- ============================================
@@ -4370,6 +4359,12 @@
                     if (allEmployees[i].name === sp.employee.name) { empIdx = i; break; }
                 }
             }
+            // Default the photo to the person's synced directory photo when we have
+            // an employee match and no photo is set (and it wasn't explicitly removed).
+            // Self-heals spotlights applied from a submission that had no photo saved.
+            if (sp.employee && !sp.image_url && !sp._photoCleared && empIdx >= 0 && allEmployees[empIdx] && allEmployees[empIdx].photo_url) {
+                sp.image_url = allEmployees[empIdx].photo_url;
+            }
             // Initialize Q&A if missing
             if (!sp.qa) sp.qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
 
@@ -4414,7 +4409,7 @@
             html += '<label class="upload-btn-label"><input type="file" accept="image/*" style="display:none" onchange="handleSpotlightImageUpload(' + idx + ', this)">Upload Photo</label>';
             if (sp.image_url) {
                 html += '<img src="' + escapeAttr(sp.image_url) + '" class="upload-preview-thumb">';
-                html += '<button class="upload-remove" onclick="spotlights[' + idx + '].image_url=\'\';renderSpotlightBlocks()">&times;</button>';
+                html += '<button class="upload-remove" onclick="spotlights[' + idx + '].image_url=\'\';spotlights[' + idx + ']._photoCleared=true;renderSpotlightBlocks()">&times;</button>';
             }
             html += '</div></div>';
 
@@ -6479,8 +6474,7 @@
         var buildEls = [document.querySelector('.container'),
                         document.getElementById('draftsSection'),
                         document.getElementById('publishedSection'),
-                        document.getElementById('teamSection'),
-                        document.getElementById('entriesSection')];
+                        document.getElementById('teamSection')];
         buildEls.forEach(function(el) { if (el) el.style.display = isSubmit ? 'none' : ''; });
         var submitEl = document.getElementById('submitSection');
         if (submitEl) submitEl.style.display = isSubmit ? 'block' : 'none';
@@ -6832,7 +6826,8 @@
         spotlights[idx].display_title = sub.job_title || spotlights[idx].employee.title || '';
         spotlights[idx].blurb = sub.describe_work || spotlights[idx].blurb || '';
         spotlights[idx].fun_facts = sub.fun_fact || sub.work_with_others || spotlights[idx].fun_facts || '';
-        spotlights[idx].image_url = sub.photo_url || spotlights[idx].image_url || '';
+        spotlights[idx].image_url = sub.photo_url || (empMatch && empMatch.photo_url) || spotlights[idx].image_url || '';
+        spotlights[idx]._photoCleared = false;
         var qa = Array.isArray(sub.qa) ? sub.qa.slice(0, 3) : [];
         while (qa.length < 3) qa.push({ q: '', a: '' });
         spotlights[idx].qa = qa;
@@ -6842,8 +6837,6 @@
     // ---- Submitted Entries inbox (editor: browse & pick) ----
     var _allSubs = { spotlight: [], update: [], culture: [], correction: [] };
     function loadAllSubmissions() {
-        var inbox = document.getElementById('entriesInbox');
-        if (inbox) inbox.innerHTML = '<p class="entry-empty">Loading&hellip;</p>';
         Promise.all([
             _fetchSubs('/api/submissions/spotlight'),
             _fetchSubs('/api/submissions/update'),
@@ -6852,7 +6845,9 @@
         ]).then(function(res) {
             _allSubs.spotlight = res[0]; _allSubs.update = res[1];
             _allSubs.culture = res[2]; _allSubs.correction = res[3];
-            renderEntriesInbox();
+            // Spotlight submissions are surfaced by the picker on the spotlight
+            // step (loadSpotlightSubmissions); these panels handle the rest.
+            renderUpdateSubs(); renderCultureSubs(); renderCorrectionSubs();
         });
     }
     function _fetchSubs(url) {
@@ -6866,22 +6861,16 @@
         var when = s.submitted_at ? (' · ' + String(s.submitted_at).slice(0, 10)) : '';
         return escapeHtml(who + when) + (extra ? ' · ' + escapeHtml(extra) : '');
     }
-    function renderEntriesInbox() {
-        var inbox = document.getElementById('entriesInbox');
-        if (!inbox) return;
-        var h = '';
-        h += '<div class="entry-group-title">Employee Spotlights (' + _allSubs.spotlight.length + ')</div>';
-        if (!_allSubs.spotlight.length) h += '<p class="entry-empty">No spotlight entries yet.</p>';
-        _allSubs.spotlight.forEach(function(s, i) {
-            h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s) + '</div>'
-              + '<div class="entry-name">' + escapeHtml(s.name || s.email || 'Unknown') + (s.job_title ? ' — ' + escapeHtml(s.job_title) : '') + '</div>'
-              + (s.describe_work ? '<div class="entry-body">' + escapeHtml(s.describe_work) + '</div>' : '')
-              + (s.fun_fact ? '<div class="entry-meta">Fun fact: ' + escapeHtml(s.fun_fact) + '</div>' : '')
-              + '<div class="entry-actions"><button class="btn" onclick="useSpotlightEntry(' + i + ')">Use in a spotlight</button></div></div>';
-        });
-        h += '<div class="entry-group-title">Company Updates (' + _allSubs.update.length + ')</div>';
-        if (!_allSubs.update.length) h += '<p class="entry-empty">No company updates yet.</p>';
-        _allSubs.update.forEach(function(s, i) {
+    function _subRefreshLink() {
+        return ' <a href="javascript:void(0)" onclick="loadAllSubmissions()">&#8635; refresh</a>';
+    }
+    function renderUpdateSubs() {
+        var el = document.getElementById('updateSubsPanel');
+        if (!el) return;
+        var subs = _allSubs.update || [];
+        if (!subs.length) { el.innerHTML = ''; return; }
+        var h = '<div class="entry-group-title">Submitted company updates (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        subs.forEach(function(s, i) {
             var extra = (s.when_featured === 'specific' && s.specific_month) ? ('wants: ' + s.specific_month) : '';
             var co = Array.isArray(s.co_contributors) ? s.co_contributors.join(', ') : '';
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s, extra) + '</div>'
@@ -6890,32 +6879,37 @@
               + '<div class="entry-actions"><button class="btn" onclick="useUpdateEntry(' + i + ')">Add to updates</button>'
               + '<button class="btn btn-secondary" onclick="copyEntryText(\'update\',' + i + ')">Copy</button></div></div>';
         });
-        h += '<div class="entry-group-title">Fun &amp; Media (' + _allSubs.culture.length + ')</div>';
-        if (!_allSubs.culture.length) h += '<p class="entry-empty">Nothing here yet.</p>';
-        _allSubs.culture.forEach(function(s, i) {
+        el.innerHTML = h;
+    }
+    function renderCultureSubs() {
+        var el = document.getElementById('cultureSubsPanel');
+        if (!el) return;
+        var subs = _allSubs.culture || [];
+        if (!subs.length) { el.innerHTML = ''; return; }
+        var h = '<div class="entry-group-title">Submitted Fun &amp; Media (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        subs.forEach(function(s, i) {
             var types = Array.isArray(s.content_types) ? s.content_types.join(', ') : '';
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s, types) + '</div>'
               + '<div class="entry-body">' + escapeHtml(s.content || '') + '</div>'
               + (s.why_fits ? '<div class="entry-meta">Why it fits: ' + escapeHtml(s.why_fits) + '</div>' : '')
               + '<div class="entry-actions"><button class="btn btn-secondary" onclick="copyEntryText(\'culture\',' + i + ')">Copy content</button></div></div>';
         });
-        h += '<div class="entry-group-title">Corrections (' + _allSubs.correction.length + ')</div>';
-        if (!_allSubs.correction.length) h += '<p class="entry-empty">No corrections yet.</p>';
-        _allSubs.correction.forEach(function(s, i) {
+        el.innerHTML = h;
+    }
+    function renderCorrectionSubs() {
+        var el = document.getElementById('correctionSubsPanel');
+        if (!el) return;
+        var subs = _allSubs.correction || [];
+        if (!subs.length) { el.innerHTML = ''; return; }
+        var h = '<div class="entry-group-title">Submitted corrections (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        subs.forEach(function(s, i) {
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s) + '</div>'
               + '<div class="entry-name">' + escapeHtml(s.prev_category_topic || 'Correction') + '</div>'
               + '<div class="entry-body">' + escapeHtml(s.changes || '') + '</div>'
               + (s.handling ? '<div class="entry-meta">Handling: ' + escapeHtml(s.handling) + '</div>' : '')
               + '<div class="entry-actions"><button class="btn btn-secondary" onclick="copyEntryText(\'correction\',' + i + ')">Copy</button></div></div>';
         });
-        inbox.innerHTML = h;
-    }
-    function useSpotlightEntry(i) {
-        var sub = _allSubs.spotlight[i];
-        if (!sub) return;
-        submittedSpotlights = _allSubs.spotlight;
-        _applySpotlightObj(sub);
-        showToast('Added “' + (sub.name || 'entry') + '” to your spotlights.');
+        el.innerHTML = h;
     }
     function useUpdateEntry(i) {
         var sub = _allSubs.update[i];
