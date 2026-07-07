@@ -111,9 +111,12 @@ ALLOWED_DOMAIN = 'brite.co'
 # EDITOR_EMAILS is a comma-separated allow-list (env). It falls back to a small
 # default so the tool is usable on first deploy; set the env var in prod.
 _DEFAULT_EDITORS = 'dylanne.crugnale@brite.co,dove@brite.co'
+# `or _DEFAULT_EDITORS` so a set-but-EMPTY env var (Cloud Build passes
+# EDITOR_EMAILS="" when the _EDITOR_EMAILS substitution is unset) still falls
+# back to the default list instead of leaving nobody as an editor.
 EDITOR_EMAILS = {
     e.strip().lower()
-    for e in os.environ.get('EDITOR_EMAILS', _DEFAULT_EDITORS).split(',')
+    for e in (os.environ.get('EDITOR_EMAILS') or _DEFAULT_EDITORS).split(',')
     if e.strip()
 }
 

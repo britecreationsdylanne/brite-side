@@ -1402,7 +1402,14 @@
         }
         #submitSection input[type=radio],
         #submitSection input[type=checkbox] { width: auto; margin-right: 6px; }
-        #submitSection .submit-router .btn { color: #fff; }
+        #submitSection .submit-router .btn {
+            color: #fff;
+            flex: 1 1 0;
+            min-width: 0;
+            white-space: nowrap;
+            padding: 12px 10px;
+            font-size: 14px;
+        }
         #submitSection a { color: #0d9488; }
         @media (max-width: 640px) { #submitSection { padding: 22px 18px; } }
         .drafts-section h2 {
@@ -2622,7 +2629,7 @@
         <h2>Submit to The BriteSide</h2>
         <p class="section-subtitle">Share something for BriteCo's internal newsletter. Pick what you're submitting &mdash; you'll only see the questions that apply.</p>
 
-        <div id="submitRouter" class="submit-router" style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;">
+        <div id="submitRouter" class="submit-router" style="display:flex;flex-wrap:nowrap;gap:8px;margin:16px 0 20px;overflow-x:auto;">
             <button type="button" class="btn" id="submitBtn-spotlight" onclick="showSubmitFlow('spotlight')">My Spotlight Entry</button>
             <button type="button" class="btn" id="submitBtn-update" onclick="showSubmitFlow('update')">Company Update</button>
             <button type="button" class="btn" id="submitBtn-culture" onclick="showSubmitFlow('culture')">Culture / Industry</button>
