@@ -173,7 +173,11 @@ GCS_DRAFTS_BUCKET = GCS_CONFIG['drafts_bucket']
 # the drafts bucket for backward compatibility; set GCS_MEDIA_BUCKET to a
 # dedicated public bucket so drafts, published issues, saved games, and the
 # employee roster (config/employees.json) are NOT exposed to the internet.
-GCS_MEDIA_BUCKET = os.environ.get('GCS_MEDIA_BUCKET', GCS_DRAFTS_BUCKET)
+# `or GCS_DRAFTS_BUCKET` so a set-but-EMPTY env var (Cloud Build passes
+# GCS_MEDIA_BUCKET="" when _GCS_MEDIA_BUCKET is unset) falls back to the drafts
+# bucket instead of becoming an empty bucket name — which broke media uploads
+# and skipped photo caching during the sync.
+GCS_MEDIA_BUCKET = os.environ.get('GCS_MEDIA_BUCKET') or GCS_DRAFTS_BUCKET
 gcs_client = None
 
 try:
