@@ -553,10 +553,9 @@ def auth_logout():
 # ROUTES - STATIC FILES & HEALTH
 # ============================================================================
 
-@app.route('/')
-def serve_index():
-    """Serve the main app. The _auth_gate before_request handles enforcement;
-    here we just inject the authenticated user (with role) into the page."""
+def _serve_app(entry_mode=False):
+    """Serve the SPA. '/' is the newsletter builder; '/entry' shows the
+    submission form. Auth is enforced by the _auth_gate before_request."""
     user = get_current_user()
     if not user:
         return redirect('/auth/login')
@@ -573,13 +572,27 @@ def serve_index():
         'picture': user.get('picture', ''),
         'is_editor': is_editor(user),
     }
-    user_script = f'''<script>
-    window.AUTH_USER = {json.dumps(auth_user)};
-    </script>
-</head>'''
+    user_script = (
+        '<script>\n'
+        '    window.AUTH_USER = ' + json.dumps(auth_user) + ';\n'
+        '    window.SUBMIT_ENTRY_MODE = ' + ('true' if entry_mode else 'false') + ';\n'
+        '    </script>\n</head>'
+    )
     html = html.replace('</head>', user_script, 1)
-
     return Response(html, mimetype='text/html')
+
+
+@app.route('/')
+def serve_index():
+    """Main page: the newsletter builder (editors) or, for contributors, the
+    submission form (the frontend redirects them to the submit view)."""
+    return _serve_app(entry_mode=False)
+
+
+@app.route('/entry')
+def serve_entry():
+    """The employee submission form."""
+    return _serve_app(entry_mode=True)
 
 
 @app.route('/health')
