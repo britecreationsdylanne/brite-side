@@ -1441,6 +1441,21 @@
         #submitSection .radio-group input { width:auto; margin:0; flex:0 0 auto; }
         #submitSection .conditional { margin-top:10px; }
         @media (max-width: 640px) { #submitSection { padding: 22px 18px; } }
+        #entriesSection {
+            background: #ffffff; color: #272d3f; max-width: 900px; margin: 30px auto 0;
+            border-radius: 16px; padding: 28px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        #entriesSection h2 { color: #272d3f; font-size: 22px; margin-bottom: 4px; }
+        #entriesSection .section-subtitle { color: #4b5563; font-size: 14px; margin-bottom: 6px; }
+        #entriesSection .entry-group-title { font-size: 15px; font-weight: 700; color: #0d9488; margin: 22px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+        #entriesSection .entry-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; background: #fafafa; }
+        #entriesSection .entry-meta { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
+        #entriesSection .entry-name { font-weight: 700; font-size: 15px; color: #272d3f; }
+        #entriesSection .entry-body { font-size: 14px; color: #374151; margin: 6px 0; white-space: pre-wrap; }
+        #entriesSection .entry-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+        #entriesSection .entry-actions .btn { padding: 8px 14px; font-size: 13px; }
+        #entriesSection .entry-empty { color: #9ca3af; font-size: 13px; font-style: italic; }
+        @media (max-width: 640px) { #entriesSection { padding: 22px 18px; } }
         .drafts-section h2 {
             color: white;
             font-size: 22px;
@@ -2653,6 +2668,18 @@
 
         <div class="team-list" id="teamList"></div>
         <div class="team-count" id="teamCount"></div>
+    </div>
+
+    <!-- ============================================
+         SUBMITTED ENTRIES INBOX (editors browse & pick)
+         ============================================ -->
+    <div id="entriesSection" style="display:none;">
+        <h2>Submitted Entries &#128229;</h2>
+        <p class="section-subtitle">Everything your team submits lands here. Review it and pull it straight into the newsletter you're building.</p>
+        <div style="margin:10px 0 4px;">
+            <button class="btn" onclick="loadAllSubmissions()">&#128260; Refresh</button>
+        </div>
+        <div id="entriesInbox"><p class="entry-empty">Loading&hellip;</p></div>
     </div>
 
     <!-- ============================================
@@ -6323,11 +6350,16 @@
         var buildEls = [document.querySelector('.container'),
                         document.getElementById('draftsSection'),
                         document.getElementById('publishedSection'),
-                        document.getElementById('teamSection')];
+                        document.getElementById('teamSection'),
+                        document.getElementById('entriesSection')];
         buildEls.forEach(function(el) { if (el) el.style.display = isSubmit ? 'none' : ''; });
         var submitEl = document.getElementById('submitSection');
         if (submitEl) submitEl.style.display = isSubmit ? 'block' : 'none';
         window._appView = view;
+        if (!isSubmit && !window._inboxLoaded && window.AUTH_USER && window.AUTH_USER.is_editor) {
+            window._inboxLoaded = true;
+            loadAllSubmissions();
+        }
         window.scrollTo(0, 0);
     }
 
@@ -6647,6 +6679,10 @@
         if (!sel || sel.value === '') return;
         var sub = submittedSpotlights[parseInt(sel.value)];
         if (!sub) return;
+        _applySpotlightObj(sub);
+        sel.value = '';
+    }
+    function _applySpotlightObj(sub) {
         // Reuse an empty spotlight block, else add one (cap 3).
         var idx = -1;
         for (var i = 0; i < spotlights.length; i++) {
@@ -6671,7 +6707,114 @@
         while (qa.length < 3) qa.push({ q: '', a: '' });
         spotlights[idx].qa = qa;
         renderSpotlightBlocks();
-        sel.value = '';
+    }
+
+    // ---- Submitted Entries inbox (editor: browse & pick) ----
+    var _allSubs = { spotlight: [], update: [], culture: [], correction: [] };
+    function loadAllSubmissions() {
+        var inbox = document.getElementById('entriesInbox');
+        if (inbox) inbox.innerHTML = '<p class="entry-empty">Loading&hellip;</p>';
+        Promise.all([
+            _fetchSubs('/api/submissions/spotlight'),
+            _fetchSubs('/api/submissions/update'),
+            _fetchSubs('/api/submissions/culture'),
+            _fetchSubs('/api/submissions/correction')
+        ]).then(function(res) {
+            _allSubs.spotlight = res[0]; _allSubs.update = res[1];
+            _allSubs.culture = res[2]; _allSubs.correction = res[3];
+            renderEntriesInbox();
+        });
+    }
+    function _fetchSubs(url) {
+        return fetch(API_BASE + url)
+            .then(function(r) { return r.ok ? r.json() : { success: false }; })
+            .then(function(d) { return (d && d.success && d.submissions) ? d.submissions : []; })
+            .catch(function() { return []; });
+    }
+    function _entryMeta(s, extra) {
+        var who = s.submitted_by || s.email || 'Unknown';
+        var when = s.submitted_at ? (' · ' + String(s.submitted_at).slice(0, 10)) : '';
+        return escapeHtml(who + when) + (extra ? ' · ' + escapeHtml(extra) : '');
+    }
+    function renderEntriesInbox() {
+        var inbox = document.getElementById('entriesInbox');
+        if (!inbox) return;
+        var h = '';
+        h += '<div class="entry-group-title">Employee Spotlights (' + _allSubs.spotlight.length + ')</div>';
+        if (!_allSubs.spotlight.length) h += '<p class="entry-empty">No spotlight entries yet.</p>';
+        _allSubs.spotlight.forEach(function(s, i) {
+            h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s) + '</div>'
+              + '<div class="entry-name">' + escapeHtml(s.name || s.email || 'Unknown') + (s.job_title ? ' — ' + escapeHtml(s.job_title) : '') + '</div>'
+              + (s.describe_work ? '<div class="entry-body">' + escapeHtml(s.describe_work) + '</div>' : '')
+              + '<div class="entry-actions"><button class="btn" onclick="useSpotlightEntry(' + i + ')">Use in a spotlight</button></div></div>';
+        });
+        h += '<div class="entry-group-title">Company Updates (' + _allSubs.update.length + ')</div>';
+        if (!_allSubs.update.length) h += '<p class="entry-empty">No company updates yet.</p>';
+        _allSubs.update.forEach(function(s, i) {
+            var extra = (s.when_featured === 'specific' && s.specific_month) ? ('wants: ' + s.specific_month) : '';
+            var co = Array.isArray(s.co_contributors) ? s.co_contributors.join(', ') : '';
+            h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s, extra) + '</div>'
+              + '<div class="entry-body">' + escapeHtml(s.summary || '') + '</div>'
+              + (co ? '<div class="entry-meta">Co-contributors: ' + escapeHtml(co) + '</div>' : '')
+              + '<div class="entry-actions"><button class="btn" onclick="useUpdateEntry(' + i + ')">Add to updates</button>'
+              + '<button class="btn btn-secondary" onclick="copyEntryText(\'update\',' + i + ')">Copy</button></div></div>';
+        });
+        h += '<div class="entry-group-title">Fun &amp; Media (' + _allSubs.culture.length + ')</div>';
+        if (!_allSubs.culture.length) h += '<p class="entry-empty">Nothing here yet.</p>';
+        _allSubs.culture.forEach(function(s, i) {
+            var types = Array.isArray(s.content_types) ? s.content_types.join(', ') : '';
+            h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s, types) + '</div>'
+              + '<div class="entry-body">' + escapeHtml(s.content || '') + '</div>'
+              + (s.why_fits ? '<div class="entry-meta">Why it fits: ' + escapeHtml(s.why_fits) + '</div>' : '')
+              + '<div class="entry-actions"><button class="btn btn-secondary" onclick="copyEntryText(\'culture\',' + i + ')">Copy content</button></div></div>';
+        });
+        h += '<div class="entry-group-title">Corrections (' + _allSubs.correction.length + ')</div>';
+        if (!_allSubs.correction.length) h += '<p class="entry-empty">No corrections yet.</p>';
+        _allSubs.correction.forEach(function(s, i) {
+            h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s) + '</div>'
+              + '<div class="entry-name">' + escapeHtml(s.prev_category_topic || 'Correction') + '</div>'
+              + '<div class="entry-body">' + escapeHtml(s.changes || '') + '</div>'
+              + (s.handling ? '<div class="entry-meta">Handling: ' + escapeHtml(s.handling) + '</div>' : '')
+              + '<div class="entry-actions"><button class="btn btn-secondary" onclick="copyEntryText(\'correction\',' + i + ')">Copy</button></div></div>';
+        });
+        inbox.innerHTML = h;
+    }
+    function useSpotlightEntry(i) {
+        var sub = _allSubs.spotlight[i];
+        if (!sub) return;
+        submittedSpotlights = _allSubs.spotlight;
+        _applySpotlightObj(sub);
+        showToast('Added “' + (sub.name || 'entry') + '” to your spotlights.');
+    }
+    function useUpdateEntry(i) {
+        var sub = _allSubs.update[i];
+        if (!sub) return;
+        var slot = -1;
+        for (var k = 0; k < 3; k++) {
+            if (!(updates[k] && (updates[k].title || updates[k].body))) { slot = k; break; }
+        }
+        if (slot === -1) { alert('All 3 update slots are filled. Clear one first.'); return; }
+        if (!updates[slot]) updates[slot] = { title: '', body: '', photos: [], photo_positions: [] };
+        updates[slot].title = updates[slot].title || 'Company Update';
+        updates[slot].body = sub.summary || '';
+        updatesEnabled = true;
+        var n = slot + 1;
+        var tt = document.getElementById('update' + n + 'Title');
+        var bb = document.getElementById('update' + n + 'Body');
+        if (tt) tt.value = updates[slot].title;
+        if (bb) bb.value = updates[slot].body;
+        var tgl = document.getElementById('updatesToggle'); if (tgl) tgl.checked = true;
+        var area = document.getElementById('updatesFieldsArea'); if (area) area.style.display = 'block';
+        showToast('Added to Update ' + n + '. Open the Company Updates step to review.');
+    }
+    function copyEntryText(type, i) {
+        var s = (_allSubs[type] || [])[i];
+        if (!s) return;
+        var text = s.content || s.summary || s.changes || '';
+        if (s.why_fits) text += '\n\nWhy it fits: ' + s.why_fits;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() { showToast('Copied to clipboard'); }, function() { window.prompt('Copy:', text); });
+        } else { window.prompt('Copy:', text); }
     }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
