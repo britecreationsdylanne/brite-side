@@ -1418,10 +1418,16 @@
         #submitSection .form-group > label:first-child { font-weight: 600; color: #272d3f; font-size: 15px; margin-bottom: 8px; }
         #submitSection .form-group br { display: none; }
         #submitSection .record-info { background:#f0faf9; border:1px solid #cdeeeb; border-radius:8px; padding:11px 14px; font-size:14px; color:#0a6b62; margin-bottom:22px; line-height:1.5; }
+        #submitSection .info-callout { background:#fff8f0; border:1px solid #ffe0c2; border-radius:10px; padding:14px 16px; margin:14px 0 26px; }
+        #submitSection .info-callout p { color:#7a4a1e; margin:0; }
         #submitSection .q-chips { margin: 4px 0 8px; }
         #submitSection .q-cat { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#0a6b62; margin:12px 0 6px; }
         #submitSection .q-chip { display:inline-block; width:auto; margin:0 6px 6px 0; padding:7px 12px; border:1px solid #cdeeeb; background:#f0faf9; color:#0a6b62; border-radius:18px; font-size:13px; cursor:pointer; text-align:left; line-height:1.3; }
         #submitSection .q-chip:hover { background:#d7f2ef; border-color:#0d9488; }
+        #submitSection .q-chip.selected { background:#0d9488; color:#fff; border-color:#0d9488; }
+        #submitSection .q-chip.selected::before { content:'\2713 '; }
+        #briteToast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#272d3f; color:#fff; padding:12px 22px; border-radius:24px; font-size:14px; font-weight:600; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.3); opacity:0; transition:opacity .25s; pointer-events:none; max-width:90%; text-align:center; }
+        #briteToast.show { opacity:1; }
         #submitSection .qa-pair { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; margin-bottom:12px; }
         #submitSection .qa-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
         #submitSection .qa-q-label { flex:1; font-weight:600; color:#272d3f; padding-top:5px; line-height:1.35; }
@@ -2670,12 +2676,10 @@
         <!-- SPOTLIGHT -->
         <div class="submit-flow" id="submitFlow-spotlight" style="display:none;">
             <h3>Employee Spotlight &mdash; Your Entry</h3>
-            <p>Help coworkers get to know you through the work you do, how you collaborate, and a little of who you are outside your role. Share what you're comfortable featuring internally.</p>
-            <p>Employee Spotlights are generally selected at random to keep things fair, and everyone will be featured over time &mdash; submitting early just helps the BriteSide team have your info ready when the right time comes. As a thank-you, you'll receive BriteCo Bucks once you submit your own entry.</p>
-            <div class="form-group"><label>Employee Type *</label><br>
-                <label><input type="radio" name="sp_emptype" value="Full-time Direct Hire"> Full-time Direct Hire</label><br>
-                <label><input type="radio" name="sp_emptype" value="Agency Hire"> Agency Hire</label><br>
-                <label><input type="radio" name="sp_emptype" value="Independent Contractor"> Independent Contractor</label>
+            <p>Help coworkers get to know you: the work you do, how you collaborate, and a little of who you are outside your role. Share whatever you're comfortable featuring internally.</p>
+            <div class="info-callout">
+                <p style="margin:0 0 8px;"><strong>How it works:</strong> Spotlights are chosen at random, so everyone gets featured over time. Submitting now just means we have your info ready when your turn comes.</p>
+                <p style="margin:0;">&#127873; As a thank-you, you'll get BriteCo Bucks for submitting your entry.</p>
             </div>
             <div id="sp_record_info" class="record-info" style="display:none;"></div>
             <div class="form-group" id="sp_birthday_group" style="display:none;">
@@ -2702,9 +2706,9 @@
                 <input type="text" id="sp_residence_loc" placeholder="City, Country" class="conditional" style="display:none;">
             </div>
             <div class="form-group"><label>How would you describe what you do at BriteCo, in your own terms? *</label><textarea id="sp_describe" style="min-height:90px;"></textarea></div>
-            <div class="form-group"><label>Portrait photo (optional)</label>
-                <input type="file" id="sp_photo" accept="image/*" onchange="submitFileUpload('sp_photo','sp_photo_list',_spotlightPhotos)">
-                <div id="sp_photo_list"></div>
+            <div class="form-group"><label>Your photo</label>
+                <div id="sp_photo_preview" style="margin-top:4px;"></div>
+                <input type="file" id="sp_photo" accept="image/*" style="display:none;" onchange="submitSpotlightPhoto()">
             </div>
             <div class="form-group"><label>Answer at least 3 questions about yourself *</label>
                 <p style="margin-top:0;">These are what coworkers read to get to know you. <strong>Tap 3 questions below</strong> to add them, then write your answer under each &mdash; add more if you'd like.</p>
@@ -6364,6 +6368,33 @@
         input.value = '';
     }
 
+    function renderSpotlightPhoto() {
+        var el = document.getElementById('sp_photo_preview');
+        if (!el) return;
+        var url = _spotlightPhotos[0] || '';
+        if (url) {
+            el.innerHTML =
+                '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
+                '<img src="' + escapeAttr(url) + '" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb;">' +
+                '<div><div style="font-size:13px;color:#0a6b62;margin-bottom:6px;">This is the photo we\'ll use.</div>' +
+                '<button type="button" class="btn btn-secondary" onclick="document.getElementById(\'sp_photo\').click()">Replace photo</button></div>' +
+                '</div>';
+        } else {
+            el.innerHTML =
+                '<p style="margin:0 0 8px;">We don\'t have a photo of you yet — add one so we can feature you.</p>' +
+                '<button type="button" class="btn btn-secondary" onclick="document.getElementById(\'sp_photo\').click()">&#128247; Upload a photo</button>';
+        }
+    }
+    function submitSpotlightPhoto() {
+        var input = document.getElementById('sp_photo');
+        if (!input || !input.files || !input.files.length) return;
+        uploadMediaFile(input.files[0], function(url) {
+            _spotlightPhotos[0] = url;
+            renderSpotlightPhoto();
+        });
+        input.value = '';
+    }
+
     var SPOTLIGHT_QUESTIONS = {
         'Role & Career Journey': [
             'What inspired you to get into your work field or this industry?',
@@ -6408,10 +6439,28 @@
         Object.keys(SPOTLIGHT_QUESTIONS).forEach(function(cat) {
             h += '<div class="q-cat">' + cat + '</div>';
             SPOTLIGHT_QUESTIONS[cat].forEach(function(q) {
-                h += '<button type="button" class="q-chip" onclick="addQuestionAnswer(this.textContent, false)">' + q + '</button>';
+                h += '<button type="button" class="q-chip" onclick="onQuestionChipTap(this)">' + q + '</button>';
             });
         });
         host.innerHTML = h;
+    }
+    function onQuestionChipTap(chip) {
+        if (chip.classList.contains('selected')) return;
+        chip.classList.add('selected');
+        addQuestionAnswer(chip.textContent, false);
+    }
+    function _afterQuestionAdded() {
+        var count = document.querySelectorAll('#sp_qa_rows .qa-pair').length;
+        var remaining = 3 - count;
+        if (remaining > 0) {
+            showToast('Nice! Pick ' + remaining + ' more question' + (remaining > 1 ? 's' : '') + '.');
+        } else if (remaining === 0) {
+            showToast('That’s 3 — now write your answers below 👇');
+            var rows = document.getElementById('sp_qa_rows');
+            if (rows) rows.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            showToast('Added — answer it below too.');
+        }
     }
     function addQuestionAnswer(question, editable) {
         var wrap = document.getElementById('sp_qa_rows');
@@ -6423,13 +6472,33 @@
             : '<div class="qa-q-label">' + escapeHtml(question) + '</div><input class="qa-q" type="hidden" value="' + safeQ + '">';
         var div = document.createElement('div');
         div.className = 'qa-pair';
+        if (!editable && question) div.setAttribute('data-question', question);
         div.innerHTML =
             '<div class="qa-head">' + qHtml +
-            '<button type="button" class="qa-remove" title="Remove" onclick="this.closest(\'.qa-pair\').remove()">&times;</button></div>' +
+            '<button type="button" class="qa-remove" title="Remove" onclick="removeQARow(this)">&times;</button></div>' +
             '<textarea class="qa-a" placeholder="Your answer"></textarea>';
         wrap.appendChild(div);
-        var ta = div.querySelector('.qa-a');
-        if (ta) ta.focus();
+        _afterQuestionAdded();
+        if (editable) { var ie = div.querySelector('.qa-q'); if (ie) ie.focus(); }
+    }
+    function removeQARow(btn) {
+        var row = btn.closest('.qa-pair');
+        if (!row) return;
+        var q = row.getAttribute('data-question');
+        row.remove();
+        if (q) {
+            document.querySelectorAll('#sp_question_chips .q-chip.selected').forEach(function(c) {
+                if (c.textContent === q) c.classList.remove('selected');
+            });
+        }
+    }
+    function showToast(msg) {
+        var t = document.getElementById('briteToast');
+        if (!t) { t = document.createElement('div'); t.id = 'briteToast'; document.body.appendChild(t); }
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2800);
     }
     var _prefilled = false;
     function prefillSpotlight() {
@@ -6451,11 +6520,8 @@
             // not BigQuery).
             var bgroup = document.getElementById('sp_birthday_group');
             if (bgroup) bgroup.style.display = d.birthday_month ? 'none' : 'block';
-            if (d.photo_url && !_prefilled && !_spotlightPhotos.length) {
-                _spotlightPhotos.push(d.photo_url);
-                var list = document.getElementById('sp_photo_list');
-                if (list) list.innerHTML = '<div style="font-size:12px;color:#0d9488;">Using your directory photo (upload a file to replace it).</div>';
-            }
+            if (d.photo_url && !_spotlightPhotos.length) _spotlightPhotos.push(d.photo_url);
+            renderSpotlightPhoto();
             _prefilled = true;
         }).catch(function() {});
     }
@@ -6515,7 +6581,6 @@
         if (answered < 3) { alert('Please answer at least 3 questions about yourself.'); return; }
         submitPost('/api/submit/spotlight', {
             name: _sv('sp_name'),
-            employee_type: _sradio('sp_emptype'),
             job_title: _sv('sp_title'),
             residence: _sradio('sp_residence'),
             residence_location: _sv('sp_residence_loc'),
