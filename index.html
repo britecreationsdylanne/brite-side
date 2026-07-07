@@ -1430,6 +1430,10 @@
         #submitSection .qa-remove:hover { color:#dc3545; }
         #submitSection .btn-orange { margin-top: 10px; font-size:15px; padding:14px 26px; }
         #submitSection input[type=file] { border:none; padding:8px 0; }
+        #submitSection .radio-group { margin: 6px 0 0; }
+        #submitSection .radio-group label { display:flex; align-items:center; gap:8px; margin:9px 0; font-weight:400; color:#374151; }
+        #submitSection .radio-group input { width:auto; margin:0; flex:0 0 auto; }
+        #submitSection .conditional { margin-top:10px; }
         @media (max-width: 640px) { #submitSection { padding: 22px 18px; } }
         .drafts-section h2 {
             color: white;
@@ -2676,19 +2680,20 @@
             <div id="sp_record_info" class="record-info" style="display:none;"></div>
             <div class="form-group"><label>Your Name</label><input type="text" id="sp_name" placeholder="Full name"></div>
             <div class="form-group"><label>Job Title / Role *</label><input type="text" id="sp_title" placeholder="e.g. Account Executive"></div>
-            <div class="form-group"><label>Are you residing in IL, USA? *</label><br>
-                <label><input type="radio" name="sp_residence" value="IL, USA"> Yes</label>
-                <label style="margin-left:16px;"><input type="radio" name="sp_residence" value="Elsewhere"> Somewhere else</label>
-                <input type="text" id="sp_residence_loc" placeholder="City, Country (if elsewhere)" style="margin-top:6px;">
+            <div class="form-group"><label>Are you residing in IL, USA? *</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="sp_residence" value="IL, USA" onchange="_toggleResidence()"> Yes</label>
+                    <label><input type="radio" name="sp_residence" value="Elsewhere" onchange="_toggleResidence()"> Somewhere else</label>
+                </div>
+                <input type="text" id="sp_residence_loc" placeholder="City, Country" class="conditional" style="display:none;">
             </div>
             <div class="form-group"><label>How would you describe what you do at BriteCo, in your own terms? *</label><textarea id="sp_describe" style="min-height:90px;"></textarea></div>
-            <div class="form-group"><label>How do you work with others in practice?</label><textarea id="sp_work" style="min-height:90px;"></textarea></div>
             <div class="form-group"><label>Portrait photo (optional)</label>
                 <input type="file" id="sp_photo" accept="image/*" onchange="submitFileUpload('sp_photo','sp_photo_list',_spotlightPhotos)">
                 <div id="sp_photo_list"></div>
             </div>
-            <div class="form-group"><label>Answer a few questions about yourself</label>
-                <p style="margin-top:0;">Tap any question below to answer it &mdash; add as many as you like.</p>
+            <div class="form-group"><label>Answer at least 3 questions about yourself *</label>
+                <p style="margin-top:0;">These are what coworkers read to get to know you. <strong>Tap 3 questions below</strong> to add them, then write your answer under each &mdash; add more if you'd like.</p>
                 <div id="sp_question_chips" class="q-chips"></div>
                 <button type="button" class="btn btn-secondary" onclick="addQuestionAnswer('', true)" style="margin-top:6px;">&#9998; Write my own question</button>
                 <div id="sp_qa_rows" style="margin-top:14px;"></div>
@@ -2706,10 +2711,12 @@
                 <div id="up_files_list"></div>
             </div>
             <div class="form-group"><label>Co-contributors (optional, comma-separated)</label><input type="text" id="up_cocontrib" placeholder="Colleague names"></div>
-            <div class="form-group"><label>When should this be featured?</label><br>
-                <label><input type="radio" name="up_when" value="next"> Next available issue</label>
-                <label style="margin-left:16px;"><input type="radio" name="up_when" value="specific"> Specific month</label>
-                <select id="up_month" style="margin-top:6px;">
+            <div class="form-group"><label>When should this be featured?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="up_when" value="next" onchange="_toggleUpWhen()"> Next available issue</label>
+                    <label><input type="radio" name="up_when" value="specific" onchange="_toggleUpWhen()"> Specific month</label>
+                </div>
+                <select id="up_month" class="conditional" style="display:none;">
                     <option value="">&mdash; select a month &mdash;</option>
                     <option>January</option><option>February</option><option>March</option><option>April</option>
                     <option>May</option><option>June</option><option>July</option><option>August</option>
@@ -5493,7 +5500,10 @@
                 html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\')">Remove</button>';
                 html += '</div>';
             } else {
-                var nameLabel = escapeHtml(emp.name) + (isActive ? '' : ' <span style="font-size:10px;color:#f0913f;font-weight:700;">INACTIVE</span>');
+                var avatar = emp.photo_url
+                    ? '<img src="' + escapeAttr(emp.photo_url) + '" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;">'
+                    : '';
+                var nameLabel = avatar + escapeHtml(emp.name) + (isActive ? '' : ' <span style="font-size:10px;color:#f0913f;font-weight:700;">INACTIVE</span>');
                 html += '<div class="name">' + nameLabel + '</div>';
                 html += '<div class="email">' + escapeHtml(emp.email) + '</div>';
                 html += '<div class="title-read">' + escapeHtml(emp.title || '—') + '</div>';
@@ -6473,7 +6483,18 @@
         });
     }
 
+    function _toggleResidence() {
+        var el = document.getElementById('sp_residence_loc');
+        if (el) el.style.display = (_sradio('sp_residence') === 'Elsewhere') ? 'block' : 'none';
+    }
+    function _toggleUpWhen() {
+        var el = document.getElementById('up_month');
+        if (el) el.style.display = (_sradio('up_when') === 'specific') ? 'block' : 'none';
+    }
     function submitSpotlight() {
+        var qa = _collectQA();
+        var answered = qa.filter(function(p) { return p.q && p.a; }).length;
+        if (answered < 3) { alert('Please answer at least 3 questions about yourself.'); return; }
         submitPost('/api/submit/spotlight', {
             name: _sv('sp_name'),
             employee_type: _sradio('sp_emptype'),
@@ -6481,9 +6502,8 @@
             residence: _sradio('sp_residence'),
             residence_location: _sv('sp_residence_loc'),
             describe_work: _sv('sp_describe'),
-            work_with_others: _sv('sp_work'),
             photo_url: _spotlightPhotos[0] || '',
-            qa: _collectQA()
+            qa: qa
         }, 'Your Employee Spotlight entry was saved. Thank you!');
     }
     function submitUpdate() {

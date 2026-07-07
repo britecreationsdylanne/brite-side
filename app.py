@@ -631,6 +631,7 @@ def get_employees():
                 "birthday_month": _as_bday_int(emp.get("birthday_month")),
                 "birthday_day": _as_bday_int(emp.get("birthday_day")),
                 "active": emp.get("active", True),
+                "photo_url": emp.get("photo_url", ""),
             }
             for emp in list_employees(strict=True)
         ]
