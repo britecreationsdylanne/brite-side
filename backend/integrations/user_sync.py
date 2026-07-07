@@ -55,13 +55,23 @@ def _as_int(value):
         return 0
 
 
+def _anniv(start_date):
+    """Return (month, day) from a BigQuery date/datetime start_date, or None."""
+    if start_date is None:
+        return None
+    try:
+        return (int(start_date.month), int(start_date.day))
+    except Exception:
+        return None
+
+
 def _fetch_user_master():
     """Query eligible @brite.co people from BigQuery user_master."""
     from google.cloud import bigquery
 
     client = bigquery.Client(project=BQ_PROJECT)
     query = f"""
-        SELECT email, name, title, department, birth_month, birth_day, thumbnail, eligible
+        SELECT email, name, title, department, birth_month, birth_day, start_date, thumbnail, eligible
         FROM `{BQ_PROJECT}.{BQ_DATASET}.{BQ_USER_TABLE}`
         WHERE email IS NOT NULL
           AND LOWER(email) LIKE '%@brite.co'
@@ -156,6 +166,7 @@ def run(db, gcs_client=None, media_bucket=None, collection='employees',
         bq_department = (row.get('department') or '').strip() or None
         bq_month = _as_int(row.get('birth_month'))
         bq_day = _as_int(row.get('birth_day'))
+        bq_ann = _anniv(row.get('start_date'))
         bq_thumb = row.get('thumbnail')
         bq_eligible = row.get('eligible')
 
@@ -179,6 +190,9 @@ def run(db, gcs_client=None, media_bucket=None, collection='employees',
                 patch['birthday_month'] = bq_month
                 patch['birthday_day'] = bq_day
                 birthdays_filled += 1
+            if bq_ann and not _as_int(current.get('anniversary_month')):
+                patch['anniversary_month'] = bq_ann[0]
+                patch['anniversary_day'] = bq_ann[1]
 
             # Photo: cache once.
             if not current.get('photo_cached'):
@@ -209,6 +223,9 @@ def run(db, gcs_client=None, media_bucket=None, collection='employees',
                 'source': 'sync',
                 'synced_at': now_iso,
             }
+            if bq_ann:
+                new_doc['anniversary_month'] = bq_ann[0]
+                new_doc['anniversary_day'] = bq_ann[1]
             url = _cache_photo(gcs_client, media_bucket, email, bq_thumb)
             if url:
                 new_doc['photo_url'] = url

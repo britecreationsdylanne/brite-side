@@ -1411,6 +1411,25 @@
             font-size: 14px;
         }
         #submitSection a { color: #0d9488; }
+        /* ---- cleaner submission form ---- */
+        #submitSection .submit-flow { padding-top: 4px; }
+        #submitSection .form-group { margin-bottom: 22px; }
+        #submitSection .form-group label { display:block; margin:7px 0; font-weight: 400; color: #374151; font-size: 14px; }
+        #submitSection .form-group > label:first-child { font-weight: 600; color: #272d3f; font-size: 15px; margin-bottom: 8px; }
+        #submitSection .form-group br { display: none; }
+        #submitSection .record-info { background:#f0faf9; border:1px solid #cdeeeb; border-radius:8px; padding:11px 14px; font-size:14px; color:#0a6b62; margin-bottom:22px; line-height:1.5; }
+        #submitSection .q-chips { margin: 4px 0 8px; }
+        #submitSection .q-cat { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#0a6b62; margin:12px 0 6px; }
+        #submitSection .q-chip { display:inline-block; width:auto; margin:0 6px 6px 0; padding:7px 12px; border:1px solid #cdeeeb; background:#f0faf9; color:#0a6b62; border-radius:18px; font-size:13px; cursor:pointer; text-align:left; line-height:1.3; }
+        #submitSection .q-chip:hover { background:#d7f2ef; border-color:#0d9488; }
+        #submitSection .qa-pair { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+        #submitSection .qa-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+        #submitSection .qa-q-label { flex:1; font-weight:600; color:#272d3f; padding-top:5px; line-height:1.35; }
+        #submitSection .qa-head .qa-q { flex:1; margin-bottom:0; }
+        #submitSection .qa-remove { width:auto; background:none; border:none; color:#9ca3af; font-size:22px; line-height:1; cursor:pointer; padding:0 2px; flex:0 0 auto; }
+        #submitSection .qa-remove:hover { color:#dc3545; }
+        #submitSection .btn-orange { margin-top: 10px; font-size:15px; padding:14px 26px; }
+        #submitSection input[type=file] { border:none; padding:8px 0; }
         @media (max-width: 640px) { #submitSection { padding: 22px 18px; } }
         .drafts-section h2 {
             color: white;
@@ -1846,21 +1865,21 @@
             <div id="monthGrid" class="month-grid"></div>
 
             <div id="secondaryMonthArea" style="text-align: center; display: none; margin-top: 16px;">
-                <label for="secondaryMonthSelect" style="font-size: 13px; color: #6b7280; display:block; margin-bottom:6px;">Also include birthdays from other months (Ctrl/Cmd-click to pick more than one):</label>
-                <select id="secondaryMonthSelect" multiple size="6" onchange="onSecondaryMonthChange()" style="font-size: 13px; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; min-width:180px;">
-                    <option value="1">January</option>
-                    <option value="2">February</option>
-                    <option value="3">March</option>
-                    <option value="4">April</option>
-                    <option value="5">May</option>
-                    <option value="6">June</option>
-                    <option value="7">July</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
-                </select>
+                <label style="font-size: 13px; color: #6b7280; display:block; margin-bottom:8px;">Also include birthdays from other months:</label>
+                <div id="secondaryMonthChecks" style="display:flex; flex-wrap:wrap; gap:8px 16px; justify-content:center; max-width:540px; margin:0 auto; font-size:13px;">
+                    <label><input type="checkbox" class="extra-month-cb" value="1" onchange="onSecondaryMonthChange()"> January</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="2" onchange="onSecondaryMonthChange()"> February</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="3" onchange="onSecondaryMonthChange()"> March</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="4" onchange="onSecondaryMonthChange()"> April</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="5" onchange="onSecondaryMonthChange()"> May</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="6" onchange="onSecondaryMonthChange()"> June</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="7" onchange="onSecondaryMonthChange()"> July</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="8" onchange="onSecondaryMonthChange()"> August</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="9" onchange="onSecondaryMonthChange()"> September</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="10" onchange="onSecondaryMonthChange()"> October</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="11" onchange="onSecondaryMonthChange()"> November</label>
+                    <label><input type="checkbox" class="extra-month-cb" value="12" onchange="onSecondaryMonthChange()"> December</label>
+                </div>
             </div>
 
             <div id="birthdayCountArea" style="text-align: center; display: none;">
@@ -2630,14 +2649,13 @@
          SUBMIT AN ENTRY (contributor form)
          ============================================ -->
     <div class="drafts-section" id="submitSection" style="display:none;">
-        <a href="/" id="backToBuilderLink" style="display:none;">&larr; Back to the newsletter builder</a>
         <h2>Submit to The BriteSide</h2>
         <p class="section-subtitle">Share something for BriteCo's internal newsletter. Pick what you're submitting &mdash; you'll only see the questions that apply.</p>
 
         <div id="submitRouter" class="submit-router" style="display:flex;flex-wrap:nowrap;gap:8px;margin:16px 0 20px;overflow-x:auto;">
             <button type="button" class="btn" id="submitBtn-spotlight" onclick="showSubmitFlow('spotlight')">My Spotlight Entry</button>
             <button type="button" class="btn" id="submitBtn-update" onclick="showSubmitFlow('update')">Company Update</button>
-            <button type="button" class="btn" id="submitBtn-culture" onclick="showSubmitFlow('culture')">Culture / Industry</button>
+            <button type="button" class="btn" id="submitBtn-culture" onclick="showSubmitFlow('culture')">Fun &amp; Media</button>
             <button type="button" class="btn" id="submitBtn-correction" onclick="showSubmitFlow('correction')">Correction</button>
         </div>
 
@@ -2655,10 +2673,9 @@
                 <label><input type="radio" name="sp_emptype" value="Agency Hire"> Agency Hire</label><br>
                 <label><input type="radio" name="sp_emptype" value="Independent Contractor"> Independent Contractor</label>
             </div>
+            <div id="sp_record_info" class="record-info" style="display:none;"></div>
             <div class="form-group"><label>Your Name</label><input type="text" id="sp_name" placeholder="Full name"></div>
-            <div class="form-group"><label>Job Title / Role *</label><input type="text" id="sp_title"></div>
-            <div class="form-group"><label>Birth Date</label><input type="date" id="sp_birth"></div>
-            <div class="form-group"><label>Hire Date</label><input type="date" id="sp_hire"></div>
+            <div class="form-group"><label>Job Title / Role *</label><input type="text" id="sp_title" placeholder="e.g. Account Executive"></div>
             <div class="form-group"><label>Are you residing in IL, USA? *</label><br>
                 <label><input type="radio" name="sp_residence" value="IL, USA"> Yes</label>
                 <label style="margin-left:16px;"><input type="radio" name="sp_residence" value="Elsewhere"> Somewhere else</label>
@@ -2670,10 +2687,11 @@
                 <input type="file" id="sp_photo" accept="image/*" onchange="submitFileUpload('sp_photo','sp_photo_list',_spotlightPhotos)">
                 <div id="sp_photo_list"></div>
             </div>
-            <div class="form-group"><label>Choose a few questions to answer about yourself</label>
-                <p style="margin-top:0;">Pick from the list (grouped by theme), or choose &ldquo;Write my own.&rdquo; Answer as many as you like.</p>
-                <div id="sp_qa_rows"></div>
-                <button type="button" class="btn btn-secondary" onclick="addQARow()">+ Answer More</button>
+            <div class="form-group"><label>Answer a few questions about yourself</label>
+                <p style="margin-top:0;">Tap any question below to answer it &mdash; add as many as you like.</p>
+                <div id="sp_question_chips" class="q-chips"></div>
+                <button type="button" class="btn btn-secondary" onclick="addQuestionAnswer('', true)" style="margin-top:6px;">&#9998; Write my own question</button>
+                <div id="sp_qa_rows" style="margin-top:14px;"></div>
             </div>
             <button class="btn btn-orange" onclick="submitSpotlight()">Submit My Spotlight Entry</button>
         </div>
@@ -2704,8 +2722,8 @@
 
         <!-- CULTURE -->
         <div class="submit-flow" id="submitFlow-culture" style="display:none;">
-            <h3>Culture / Industry Content</h3>
-            <p style="color:#6b7280;font-size:14px;">Jokes, memes, links, or media with your own caption. Entries are subject to approval due to volume.</p>
+            <h3>Share a Joke, Meme, or Link</h3>
+            <p>Got something fun or interesting for the team? Jokes, memes, GIFs, articles, or any media with your own caption. These are subject to approval since we get a lot of them.</p>
             <div class="form-group"><label>What type of content are you sharing? *</label><br>
                 <label><input type="checkbox" name="cul_type" value="Original joke or catchphrase"> Original joke or catchphrase</label><br>
                 <label><input type="checkbox" name="cul_type" value="Meme"> Meme (image, gif, video, or link)</label><br>
@@ -3008,8 +3026,6 @@
         }
         var entryLink = document.getElementById('entryLink');
         if (entryLink) entryLink.style.display = (isEditor && !entryMode) ? '' : 'none';
-        var backLink = document.getElementById('backToBuilderLink');
-        if (backLink) backLink.style.display = isEditor ? '' : 'none';
         var startBtn = document.getElementById('startOverBtn');
         if (startBtn && !isEditor) startBtn.style.display = 'none';
     }
@@ -3120,8 +3136,7 @@
         birthdaySecondaryHeading = '';
         _lastPrimaryHeadingDefault = '';
         _lastSecondaryHeadingDefault = '';
-        var _secondarySelect = document.getElementById('secondaryMonthSelect');
-        if (_secondarySelect) { for (var _si = 0; _si < _secondarySelect.options.length; _si++) _secondarySelect.options[_si].selected = false; }
+        document.querySelectorAll('#secondaryMonthChecks .extra-month-cb').forEach(function(cb) { cb.checked = false; cb.disabled = false; if (cb.parentNode) cb.parentNode.style.opacity = '1'; });
         var _secondaryArea = document.getElementById('secondaryMonthArea');
         if (_secondaryArea) _secondaryArea.style.display = 'none';
         joke = '';
@@ -3233,17 +3248,16 @@
 
         // Reveal secondary-month picker and hide the primary month from its options
         var secondaryArea = document.getElementById('secondaryMonthArea');
-        var secondarySelect = document.getElementById('secondaryMonthSelect');
-        if (secondaryArea && secondarySelect) {
+        if (secondaryArea) {
             secondaryArea.style.display = 'block';
             // Drop the primary month from the extra list if it was picked there
             extraMonthNums = extraMonthNums.filter(function(m) { return m !== monthNum; });
-            for (var i = 0; i < secondarySelect.options.length; i++) {
-                var opt = secondarySelect.options[i];
-                var val = parseInt(opt.value);
-                opt.disabled = (val === monthNum);
-                opt.selected = (extraMonthNums.indexOf(val) !== -1);
-            }
+            document.querySelectorAll('#secondaryMonthChecks .extra-month-cb').forEach(function(cb) {
+                var val = parseInt(cb.value);
+                cb.disabled = (val === monthNum);
+                cb.checked = (extraMonthNums.indexOf(val) !== -1);
+                if (cb.parentNode) cb.parentNode.style.opacity = (val === monthNum) ? '0.4' : '1';
+            });
             secondaryMonthNum = extraMonthNums[0] || 0;
         }
 
@@ -3256,13 +3270,10 @@
     }
 
     function onSecondaryMonthChange() {
-        var sel = document.getElementById('secondaryMonthSelect');
         extraMonthNums = [];
-        Array.prototype.forEach.call(sel.options, function(opt) {
-            if (opt.selected && !opt.disabled) {
-                var v = parseInt(opt.value);
-                if (!isNaN(v) && v !== selectedMonthNum && extraMonthNums.indexOf(v) === -1) extraMonthNums.push(v);
-            }
+        document.querySelectorAll('#secondaryMonthChecks .extra-month-cb:checked').forEach(function(cb) {
+            var v = parseInt(cb.value);
+            if (!isNaN(v) && v !== selectedMonthNum && extraMonthNums.indexOf(v) === -1) extraMonthNums.push(v);
         });
         secondaryMonthNum = extraMonthNums[0] || 0;
         syncBirthdayHeadings();
@@ -4202,9 +4213,10 @@
             if (!sp.qa) sp.qa = [{q:'',a:''},{q:'',a:''},{q:'',a:''}];
 
             html += '<div class="spotlight-block" data-idx="' + idx + '">';
-            html += '<div class="spotlight-block-header"><h3>Spotlight #' + (idx + 1) + '</h3>';
+            html += '<div class="spotlight-block-header"><h3>Spotlight #' + (idx + 1) + '</h3><span>';
+            html += '<button class="remove-update-btn" onclick="clearSpotlightBlock(' + idx + ')" style="margin-right:6px;">Clear</button>';
             if (idx > 0) html += '<button class="remove-update-btn" onclick="removeSpotlightBlock(' + idx + ')">Remove</button>';
-            html += '</div>';
+            html += '</span></div>';
 
             // Employee select
             html += '<div class="form-group"><label>Select Employee</label>';
@@ -4277,6 +4289,13 @@
 
     function removeSpotlightBlock(idx) {
         spotlights.splice(idx, 1);
+        renderSpotlightBlocks();
+    }
+
+    function clearSpotlightBlock(idx) {
+        if (!spotlights[idx]) return;
+        if (!confirm('Clear this spotlight\'s contents?')) return;
+        spotlights[idx] = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] };
         renderSpotlightBlocks();
     }
 
@@ -5173,15 +5192,14 @@
 
             // Restore secondary month UI
             var _secondaryArea = document.getElementById('secondaryMonthArea');
-            var _secondarySelect = document.getElementById('secondaryMonthSelect');
-            if (_secondaryArea && _secondarySelect) {
+            if (_secondaryArea) {
                 if (selectedMonthNum) _secondaryArea.style.display = 'block';
-                for (var si = 0; si < _secondarySelect.options.length; si++) {
-                    var sOpt = _secondarySelect.options[si];
-                    var sVal = parseInt(sOpt.value);
-                    sOpt.disabled = (sVal === selectedMonthNum);
-                    sOpt.selected = (extraMonthNums.indexOf(sVal) !== -1);
-                }
+                document.querySelectorAll('#secondaryMonthChecks .extra-month-cb').forEach(function(cb) {
+                    var sVal = parseInt(cb.value);
+                    cb.disabled = (sVal === selectedMonthNum);
+                    cb.checked = (extraMonthNums.indexOf(sVal) !== -1);
+                    if (cb.parentNode) cb.parentNode.style.opacity = (sVal === selectedMonthNum) ? '0.4' : '1';
+                });
             }
 
             // Restore joke
@@ -6292,7 +6310,7 @@
             var b = document.getElementById('submitBtn-' + f);
             if (b) b.classList.toggle('active', f === which);
         });
-        if (which === 'spotlight') renderInitialQARows();
+        if (which === 'spotlight') { renderQuestionChips(); prefillSpotlight(); }
         var status = document.getElementById('submitStatus');
         if (status) status.style.display = 'none';
     }
@@ -6358,47 +6376,66 @@
             'What is your usual working style: very collaborative, more independent, or a mix?'
         ]
     };
-    function buildQuestionSelectHtml() {
-        var h = '<select class="qa-q" onchange="onQuestionSelect(this)" style="margin-bottom:6px;">';
-        h += '<option value="">— choose a question —</option>';
+    function renderQuestionChips() {
+        var host = document.getElementById('sp_question_chips');
+        if (!host || host.getAttribute('data-rendered')) return;
+        host.setAttribute('data-rendered', '1');
+        var h = '';
         Object.keys(SPOTLIGHT_QUESTIONS).forEach(function(cat) {
-            h += '<optgroup label="' + cat + '">';
+            h += '<div class="q-cat">' + cat + '</div>';
             SPOTLIGHT_QUESTIONS[cat].forEach(function(q) {
-                var v = q.replace(/"/g, '&quot;');
-                h += '<option value="' + v + '">' + q + '</option>';
+                h += '<button type="button" class="q-chip" onclick="addQuestionAnswer(this.textContent, false)">' + q + '</button>';
             });
-            h += '</optgroup>';
         });
-        h += '<option value="__other__">Write my own…</option>';
-        h += '</select>';
-        return h;
+        host.innerHTML = h;
     }
-    function onQuestionSelect(sel) {
-        var custom = sel.parentNode.querySelector('.qa-q-custom');
-        if (custom) custom.style.display = (sel.value === '__other__') ? 'block' : 'none';
-    }
-    function addQARow() {
+    function addQuestionAnswer(question, editable) {
         var wrap = document.getElementById('sp_qa_rows');
         if (!wrap) return;
+        question = question || '';
+        var safeQ = question.replace(/"/g, '&quot;');
+        var qHtml = editable
+            ? '<input class="qa-q" type="text" placeholder="Write your own question" value="' + safeQ + '">'
+            : '<div class="qa-q-label">' + escapeHtml(question) + '</div><input class="qa-q" type="hidden" value="' + safeQ + '">';
         var div = document.createElement('div');
         div.className = 'qa-pair';
-        div.style.marginBottom = '14px';
-        div.innerHTML = buildQuestionSelectHtml() +
-            '<input class="qa-q-custom" type="text" placeholder="Write your own question" style="margin-bottom:6px;display:none;">' +
-            '<textarea class="qa-a" placeholder="Your answer" style="min-height:60px;"></textarea>';
+        div.innerHTML =
+            '<div class="qa-head">' + qHtml +
+            '<button type="button" class="qa-remove" title="Remove" onclick="this.closest(\'.qa-pair\').remove()">&times;</button></div>' +
+            '<textarea class="qa-a" placeholder="Your answer"></textarea>';
         wrap.appendChild(div);
+        var ta = div.querySelector('.qa-a');
+        if (ta) ta.focus();
     }
-    function renderInitialQARows() {
-        var wrap = document.getElementById('sp_qa_rows');
-        if (!wrap || wrap.children.length) return;
-        addQARow(); addQARow(); addQARow();
+    var _prefilled = false;
+    function prefillSpotlight() {
+        fetch(API_BASE + '/api/me').then(function(r) { return r.json(); }).then(function(d) {
+            if (!d || !d.success) return;
+            var nameEl = document.getElementById('sp_name');
+            var titleEl = document.getElementById('sp_title');
+            if (nameEl && !nameEl.value) nameEl.value = d.name || '';
+            if (titleEl && !titleEl.value) titleEl.value = d.title || '';
+            var info = [];
+            if (d.birthday_month) info.push('🎂 Birthday: ' + MONTH_NAMES[d.birthday_month] + ' ' + d.birthday_day);
+            if (d.anniversary_month) info.push('🎉 Work anniversary: ' + MONTH_NAMES[d.anniversary_month] + ' ' + d.anniversary_day);
+            var el = document.getElementById('sp_record_info');
+            if (el && info.length) {
+                el.innerHTML = info.join(' &nbsp;&middot;&nbsp; ') + ' <span style="color:#9ca3af;">(from our records — no need to enter these)</span>';
+                el.style.display = 'block';
+            }
+            if (d.photo_url && !_prefilled && !_spotlightPhotos.length) {
+                _spotlightPhotos.push(d.photo_url);
+                var list = document.getElementById('sp_photo_list');
+                if (list) list.innerHTML = '<div style="font-size:12px;color:#0d9488;">Using your directory photo (upload a file to replace it).</div>';
+            }
+            _prefilled = true;
+        }).catch(function() {});
     }
     function _collectQA() {
         var pairs = [];
         document.querySelectorAll('#sp_qa_rows .qa-pair').forEach(function(row) {
-            var sel = row.querySelector('.qa-q');
-            var custom = row.querySelector('.qa-q-custom');
-            var q = (sel && sel.value === '__other__' && custom) ? custom.value.trim() : (sel ? sel.value.trim() : '');
+            var qEl = row.querySelector('.qa-q');
+            var q = qEl ? (qEl.value || '').trim() : '';
             var a = row.querySelector('.qa-a').value.trim();
             if (q || a) pairs.push({ q: q, a: a });
         });
@@ -6441,8 +6478,6 @@
             name: _sv('sp_name'),
             employee_type: _sradio('sp_emptype'),
             job_title: _sv('sp_title'),
-            birth_date: _sv('sp_birth'),
-            hire_date: _sv('sp_hire'),
             residence: _sradio('sp_residence'),
             residence_location: _sv('sp_residence_loc'),
             describe_work: _sv('sp_describe'),

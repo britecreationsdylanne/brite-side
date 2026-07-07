@@ -656,6 +656,7 @@ def get_birthdays():
                 "title": emp.get("title", ""),
                 "birthday_day": _as_bday_int(emp.get("birthday_day")),
                 "birthday_month": _as_bday_int(emp.get("birthday_month")),
+                "image_url": emp.get("photo_url", ""),
             }
             for emp in list_employees(strict=True)
             if _as_bday_int(emp.get("birthday_month")) == month and emp.get("active", True)
@@ -2191,7 +2192,7 @@ def _run_user_sync(triggered_by):
             gcs_client=gcs_client,
             # Only cache photos into a DEDICATED public media bucket; never into
             # the private drafts bucket.
-            media_bucket=GCS_MEDIA_BUCKET if GCS_MEDIA_BUCKET != GCS_DRAFTS_BUCKET else None,
+            media_bucket=GCS_MEDIA_BUCKET,
             collection=EMPLOYEES_COLLECTION,
             triggered_by=triggered_by,
             alert_fn=_slack_alert,
@@ -2292,6 +2293,27 @@ def _list_collection(collection):
 
 
 # ---- Contributor submission endpoints (any signed-in @brite.co user) --------
+
+@app.route('/api/me', methods=['GET'])
+def me_profile():
+    """The signed-in user's own roster record, for prefilling the spotlight form
+    (name/title/birthday/anniversary/photo come from our records / BigQuery)."""
+    user = get_current_user() or {}
+    email = (user.get('email') or '').strip().lower()
+    emp = get_employee(email) or {}
+    return jsonify({
+        'success': True,
+        'email': email,
+        'name': user.get('name') or emp.get('name', ''),
+        'title': emp.get('title', ''),
+        'department': emp.get('department', ''),
+        'birthday_month': _as_bday_int(emp.get('birthday_month')),
+        'birthday_day': _as_bday_int(emp.get('birthday_day')),
+        'anniversary_month': _as_bday_int(emp.get('anniversary_month')),
+        'anniversary_day': _as_bday_int(emp.get('anniversary_day')),
+        'photo_url': emp.get('photo_url', ''),
+    })
+
 
 @app.route('/api/submit/spotlight', methods=['POST'])
 def submit_spotlight():
