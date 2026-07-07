@@ -2341,6 +2341,18 @@ def submit_spotlight():
         doc['created_at'] = (snap.to_dict() or {}).get('created_at', _now_iso()) if snap.exists else _now_iso()
         doc['updated_at'] = _now_iso()
         ref.set(doc, merge=True)
+        # If they gave a birthday and we don't have one on file, fill it in the
+        # roster (OUR Firestore DB — never BigQuery). Non-destructive: an existing
+        # birthday is never overwritten, and the sync won't clobber it either.
+        bmonth = _as_bday_int((request.json or {}).get('birthday_month'))
+        bday = _as_bday_int((request.json or {}).get('birthday_day'))
+        if bmonth and bday:
+            rec = get_employee(email)
+            if rec and not _as_bday_int(rec.get('birthday_month')):
+                rec['birthday_month'] = bmonth
+                rec['birthday_day'] = bday
+                upsert_employee(email, rec)
+                safe_print(f"[SUBMIT] Filled missing birthday for {email} from spotlight entry")
         safe_print(f"[SUBMIT] Spotlight profile saved for {email}")
         return jsonify({'success': True, 'id': email})
     except Exception as e:

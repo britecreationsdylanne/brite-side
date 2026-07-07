@@ -2678,6 +2678,20 @@
                 <label><input type="radio" name="sp_emptype" value="Independent Contractor"> Independent Contractor</label>
             </div>
             <div id="sp_record_info" class="record-info" style="display:none;"></div>
+            <div class="form-group" id="sp_birthday_group" style="display:none;">
+                <label>Your Birthday</label>
+                <p style="margin-top:0;">We don't have your birthday on file yet &mdash; add it so we can celebrate you (month &amp; day only). This updates our records.</p>
+                <div style="display:flex;gap:10px;max-width:320px;">
+                    <select id="sp_bmonth" style="flex:2;">
+                        <option value="">Month</option>
+                        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                    <input type="number" id="sp_bday" min="1" max="31" placeholder="Day" style="flex:1;">
+                </div>
+            </div>
             <div class="form-group"><label>Your Name</label><input type="text" id="sp_name" placeholder="Full name"></div>
             <div class="form-group"><label>Job Title / Role *</label><input type="text" id="sp_title" placeholder="e.g. Account Executive"></div>
             <div class="form-group"><label>Are you residing in IL, USA? *</label>
@@ -6433,6 +6447,10 @@
                 el.innerHTML = info.join(' &nbsp;&middot;&nbsp; ') + ' <span style="color:#9ca3af;">(from our records — no need to enter these)</span>';
                 el.style.display = 'block';
             }
+            // If we don't have a birthday on file, ask for it (updates our roster,
+            // not BigQuery).
+            var bgroup = document.getElementById('sp_birthday_group');
+            if (bgroup) bgroup.style.display = d.birthday_month ? 'none' : 'block';
             if (d.photo_url && !_prefilled && !_spotlightPhotos.length) {
                 _spotlightPhotos.push(d.photo_url);
                 var list = document.getElementById('sp_photo_list');
@@ -6503,6 +6521,8 @@
             residence_location: _sv('sp_residence_loc'),
             describe_work: _sv('sp_describe'),
             photo_url: _spotlightPhotos[0] || '',
+            birthday_month: parseInt(_sv('sp_bmonth')) || 0,
+            birthday_day: parseInt(_sv('sp_bday')) || 0,
             qa: qa
         }, 'Your Employee Spotlight entry was saved. Thank you!');
     }
