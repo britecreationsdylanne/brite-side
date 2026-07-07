@@ -2192,7 +2192,7 @@
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
-                <button class="btn-save-draft" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
+                <button class="btn-save-draft" onclick="saveDraft(this);">Save Draft</button>
                 <button class="btn" onclick="goToStep(7)">Next &rarr;</button>
             </div>
         </div>
@@ -2414,12 +2414,12 @@
                     <div class="spinner"></div>
                     <p class="loading-text">Rendering your newsletter...</p>
                 </div>
-                <iframe id="previewIframe" style="display: none;"></iframe>
+                <iframe id="previewIframe" sandbox="allow-same-origin" style="display: none;"></iframe>
             </div>
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(8)">&larr; Back</button>
-                <button class="btn-save-draft" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
+                <button class="btn-save-draft" onclick="saveDraft(this);">Save Draft</button>
                 <button class="btn btn-orange" onclick="goToStep(10)">Send Newsletter &rarr;</button>
             </div>
         </div>
@@ -2840,8 +2840,9 @@
         // Before leaving current step, gather data
         collectCurrentStepData();
 
-        // Auto-save draft silently after step 2
-        if (step > 2 && selectedMonth) {
+        // Auto-save draft silently after step 2 — but never while just viewing a
+        // published newsletter (that would overwrite the in-progress draft).
+        if (step > 2 && selectedMonth && !window.viewingPublished) {
             saveDraft();
         }
 
@@ -2910,6 +2911,8 @@
 
     function startOver() {
         if (!confirm('Start over? All unsaved progress will be lost.')) return;
+        window.viewingPublished = false;
+        window.currentDraftFilename = '';
 
         selectedMonth = '';
         selectedMonthNum = 0;
@@ -3008,6 +3011,7 @@
     }
 
     function selectMonth(monthNum) {
+        window.viewingPublished = false;
         selectedMonthNum = monthNum;
         selectedMonth = MONTH_NAMES[monthNum];
 
@@ -4137,11 +4141,19 @@
                 fun_facts: combinedFacts
             })
         })
-        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Spotlight generation failed');
+            return res.json();
+        })
         .then(function(data) {
             loadingArea.style.display = 'none';
-            sp.blurb = data.blurb || data.text || data.spotlight || '';
-            renderSpotlightBlocks();
+            var newBlurb = (data && (data.blurb || data.text || data.spotlight)) || '';
+            if (newBlurb) {
+                sp.blurb = newBlurb;
+                renderSpotlightBlocks();
+            } else {
+                alert('No blurb was generated — your existing text was kept.');
+            }
         })
         .catch(function(err) {
             loadingArea.style.display = 'none';
@@ -4263,20 +4275,20 @@
     function collectUpdatesData() {
         updates[0].title = document.getElementById('update1Title').value.trim();
         updates[0].body = document.getElementById('update1Body').value.trim();
-        if (showUpdate2) {
+        var block2 = document.getElementById('updateBlock2');
+        if (showUpdate2 || (block2 && block2.style.display !== 'none')) {
+            if (!updates[1]) updates[1] = { title: '', body: '', photos: [], photo_positions: [] };
             updates[1].title = document.getElementById('update2Title').value.trim();
             updates[1].body = document.getElementById('update2Body').value.trim();
-        } else {
-            updates[1] = { title: '', body: '', photos: [], photo_positions: [] };
         }
-        // Update 3
+        // Update 3 — only overwrite from the DOM when the block is actually
+        // shown. When it's hidden, PRESERVE any loaded content instead of wiping
+        // it (a resumed 3-update draft used to lose update 3 here).
         var block3 = document.getElementById('updateBlock3');
         if (block3 && block3.style.display !== 'none') {
             if (!updates[2]) updates[2] = { title: '', body: '', photos: [], photo_positions: [] };
             updates[2].title = document.getElementById('update3Title').value.trim();
             updates[2].body = document.getElementById('update3Body').value.trim();
-        } else {
-            updates[2] = { title: '', body: '', photos: [], photo_positions: [] };
         }
     }
 
@@ -4400,9 +4412,10 @@
         var activeUpdates = [];
         if (updatesEnabled) {
             if (updates[0].title || updates[0].body) activeUpdates.push(updates[0]);
-            if (showUpdate2 && (updates[1].title || updates[1].body)) activeUpdates.push(updates[1]);
-            var block3 = document.getElementById('updateBlock3');
-            if (block3 && block3.style.display !== 'none' && (updates[2].title || updates[2].body)) activeUpdates.push(updates[2]);
+            if (updates[1] && (updates[1].title || updates[1].body)) activeUpdates.push(updates[1]);
+            // Include update 3 whenever it has content, regardless of whether the
+            // DOM block happens to be visible (fixes loss on resumed drafts).
+            if (updates[2] && (updates[2].title || updates[2].body)) activeUpdates.push(updates[2]);
         }
 
         // Build birthday data
@@ -4633,8 +4646,23 @@
         })
         .then(function(data) {
             sendingArea.style.display = 'none';
-            showSuccessScreen(recipients.length);
-            // Auto-publish draft after successful send
+            if (!data || data.success === false) {
+                // SendGrid failed, or sent to nobody — the API returns HTTP 200
+                // with success:false. Do NOT publish, and tell the truth.
+                sendFormArea.style.display = 'block';
+                var errs = (data && data.errors) ? '\n\n' + data.errors.slice(0, 5).join('\n') : '';
+                alert('The newsletter could not be delivered to anyone, so nothing was published.' + errs +
+                      '\n\nCheck the SendGrid configuration and try again.');
+                return;
+            }
+            var sent = (data.sent_count != null) ? data.sent_count : recipients.length;
+            var total = (data.total_recipients != null) ? data.total_recipients : recipients.length;
+            if (sent < total && data.errors) {
+                alert('Delivered to ' + sent + ' of ' + total + ' recipients. Some failed:\n\n' +
+                      data.errors.slice(0, 5).join('\n'));
+            }
+            showSuccessScreen(sent);
+            // Publish the draft only after a genuinely successful send.
             publishDraft();
         })
         .catch(function(err) {
@@ -4754,11 +4782,11 @@
     /* ============================================================
        DRAFT SAVE / LOAD / DELETE
        ============================================================ */
-    function saveDraft() {
-        if (!selectedMonth) return;
+    function saveDraft(btn) {
+        if (!selectedMonth) { if (btn) showSaveConfirm(btn, false, 'Pick a month first'); return; }
         collectCurrentStepData();
         var userEmail = (window.AUTH_USER && window.AUTH_USER.email) || 'unknown';
-        fetch(API_BASE + '/api/save-draft', {
+        return fetch(API_BASE + '/api/save-draft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -4796,16 +4824,29 @@
         .then(function(res) { return res.json(); })
         .then(function(data) {
             console.log('[Draft] Saved:', data);
+            if (data && data.file) window.currentDraftFilename = data.file;
             loadDrafts();
+            if (btn) showSaveConfirm(btn, !(data && data.success === false));
+            return data;
         })
-        .catch(function(err) { console.error('[Draft] Save failed:', err); });
+        .catch(function(err) {
+            console.error('[Draft] Save failed:', err);
+            if (btn) showSaveConfirm(btn, false);
+        });
     }
 
-    function showSaveConfirm(btn) {
-        var orig = btn.textContent;
-        btn.textContent = 'Saved!';
-        btn.style.background = '#22c55e';
-        setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
+    function showSaveConfirm(btn, ok, msg) {
+        if (!btn) return;
+        var orig = btn.getAttribute('data-orig-label') || btn.textContent;
+        btn.setAttribute('data-orig-label', orig);
+        if (ok === false) {
+            btn.textContent = msg || 'Save failed';
+            btn.style.background = '#dc3545';
+        } else {
+            btn.textContent = 'Saved!';
+            btn.style.background = '#22c55e';
+        }
+        setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2500);
     }
 
     function loadDrafts() {
@@ -4848,6 +4889,10 @@
         .then(function(data) {
             if (!data.success || !data.draft) { alert('Failed to load draft'); return; }
             var d = data.draft;
+            // Remember the real filename so publishing targets THIS draft (even a
+            // teammate's), and clear any "just viewing" state.
+            window.currentDraftFilename = filename;
+            window.viewingPublished = false;
 
             // Restore state
             selectedMonth = d.month || '';
@@ -4945,14 +4990,26 @@
                 document.getElementById('updatesFieldsArea').style.display = 'none';
             }
 
-            // Restore update fields
+            // Restore update fields, revealing blocks 2/3 whenever they have
+            // content so collect/build don't treat them as absent (and wipe them).
             if (updates[0]) {
                 document.getElementById('update1Title').value = updates[0].title || '';
                 document.getElementById('update1Body').value = updates[0].body || '';
             }
-            if (updates[1]) {
+            if (updates[1] && (updates[1].title || updates[1].body)) {
+                showUpdate2 = true;
+                var _ub2 = document.getElementById('updateBlock2');
+                if (_ub2) _ub2.style.display = 'block';
                 document.getElementById('update2Title').value = updates[1].title || '';
                 document.getElementById('update2Body').value = updates[1].body || '';
+            }
+            if (updates[2] && (updates[2].title || updates[2].body)) {
+                var _ub3 = document.getElementById('updateBlock3');
+                if (_ub3) _ub3.style.display = 'block';
+                var _u3t = document.getElementById('update3Title');
+                var _u3b = document.getElementById('update3Body');
+                if (_u3t) _u3t.value = updates[2].title || '';
+                if (_u3b) _u3b.value = updates[2].body || '';
             }
 
             // Restore game UI
@@ -4968,7 +5025,7 @@
                 }
                 if (gameData || gameImageUrl) renderGamePreview();
                 if (gamePreviousAnswer) {
-                    var prevInput = document.getElementById('gamePreviousAnswer');
+                    var prevInput = document.getElementById('previousGameAnswer');
                     if (prevInput) prevInput.value = gamePreviousAnswer;
                 }
             }
@@ -5024,12 +5081,17 @@
     }
 
     function publishDraft() {
+        // Publish the ACTUAL loaded draft when we know its filename, so publishing
+        // a teammate's draft targets the right object instead of a rebuilt path
+        // (which silently no-ops for cross-user drafts).
         var year = new Date().getFullYear();
         var userPrefix = ((window.AUTH_USER && window.AUTH_USER.email) || 'unknown').split('@')[0].replace(/\./g, '-');
+        var fileName = window.currentDraftFilename ||
+            ('drafts/' + selectedMonth.toLowerCase() + '-' + year + '-' + userPrefix + '.json');
         fetch(API_BASE + '/api/publish-draft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file: 'drafts/' + selectedMonth.toLowerCase() + '-' + year + '-' + userPrefix + '.json' })
+            body: JSON.stringify({ file: fileName })
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
@@ -5085,6 +5147,9 @@
         .then(function(data) {
             if (!data.success || !data.draft) { alert('Failed to load newsletter'); return; }
             var d = data.draft;
+            // Mark "viewing only" so the autosave in goToStep does NOT overwrite
+            // the in-progress draft for this month with this old published issue.
+            window.viewingPublished = true;
 
             // Restore state from published data
             selectedMonth = d.month || '';
@@ -5192,7 +5257,7 @@
                 html += '</div>';
                 html += '<div class="team-actions">';
                 html += '<button class="team-save-btn" onclick="saveEmployee(\'' + safeEmail + '\')">Save</button>';
-                html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
+                html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\')">Remove</button>';
                 html += '</div>';
             } else {
                 html += '<div class="name">' + escapeHtml(emp.name) + '</div>';
@@ -5204,7 +5269,7 @@
                 html += '<div class="bday-read">' + bdayText + '</div>';
                 html += '<div class="team-actions">';
                 html += '<button class="team-edit-btn" onclick="editEmployee(\'' + safeEmail + '\')">Edit</button>';
-                html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\', \'' + escapeAttr(emp.name) + '\')">Remove</button>';
+                html += '<button class="team-remove-btn" onclick="removeEmployee(\'' + safeEmail + '\')">Remove</button>';
                 html += '</div>';
             }
             html += '</div>';
@@ -5352,7 +5417,16 @@
         .catch(function(err) { console.error('Error updating birthday:', err); });
     }
 
-    function removeEmployee(email, name) {
+    function removeEmployee(email) {
+        // Look the name up from state rather than passing it through an inline
+        // onclick (an apostrophe in a name used to break the handler / inject).
+        var name = email;
+        for (var i = 0; i < (allEmployees || []).length; i++) {
+            if ((allEmployees[i].email || '').toLowerCase() === (email || '').toLowerCase()) {
+                name = allEmployees[i].name || email;
+                break;
+            }
+        }
         if (!confirm('Remove ' + name + ' from the team list?')) return;
 
         fetch(API_BASE + '/api/employees/remove', {
@@ -5693,7 +5767,7 @@
                     .then(function(res) { return res.json(); })
                     .then(function(pubData) {
                         if (!pubData.success) return;
-                        var d = pubData.data || pubData;
+                        var d = pubData.draft || pubData.data || pubData;
                         ideas.push('');
                         ideas.push('--- From past newsletter (' + (latest.month || '') + ' ' + (latest.year || '') + ') ---');
 

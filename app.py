@@ -456,7 +456,9 @@ def _auth_gate():
 
     if path.startswith('/api/'):
         # Contributor-accessible surface: any signed-in @brite.co user.
-        if path == '/api/me' or path.startswith('/api/me/') or path.startswith('/api/submit'):
+        # (upload-media is shared so contributors can attach files to submissions.)
+        if (path == '/api/me' or path.startswith('/api/me/')
+                or path.startswith('/api/submit') or path == '/api/upload-media'):
             return
         # Editor-only for everything else (roster, AI, render, send, drafts, ...).
         if not is_editor(user):
@@ -2180,6 +2182,213 @@ def admin_sync_users():
     """Manual sync trigger for the newsletter team (editor-only via the gate)."""
     user = get_current_user() or {}
     return _run_user_sync(f"admin:{user.get('email', 'unknown')}")
+
+
+# ============================================================================
+# SUBMISSIONS (contributor entries -> curated Firestore databases)
+# ============================================================================
+# Any signed-in @brite.co user submits; the newsletter team (editors) selects
+# from the curated lists when building an issue. Spotlight is one canonical
+# profile per person (keyed by email, updatable); updates/culture/corrections
+# are queues; nominations point at a colleague.
+
+SPOTLIGHT_COLLECTION = 'spotlight_submissions'
+UPDATE_SUBMISSIONS = 'update_submissions'
+CULTURE_SUBMISSIONS = 'culture_submissions'
+CORRECTION_SUBMISSIONS = 'correction_submissions'
+NOMINATIONS_COLLECTION = 'nominations'
+
+SPOTLIGHT_FIELDS = ['name', 'employee_type', 'job_title', 'birth_date', 'hire_date',
+                    'residence', 'residence_location', 'describe_work',
+                    'work_with_others', 'photo_url', 'qa']
+UPDATE_FIELDS = ['summary', 'files', 'co_contributors', 'when_featured', 'specific_month', 'notes']
+CULTURE_FIELDS = ['content_types', 'files', 'content', 'why_fits']
+CORRECTION_FIELDS = ['prev_category_topic', 'prev_submitted_date', 'changes', 'files',
+                     'handling', 'handling_other']
+NOMINATION_FIELDS = ['nominee', 'has_own_entry']
+
+_QUEUE_COLLECTIONS = {
+    'updates': UPDATE_SUBMISSIONS,
+    'culture': CULTURE_SUBMISSIONS,
+    'corrections': CORRECTION_SUBMISSIONS,
+    'nominations': NOMINATIONS_COLLECTION,
+}
+
+
+def _now_iso():
+    return datetime.now(CHICAGO_TZ).isoformat()
+
+
+def _pick(data, keys):
+    """Whitelist only the expected keys from a submission payload."""
+    data = data or {}
+    return {k: data.get(k) for k in keys if k in data}
+
+
+def _current_email():
+    return ((get_current_user() or {}).get('email') or '').strip().lower()
+
+
+def _add_submission(collection, doc):
+    """Create a queue submission with an auto-id. Returns the new id or None."""
+    if not firestore_client:
+        return None
+    _, ref = firestore_client.collection(collection).add(doc)
+    return ref.id
+
+
+def _list_collection(collection):
+    """Return all docs in a collection, newest first, with their id attached."""
+    if not firestore_client:
+        return []
+    out = []
+    for d in firestore_client.collection(collection).stream():
+        item = d.to_dict() or {}
+        item['id'] = d.id
+        out.append(item)
+    out.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    return out
+
+
+# ---- Contributor submission endpoints (any signed-in @brite.co user) --------
+
+@app.route('/api/submit/spotlight', methods=['POST'])
+def submit_spotlight():
+    """Create/update the submitter's OWN spotlight profile (keyed by their email
+    from the session, so nobody can submit as someone else)."""
+    if not firestore_client:
+        return jsonify({'success': False, 'error': 'Firestore not available'}), 503
+    email = _current_email()
+    if not email:
+        return jsonify({'success': False, 'error': 'Not signed in'}), 401
+    user = get_current_user() or {}
+    doc = _pick(request.json, SPOTLIGHT_FIELDS)
+    doc['email'] = email
+    doc.setdefault('name', user.get('name') or email.split('@')[0])
+    doc['submitted_by'] = email
+    doc['status'] = 'submitted'
+    try:
+        ref = firestore_client.collection(SPOTLIGHT_COLLECTION).document(email)
+        snap = ref.get()
+        doc['created_at'] = (snap.to_dict() or {}).get('created_at', _now_iso()) if snap.exists else _now_iso()
+        doc['updated_at'] = _now_iso()
+        ref.set(doc, merge=True)
+        safe_print(f"[SUBMIT] Spotlight profile saved for {email}")
+        return jsonify({'success': True, 'id': email})
+    except Exception as e:
+        safe_print(f"[SUBMIT] Spotlight error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _submit_queue(collection, fields):
+    email = _current_email()
+    if not email:
+        return jsonify({'success': False, 'error': 'Not signed in'}), 401
+    if not firestore_client:
+        return jsonify({'success': False, 'error': 'Firestore not available'}), 503
+    doc = _pick(request.json, fields)
+    doc['submitted_by'] = email
+    doc['submitter_name'] = (get_current_user() or {}).get('name', '')
+    doc['status'] = 'new'
+    doc['created_at'] = _now_iso()
+    try:
+        new_id = _add_submission(collection, doc)
+        return jsonify({'success': True, 'id': new_id})
+    except Exception as e:
+        safe_print(f"[SUBMIT] {collection} error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/submit/update', methods=['POST'])
+def submit_update():
+    return _submit_queue(UPDATE_SUBMISSIONS, UPDATE_FIELDS)
+
+
+@app.route('/api/submit/culture', methods=['POST'])
+def submit_culture():
+    return _submit_queue(CULTURE_SUBMISSIONS, CULTURE_FIELDS)
+
+
+@app.route('/api/submit/correction', methods=['POST'])
+def submit_correction():
+    return _submit_queue(CORRECTION_SUBMISSIONS, CORRECTION_FIELDS)
+
+
+@app.route('/api/submit/nomination', methods=['POST'])
+def submit_nomination():
+    return _submit_queue(NOMINATIONS_COLLECTION, NOMINATION_FIELDS)
+
+
+@app.route('/api/me/submissions', methods=['GET'])
+def my_submissions():
+    """List the current user's own submissions so they can review/update them."""
+    email = _current_email()
+    if not firestore_client:
+        return jsonify({'success': True, 'submissions': {}})
+    try:
+        snap = firestore_client.collection(SPOTLIGHT_COLLECTION).document(email).get()
+        result = {'spotlight': (snap.to_dict() if snap.exists else None)}
+        for key, coll in _QUEUE_COLLECTIONS.items():
+            items = []
+            for d in firestore_client.collection(coll).where('submitted_by', '==', email).stream():
+                it = d.to_dict() or {}
+                it['id'] = d.id
+                items.append(it)
+            items.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+            result[key] = items
+        return jsonify({'success': True, 'submissions': result})
+    except Exception as e:
+        safe_print(f"[SUBMIT] my_submissions error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ---- Editor curation endpoints (editor-only via the gate) -------------------
+
+@app.route('/api/submissions/spotlight', methods=['GET'])
+def list_spotlight_submissions():
+    """All spotlight profiles for the builder's 'select a spotlight' picker."""
+    return jsonify({'success': True, 'submissions': _list_collection(SPOTLIGHT_COLLECTION)})
+
+
+@app.route('/api/submissions/spotlight/<path:email>', methods=['GET'])
+def get_spotlight_submission(email):
+    if not firestore_client:
+        return jsonify({'success': False, 'error': 'Firestore not available'}), 503
+    snap = firestore_client.collection(SPOTLIGHT_COLLECTION).document(email.strip().lower()).get()
+    if not snap.exists:
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+    data = snap.to_dict() or {}
+    data['id'] = email.strip().lower()
+    return jsonify({'success': True, 'submission': data})
+
+
+@app.route('/api/submissions/<sub_type>', methods=['GET'])
+def list_queue_submissions(sub_type):
+    """List a curated queue (updates / culture / corrections / nominations)."""
+    collection = _QUEUE_COLLECTIONS.get(sub_type)
+    if not collection:
+        return jsonify({'success': False, 'error': 'Unknown submission type'}), 404
+    return jsonify({'success': True, 'submissions': _list_collection(collection)})
+
+
+@app.route('/api/submissions/<sub_type>/<sub_id>/status', methods=['POST'])
+def set_submission_status(sub_type, sub_id):
+    """Mark a queued submission used/archived so it drops out of the picker."""
+    collection = _QUEUE_COLLECTIONS.get(sub_type)
+    if not collection:
+        return jsonify({'success': False, 'error': 'Unknown submission type'}), 404
+    if not firestore_client:
+        return jsonify({'success': False, 'error': 'Firestore not available'}), 503
+    status = ((request.json or {}).get('status') or '').strip()
+    if status not in ('new', 'used', 'approved', 'archived'):
+        return jsonify({'success': False, 'error': 'Invalid status'}), 400
+    try:
+        firestore_client.collection(collection).document(sub_id).set(
+            {'status': status, 'status_updated_at': _now_iso()}, merge=True)
+        return jsonify({'success': True})
+    except Exception as e:
+        safe_print(f"[SUBMIT] set status error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
