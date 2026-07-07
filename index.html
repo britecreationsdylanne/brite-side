@@ -1802,9 +1802,8 @@
             <div id="monthGrid" class="month-grid"></div>
 
             <div id="secondaryMonthArea" style="text-align: center; display: none; margin-top: 16px;">
-                <label for="secondaryMonthSelect" style="font-size: 13px; color: #6b7280; margin-right: 8px;">Also include birthdays from:</label>
-                <select id="secondaryMonthSelect" onchange="onSecondaryMonthChange()" style="font-size: 13px; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff;">
-                    <option value="">— none —</option>
+                <label for="secondaryMonthSelect" style="font-size: 13px; color: #6b7280; display:block; margin-bottom:6px;">Also include birthdays from other months (Ctrl/Cmd-click to pick more than one):</label>
+                <select id="secondaryMonthSelect" multiple size="6" onchange="onSecondaryMonthChange()" style="font-size: 13px; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; min-width:180px;">
                     <option value="1">January</option>
                     <option value="2">February</option>
                     <option value="3">March</option>
@@ -2742,7 +2741,8 @@
 
     let selectedMonth = '';
     let selectedMonthNum = 0;
-    let secondaryMonthNum = 0;
+    let secondaryMonthNum = 0;       // kept = extraMonthNums[0] for heading back-compat
+    let extraMonthNums = [];         // any number of additional birthday months
     let birthdayPrimaryHeading = '';
     let birthdaySecondaryHeading = '';
     let _lastPrimaryHeadingDefault = '';
@@ -3064,12 +3064,13 @@
         selectedMonth = '';
         selectedMonthNum = 0;
         secondaryMonthNum = 0;
+        extraMonthNums = [];
         birthdayPrimaryHeading = '';
         birthdaySecondaryHeading = '';
         _lastPrimaryHeadingDefault = '';
         _lastSecondaryHeadingDefault = '';
         var _secondarySelect = document.getElementById('secondaryMonthSelect');
-        if (_secondarySelect) _secondarySelect.value = '';
+        if (_secondarySelect) { for (var _si = 0; _si < _secondarySelect.options.length; _si++) _secondarySelect.options[_si].selected = false; }
         var _secondaryArea = document.getElementById('secondaryMonthArea');
         if (_secondaryArea) _secondaryArea.style.display = 'none';
         joke = '';
@@ -3184,16 +3185,15 @@
         var secondarySelect = document.getElementById('secondaryMonthSelect');
         if (secondaryArea && secondarySelect) {
             secondaryArea.style.display = 'block';
+            // Drop the primary month from the extra list if it was picked there
+            extraMonthNums = extraMonthNums.filter(function(m) { return m !== monthNum; });
             for (var i = 0; i < secondarySelect.options.length; i++) {
                 var opt = secondarySelect.options[i];
                 var val = parseInt(opt.value);
                 opt.disabled = (val === monthNum);
+                opt.selected = (extraMonthNums.indexOf(val) !== -1);
             }
-            // If secondary equals new primary, reset it
-            if (secondaryMonthNum === monthNum) {
-                secondarySelect.value = '';
-                secondaryMonthNum = 0;
-            }
+            secondaryMonthNum = extraMonthNums[0] || 0;
         }
 
         // Sync headings to the new primary month (preserves user customizations)
@@ -3206,8 +3206,14 @@
 
     function onSecondaryMonthChange() {
         var sel = document.getElementById('secondaryMonthSelect');
-        var val = parseInt(sel.value);
-        secondaryMonthNum = isNaN(val) ? 0 : val;
+        extraMonthNums = [];
+        Array.prototype.forEach.call(sel.options, function(opt) {
+            if (opt.selected && !opt.disabled) {
+                var v = parseInt(opt.value);
+                if (!isNaN(v) && v !== selectedMonthNum && extraMonthNums.indexOf(v) === -1) extraMonthNums.push(v);
+            }
+        });
+        secondaryMonthNum = extraMonthNums[0] || 0;
         syncBirthdayHeadings();
         if (selectedMonthNum) fetchBirthdayCount(selectedMonthNum);
     }
@@ -3228,9 +3234,9 @@
         var manualEntries = birthdays.filter(function(b) { return b._manual; });
 
         var monthsToFetch = [monthNum];
-        if (secondaryMonthNum && secondaryMonthNum !== monthNum) {
-            monthsToFetch.push(secondaryMonthNum);
-        }
+        extraMonthNums.forEach(function(m) {
+            if (m && m !== monthNum && monthsToFetch.indexOf(m) === -1) monthsToFetch.push(m);
+        });
 
         Promise.all(monthsToFetch.map(function(m) {
             return fetch(API_BASE + '/api/employees/birthdays?month=' + m)
@@ -3259,13 +3265,13 @@
             birthdays = merged.concat(manualEntries);
 
             var count = birthdays.length;
+            var monthNames = monthsToFetch.map(function(m) { return MONTH_NAMES[m]; });
             if (count === 0) {
-                badge.textContent = 'No birthdays in ' + MONTH_NAMES[monthNum] +
-                    (secondaryMonthNum ? ' or ' + MONTH_NAMES[secondaryMonthNum] : '');
+                badge.textContent = 'No birthdays in ' + monthNames.join(' or ');
             } else {
                 var label = count + ' birthday' + (count === 1 ? '' : 's');
-                if (secondaryMonthNum) {
-                    badge.innerHTML = '&#127874; ' + label + ' across ' + MONTH_NAMES[monthNum] + ' &amp; ' + MONTH_NAMES[secondaryMonthNum] + '!';
+                if (monthNames.length > 1) {
+                    badge.innerHTML = '&#127874; ' + label + ' across ' + monthNames.join(', ') + '!';
                 } else {
                     badge.innerHTML = '&#127874; ' + label + ' this month!';
                 }
@@ -3820,10 +3826,11 @@
         var header = document.getElementById('birthdayHeader');
         var desc = document.getElementById('birthdayDescription');
 
-        var hasSecondary = !!secondaryMonthNum;
+        var hasSecondary = extraMonthNums.length > 0;
+        var _extraNames = extraMonthNums.map(function(m) { return MONTH_NAMES[m]; });
         if (hasSecondary) {
-            header.innerHTML = selectedMonth + ' &amp; ' + MONTH_NAMES[secondaryMonthNum] + ' Birthdays &#127874;';
-            desc.textContent = "Celebrate the birthday stars from both months. Upload a photo (square works best) and add a personal note.";
+            header.innerHTML = selectedMonth + ' &amp; ' + _extraNames.join(', ') + ' Birthdays &#127874;';
+            desc.textContent = "Celebrate the birthday stars across these months. Upload a photo (square works best) and add a personal note.";
         } else {
             header.innerHTML = selectedMonth + ' Birthdays &#127874;';
             desc.textContent = "Celebrate this month's birthday stars! Upload a photo (square works best) and add a personal note.";
@@ -3847,7 +3854,7 @@
             var entry = { b: b, idx: idx };
             if (b._manual) {
                 manualList.push(entry);
-            } else if (b.month_num && secondaryMonthNum && b.month_num === secondaryMonthNum) {
+            } else if (b.month_num && extraMonthNums.indexOf(b.month_num) !== -1) {
                 secondaryList.push(entry);
             } else {
                 primaryList.push(entry);
@@ -3914,7 +3921,7 @@
         primaryList.forEach(function(e) { html += renderCard(e); });
         if (hasSecondary && secondaryList.length > 0) {
             html += '<input class="birthday-heading-input" id="birthdaySecondaryHeadingInput" type="text" placeholder="Sub-heading for the second month" value="' + escapeAttr(birthdaySecondaryHeading) + '">';
-            html += '<div class="birthday-heading-hint">Shown above the ' + escapeHtml(MONTH_NAMES[secondaryMonthNum]) + ' celebrants. Edit to match the tone you want.</div>';
+            html += '<div class="birthday-heading-hint">Shown above the ' + escapeHtml(_extraNames.join(', ')) + ' celebrants. Each extra month is grouped under its own sub-heading in the email.</div>';
             secondaryList.forEach(function(e) { html += renderCard(e); });
         }
         if (manualList.length > 0) {
@@ -4947,6 +4954,7 @@
                 selectedJokeIndex: selectedJokeIndex,
                 birthdays: birthdays,
                 secondary_month_num: secondaryMonthNum,
+                extra_month_nums: extraMonthNums,
                 birthday_primary_heading: birthdayPrimaryHeading,
                 birthday_secondary_heading: birthdaySecondaryHeading,
                 spotlight: spotlight,
@@ -5050,7 +5058,9 @@
             jokeOptions = d.jokeOptions || [];
             selectedJokeIndex = d.selectedJokeIndex != null ? d.selectedJokeIndex : -1;
             birthdays = d.birthdays || [];
-            secondaryMonthNum = parseInt(d.secondary_month_num) || 0;
+            extraMonthNums = (d.extra_month_nums && d.extra_month_nums.length) ? d.extra_month_nums.slice()
+                : (parseInt(d.secondary_month_num) ? [parseInt(d.secondary_month_num)] : []);
+            secondaryMonthNum = extraMonthNums[0] || 0;
             birthdayPrimaryHeading = d.birthday_primary_heading || '';
             birthdaySecondaryHeading = d.birthday_secondary_heading || '';
             spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
@@ -5111,14 +5121,13 @@
             var _secondaryArea = document.getElementById('secondaryMonthArea');
             var _secondarySelect = document.getElementById('secondaryMonthSelect');
             if (_secondaryArea && _secondarySelect) {
-                if (selectedMonthNum) {
-                    _secondaryArea.style.display = 'block';
-                    for (var si = 0; si < _secondarySelect.options.length; si++) {
-                        var sOpt = _secondarySelect.options[si];
-                        sOpt.disabled = (parseInt(sOpt.value) === selectedMonthNum);
-                    }
+                if (selectedMonthNum) _secondaryArea.style.display = 'block';
+                for (var si = 0; si < _secondarySelect.options.length; si++) {
+                    var sOpt = _secondarySelect.options[si];
+                    var sVal = parseInt(sOpt.value);
+                    sOpt.disabled = (sVal === selectedMonthNum);
+                    sOpt.selected = (extraMonthNums.indexOf(sVal) !== -1);
                 }
-                _secondarySelect.value = secondaryMonthNum ? String(secondaryMonthNum) : '';
             }
 
             // Restore joke
@@ -5305,7 +5314,9 @@
             selectedMonthNum = MONTH_NAMES.indexOf(selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1));
             joke = d.joke || '';
             birthdays = d.birthdays || [];
-            secondaryMonthNum = parseInt(d.secondary_month_num) || 0;
+            extraMonthNums = (d.extra_month_nums && d.extra_month_nums.length) ? d.extra_month_nums.slice()
+                : (parseInt(d.secondary_month_num) ? [parseInt(d.secondary_month_num)] : []);
+            secondaryMonthNum = extraMonthNums[0] || 0;
             birthdayPrimaryHeading = d.birthday_primary_heading || '';
             birthdaySecondaryHeading = d.birthday_secondary_heading || '';
             spotlight = d.spotlight || { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
