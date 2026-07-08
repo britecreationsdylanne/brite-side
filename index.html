@@ -6868,8 +6868,8 @@
         var el = document.getElementById('updateSubsPanel');
         if (!el) return;
         var subs = _allSubs.update || [];
-        if (!subs.length) { el.innerHTML = ''; return; }
         var h = '<div class="entry-group-title">Submitted company updates (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        if (!subs.length) { el.innerHTML = h + '<p class="entry-empty">Nothing submitted yet — company updates your team sends in will show up here to pull in.</p>'; return; }
         subs.forEach(function(s, i) {
             var extra = (s.when_featured === 'specific' && s.specific_month) ? ('wants: ' + s.specific_month) : '';
             var co = Array.isArray(s.co_contributors) ? s.co_contributors.join(', ') : '';
@@ -6885,8 +6885,8 @@
         var el = document.getElementById('cultureSubsPanel');
         if (!el) return;
         var subs = _allSubs.culture || [];
-        if (!subs.length) { el.innerHTML = ''; return; }
         var h = '<div class="entry-group-title">Submitted Fun &amp; Media (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        if (!subs.length) { el.innerHTML = h + '<p class="entry-empty">Nothing submitted yet — jokes, memes and links your team sends in will show up here to pull in.</p>'; return; }
         subs.forEach(function(s, i) {
             var types = Array.isArray(s.content_types) ? s.content_types.join(', ') : '';
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s, types) + '</div>'
@@ -6900,8 +6900,8 @@
         var el = document.getElementById('correctionSubsPanel');
         if (!el) return;
         var subs = _allSubs.correction || [];
-        if (!subs.length) { el.innerHTML = ''; return; }
         var h = '<div class="entry-group-title">Submitted corrections (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        if (!subs.length) { el.innerHTML = h + '<p class="entry-empty">Nothing submitted yet — corrections your team sends in will show up here.</p>'; return; }
         subs.forEach(function(s, i) {
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s) + '</div>'
               + '<div class="entry-name">' + escapeHtml(s.prev_category_topic || 'Correction') + '</div>'
