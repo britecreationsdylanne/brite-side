@@ -140,9 +140,10 @@ def get_current_user():
     if user:
         return user
     if DEV_AUTH_MODE:
-        # DEV_AUTH_NAME lets local work (e.g. seeding feed content) carry a
-        # real display name instead of the stand-in marker.
-        return {'email': 'dylanne.crugnale@brite.co',
+        # DEV_AUTH_NAME / DEV_AUTH_EMAIL let local work (e.g. seeding feed
+        # content) carry a real identity instead of the stand-in marker.
+        # Dev-mode only — never active in production.
+        return {'email': (os.environ.get('DEV_AUTH_EMAIL') or 'dylanne.crugnale@brite.co').strip().lower(),
                 'name': os.environ.get('DEV_AUTH_NAME') or 'Local Developer (dev)',
                 'picture': ''}
     return None
@@ -2064,7 +2065,10 @@ def render_email():
                 if not isinstance(u, dict):
                     continue
                 title = esc(u.get('title', ''))
-                body = esc(u.get('body', ''))
+                # Preserve paragraph breaks from feed posts / textareas — a bare
+                # <p> collapses newlines, which mashed multi-line updates together.
+                body = esc(u.get('body', '')).replace('\n', '<br>')
+                update_from = esc((u.get('from') or '').strip())
                 photos = [s for s in (safe_url(p) for p in u.get('photos', [])) if s]
                 photos_html = ''
                 if len(photos) == 1:
@@ -2100,6 +2104,14 @@ def render_email():
                             f'</td>'
                         )
                     photos_html += '</tr></table>'
+                # Attribution rides in the photos slot (raw-HTML placeholder
+                # right after the body in every template), so all three
+                # templates get the credit line without new placeholders.
+                if update_from:
+                    photos_html += (
+                        f'<p style="margin: 10px 0 0 0; font-family: {FONT}; '
+                        f'font-size: 12.5px; color: #9ca3af;">&mdash; {update_from}</p>'
+                    )
                 if i == 0:
                     update_1_title = title
                     update_1_body = body
@@ -2126,7 +2138,7 @@ def render_email():
         for so in shoutouts:
             if not isinstance(so, dict):
                 continue
-            so_text = esc((so.get('text') or '').strip())
+            so_text = esc((so.get('text') or '').strip()).replace('\n', '<br>')
             so_from = esc((so.get('from') or '').strip())
             if not so_text:
                 continue
@@ -2900,6 +2912,7 @@ def auto_build_newsletter():
                 'body': body,
                 'photos': photos,
                 'photo_positions': [50] * len(photos),
+                'from': sub.get('submitter_name') or sub.get('submitted_by') or '',
             })
             if len(updates) >= 5:
                 break

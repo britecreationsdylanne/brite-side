@@ -2702,6 +2702,10 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>From <span style="color:#6b7280;font-weight:400">(optional &mdash; shown as a credit line in the email)</span></label>
+                    <input type="text" id="update1From" placeholder="Who did this update come from?">
+                </div>
+                <div class="form-group">
                     <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
                     <div class="update-photos" id="update1Photos"></div>
                     <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(0)">+ Upload Photo</button>
@@ -2738,6 +2742,10 @@
                         </select>
                         <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update2Body', 'toneUpdate2Body')">AI Rewrite</button>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>From <span style="color:#6b7280;font-weight:400">(optional &mdash; shown as a credit line in the email)</span></label>
+                    <input type="text" id="update2From" placeholder="Who did this update come from?">
                 </div>
                 <div class="form-group">
                     <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
@@ -2778,6 +2786,10 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>From <span style="color:#6b7280;font-weight:400">(optional &mdash; shown as a credit line in the email)</span></label>
+                    <input type="text" id="update3From" placeholder="Who did this update come from?">
+                </div>
+                <div class="form-group">
                     <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
                     <div class="update-photos" id="update3Photos"></div>
                     <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(2)">+ Upload Photo</button>
@@ -2816,6 +2828,10 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>From <span style="color:#6b7280;font-weight:400">(optional &mdash; shown as a credit line in the email)</span></label>
+                    <input type="text" id="update4From" placeholder="Who did this update come from?">
+                </div>
+                <div class="form-group">
                     <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
                     <div class="update-photos" id="update4Photos"></div>
                     <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(3)">+ Upload Photo</button>
@@ -2852,6 +2868,10 @@
                         </select>
                         <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update5Body', 'toneUpdate5Body')">AI Rewrite</button>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>From <span style="color:#6b7280;font-weight:400">(optional &mdash; shown as a credit line in the email)</span></label>
+                    <input type="text" id="update5From" placeholder="Who did this update come from?">
                 </div>
                 <div class="form-group">
                     <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
@@ -3569,7 +3589,7 @@
     let spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
 
     const MAX_UPDATES = 5;
-    function _emptyUpdate() { return { title: '', body: '', photos: [], photo_positions: [] }; }
+    function _emptyUpdate() { return { title: '', body: '', from: '', photos: [], photo_positions: [] }; }
     function _emptyUpdates() {
         var arr = [];
         for (var i = 0; i < MAX_UPDATES; i++) arr.push(_emptyUpdate());
@@ -3699,6 +3719,8 @@
         if (!show) {
             document.getElementById('update' + n + 'Title').value = '';
             document.getElementById('update' + n + 'Body').value = '';
+            var _fClear = document.getElementById('update' + n + 'From');
+            if (_fClear) _fClear.value = '';
             updates[n - 1] = _emptyUpdate();
             renderUpdatePhotos(n - 1);
             // Hide any higher blocks too so the visible set stays contiguous.
@@ -3919,8 +3941,10 @@
         for (var _un = 1; _un <= MAX_UPDATES; _un++) {
             var _ut = document.getElementById('update' + _un + 'Title');
             var _ub = document.getElementById('update' + _un + 'Body');
+            var _uf = document.getElementById('update' + _un + 'From');
             if (_ut) _ut.value = '';
             if (_ub) _ub.value = '';
+            if (_uf) _uf.value = '';
             var _ublock = document.getElementById('updateBlock' + _un);
             if (_ublock) _ublock.style.display = (_un <= 2) ? 'block' : 'none';
             renderUpdatePhotos(_un - 1);
@@ -5328,6 +5352,7 @@
     function collectUpdatesData() {
         updates[0].title = document.getElementById('update1Title').value.trim();
         updates[0].body = document.getElementById('update1Body').value.trim();
+        updates[0].from = (document.getElementById('update1From') || {}).value ? document.getElementById('update1From').value.trim() : '';
         // Updates 2..N — only overwrite from the DOM when the block is actually
         // shown. When it's hidden, PRESERVE any loaded content instead of wiping
         // it (a resumed multi-update draft used to lose hidden updates here).
@@ -5337,6 +5362,8 @@
                 if (!updates[n - 1]) updates[n - 1] = _emptyUpdate();
                 updates[n - 1].title = document.getElementById('update' + n + 'Title').value.trim();
                 updates[n - 1].body = document.getElementById('update' + n + 'Body').value.trim();
+                var fEl = document.getElementById('update' + n + 'From');
+                updates[n - 1].from = fEl ? fEl.value.trim() : (updates[n - 1].from || '');
             }
         }
     }
@@ -6075,6 +6102,8 @@
             if (updates[0]) {
                 document.getElementById('update1Title').value = updates[0].title || '';
                 document.getElementById('update1Body').value = updates[0].body || '';
+                var _rf1 = document.getElementById('update1From');
+                if (_rf1) _rf1.value = updates[0].from || '';
                 renderUpdatePhotos(0);
             }
             for (var _rn = 2; _rn <= MAX_UPDATES; _rn++) {
@@ -6085,8 +6114,10 @@
                     if (_rblock) _rblock.style.display = 'block';
                     var _rt = document.getElementById('update' + _rn + 'Title');
                     var _rb = document.getElementById('update' + _rn + 'Body');
+                    var _rfn = document.getElementById('update' + _rn + 'From');
                     if (_rt) _rt.value = _ru.title || '';
                     if (_rb) _rb.value = _ru.body || '';
+                    if (_rfn) _rfn.value = _ru.from || '';
                     renderUpdatePhotos(_rn - 1);
                 }
             }
@@ -7720,6 +7751,7 @@
         }
         updates[slot].title = title;
         updates[slot].body = body;
+        updates[slot].from = sub.submitter_name || sub.submitted_by || '';
         // Carry photos from the submission (feed posts attach them as files).
         var photos = [];
         (sub.files || []).forEach(function(f) {
@@ -7739,8 +7771,10 @@
         }
         var tt = document.getElementById('update' + n + 'Title');
         var bb = document.getElementById('update' + n + 'Body');
+        var ff = document.getElementById('update' + n + 'From');
         if (tt) tt.value = updates[slot].title;
         if (bb) bb.value = updates[slot].body;
+        if (ff) ff.value = updates[slot].from || '';
         renderUpdatePhotos(slot);
         var tgl = document.getElementById('updatesToggle'); if (tgl) tgl.checked = true;
         var area = document.getElementById('updatesFieldsArea'); if (area) area.style.display = 'block';
