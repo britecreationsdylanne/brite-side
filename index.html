@@ -1843,9 +1843,402 @@
             }
             .team-section { padding: 24px 20px; }
         }
+
+        /* ============================================
+           APP SHELL: LEFT SIDEBAR NAV
+           ============================================ */
+        body { padding-left: 260px; }
+        #appSidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 240px;
+            background: #232936;
+            border-right: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            flex-direction: column;
+            z-index: 900;
+        }
+        .sidebar-logo {
+            padding: 22px 20px 18px;
+            font-size: 20px;
+            font-weight: 400;
+            color: #fff;
+            letter-spacing: 0.2px;
+        }
+        .sidebar-logo b { color: #31D7CA; font-weight: 800; }
+        .sidebar-logo .sparkle { color: #FE8916; font-size: 14px; }
+        .sidebar-nav { padding: 4px 10px; display: flex; flex-direction: column; gap: 3px; }
+        .sidebar-nav a {
+            display: block;
+            padding: 11px 14px;
+            border-radius: 10px;
+            color: rgba(255,255,255,0.72);
+            font-size: 14.5px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .sidebar-nav a.active { background: #018181; color: #fff; font-weight: 600; }
+        .sidebar-user {
+            margin-top: auto;
+            padding: 14px 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.85);
+            font-size: 13.5px;
+        }
+        .sidebar-user .avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: #FE8916;
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .sidebar-user .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .sidebar-user .who { overflow: hidden; }
+        .sidebar-user .who .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-user .who .rl { font-size: 11.5px; color: rgba(255,255,255,0.45); }
+        #sidebarToggle {
+            display: none;
+            position: fixed;
+            top: 12px; left: 12px;
+            z-index: 1001;
+            width: 42px; height: 42px;
+            border: none;
+            border-radius: 10px;
+            background: #232936;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+        }
+        #sidebarBackdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 899;
+        }
+        @media (max-width: 800px) {
+            body { padding-left: 20px; }
+            #appSidebar { transform: translateX(-102%); transition: transform 0.22s ease; box-shadow: none; }
+            #appSidebar.open { transform: none; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+            #sidebarToggle { display: block; }
+            #sidebarBackdrop.show { display: block; }
+        }
+
+        /* ============================================
+           FEED
+           ============================================ */
+        .feed-section { max-width: 640px; margin: 0 auto; }
+        .feed-heading { color: #fff; font-size: 22px; font-weight: 800; margin: 6px 0 16px; }
+        .feed-heading small { display: block; font-weight: 400; font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 3px; }
+        .feed-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+        }
+        .composer textarea {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 11px 13px;
+            font-size: 14.5px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 58px;
+        }
+        .composer textarea:focus, .composer input:focus { outline: none; border-color: #018181; }
+        .composer .composer-top { display: flex; gap: 10px; align-items: flex-start; }
+        .composer .composer-fields { flex: 1; min-width: 0; }
+        .composer input.composer-title {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 9px 13px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            margin-bottom: 8px;
+            display: none;
+        }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+        .chip {
+            border: 1.5px solid #d1d5db;
+            background: #fff;
+            color: #4b5563;
+            border-radius: 999px;
+            padding: 6px 13px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .chip:hover { border-color: #018181; color: #018181; }
+        .chip.active { background: #018181; border-color: #018181; color: #fff; }
+        .chip-hint { font-size: 11.5px; color: #9ca3af; margin-top: 7px; min-height: 15px; }
+        .composer-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .composer-tool {
+            border: none;
+            background: #f3f4f6;
+            color: #374151;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .composer-tool:hover { background: #e5e7eb; }
+        .composer-post-btn {
+            margin-left: auto;
+            border: none;
+            background: #018181;
+            color: #fff;
+            border-radius: 9px;
+            padding: 9px 20px;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .composer-post-btn:hover { background: #016a6a; }
+        .composer-post-btn:disabled { opacity: 0.55; cursor: default; }
+        .composer-media-strip, .post-media { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .composer-media-strip .thumb { position: relative; }
+        .composer-media-strip img, .composer-media-strip video { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; display: block; }
+        .composer-media-strip .rm {
+            position: absolute; top: -6px; right: -6px;
+            width: 20px; height: 20px;
+            border: none; border-radius: 50%;
+            background: #272d3f; color: #fff;
+            font-size: 12px; line-height: 1;
+            cursor: pointer;
+        }
+        .link-input-row { display: none; gap: 8px; margin-top: 10px; }
+        .link-input-row input { flex: 1; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: inherit; }
+        .link-card {
+            display: flex; gap: 12px; align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-top: 10px;
+            background: #fafafa;
+            text-decoration: none;
+            position: relative;
+        }
+        .link-card img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+        .link-card .lc-title { font-size: 13.5px; font-weight: 700; color: #272d3f; }
+        .link-card .lc-desc { font-size: 12px; color: #6b7280; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .link-card .lc-url { font-size: 11px; color: #9ca3af; margin-top: 2px; word-break: break-all; }
+        .link-card .rm {
+            position: absolute; top: -6px; right: -6px;
+            width: 20px; height: 20px;
+            border: none; border-radius: 50%;
+            background: #272d3f; color: #fff;
+            font-size: 12px; line-height: 1;
+            cursor: pointer;
+        }
+        .post-head { display: flex; gap: 10px; align-items: center; }
+        .post-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: #018181;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .post-avatar.system { background: #FE8916; }
+        .post-who { flex: 1; min-width: 0; }
+        .post-who .nm { font-weight: 700; font-size: 14.5px; color: #272d3f; }
+        .post-who .meta { font-size: 12px; color: #9ca3af; }
+        .post-cat {
+            font-size: 11px;
+            font-weight: 700;
+            color: #018181;
+            background: #e6f4f4;
+            border-radius: 999px;
+            padding: 3px 10px;
+            white-space: nowrap;
+        }
+        .post-cat.auto { color: #b45309; background: #fef3e2; }
+        .post-menu-btn {
+            border: none; background: none;
+            color: #9ca3af;
+            font-size: 17px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+        .post-menu-btn:hover { background: #f3f4f6; color: #374151; }
+        .post-title { font-size: 16px; font-weight: 800; color: #272d3f; margin: 10px 0 0; }
+        .post-body { font-size: 14.5px; color: #374151; margin-top: 8px; white-space: pre-wrap; word-wrap: break-word; }
+        .post-media img, .post-media video {
+            max-width: 100%;
+            border-radius: 10px;
+            display: block;
+            max-height: 420px;
+            object-fit: cover;
+            flex: 1 1 45%;
+            min-width: 140px;
+        }
+        .post-foot { display: flex; align-items: center; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+        .react-btn {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            border-radius: 999px;
+            padding: 5px 11px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #4b5563;
+            transition: all 0.12s;
+        }
+        .react-btn:hover { border-color: #018181; }
+        .react-btn.mine { background: #e6f4f4; border-color: #018181; color: #016a6a; font-weight: 700; }
+        .comment-toggle-btn {
+            border: none; background: none;
+            color: #6b7280;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 8px;
+        }
+        .comment-toggle-btn:hover { background: #f3f4f6; }
+        .newsletter-badge {
+            margin-left: auto;
+            font-size: 11px;
+            font-weight: 700;
+            color: #016a6a;
+            background: #d9f2ef;
+            border-radius: 999px;
+            padding: 4px 11px;
+            white-space: nowrap;
+        }
+        .comments-wrap { margin-top: 12px; border-top: 1px solid #f3f4f6; padding-top: 12px; display: none; }
+        .comment-row { display: flex; gap: 9px; margin-bottom: 10px; }
+        .comment-row .post-avatar { width: 30px; height: 30px; font-size: 11px; }
+        .comment-bubble { background: #f3f4f6; border-radius: 12px; padding: 8px 12px; flex: 1; min-width: 0; }
+        .comment-bubble .cnm { font-size: 12.5px; font-weight: 700; color: #272d3f; }
+        .comment-bubble .cbody { font-size: 13.5px; color: #374151; white-space: pre-wrap; word-wrap: break-word; }
+        .comment-bubble .cmeta { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .comment-del { border: none; background: none; color: #d1d5db; cursor: pointer; font-size: 13px; align-self: center; }
+        .comment-del:hover { color: #ef4444; }
+        .comment-input-row { display: flex; gap: 8px; }
+        .comment-input-row input { flex: 1; border: 1.5px solid #e5e7eb; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-family: inherit; }
+        .comment-input-row input:focus { outline: none; border-color: #018181; }
+        .comment-input-row button {
+            border: none; background: #018181; color: #fff;
+            border-radius: 999px; padding: 8px 16px;
+            font-size: 12.5px; font-weight: 700; cursor: pointer;
+        }
+        .feed-loadmore {
+            display: block;
+            margin: 4px auto 40px;
+            border: 1.5px solid rgba(255,255,255,0.35);
+            background: none;
+            color: #fff;
+            border-radius: 999px;
+            padding: 9px 26px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .feed-loadmore:hover { background: rgba(255,255,255,0.1); }
+        .feed-empty { text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; padding: 30px 0 50px; }
+        .post-edit-area textarea, .post-edit-area input {
+            width: 100%;
+            border: 1.5px solid #018181;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            margin-top: 8px;
+        }
+        .post-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .feed-badge {
+            display: inline-block;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #016a6a;
+            background: #d9f2ef;
+            border-radius: 999px;
+            padding: 2px 8px;
+            margin-right: 6px;
+            vertical-align: 1px;
+        }
+
+        /* ============================================
+           TEAM DIRECTORY
+           ============================================ */
+        .dir-section { max-width: 1000px; margin: 0 auto; }
+        .dir-heading { color: #fff; font-size: 22px; font-weight: 800; margin: 6px 0 16px; }
+        .dir-search {
+            width: 100%;
+            max-width: 420px;
+            border: none;
+            border-radius: 999px;
+            padding: 11px 18px;
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        }
+        .dir-search:focus { outline: 2px solid #31D7CA; }
+        .dir-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+            gap: 14px;
+            padding-bottom: 40px;
+        }
+        .dir-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px 16px 16px;
+            text-align: center;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+        }
+        .dir-card .post-avatar { width: 64px; height: 64px; font-size: 20px; margin: 0 auto 10px; }
+        .dir-card .dnm { font-weight: 800; font-size: 15px; color: #272d3f; }
+        .dir-card .dtl { font-size: 12.5px; color: #018181; font-weight: 600; margin-top: 2px; min-height: 16px; }
+        .dir-card .ddp { font-size: 11.5px; color: #9ca3af; margin-top: 1px; }
+        .dir-card .dml { font-size: 11.5px; color: #6b7280; text-decoration: none; display: inline-block; margin-top: 7px; word-break: break-all; }
+        .dir-card .dml:hover { color: #018181; text-decoration: underline; }
+        .dir-card .ddates { font-size: 11px; color: #b45309; margin-top: 7px; }
+        .dir-count { color: rgba(255,255,255,0.55); font-size: 12.5px; margin: -8px 0 14px; }
     </style>
 </head>
 <body>
+    <!-- =============== APP SHELL: SIDEBAR =============== -->
+    <button id="sidebarToggle" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+    <div id="appSidebar">
+        <div class="sidebar-logo">the <b>brite</b>side <span class="sparkle">&#10022;</span></div>
+        <div class="sidebar-nav">
+            <a id="navFeed" onclick="navTo('feed')">Feed</a>
+            <a id="navBuild" onclick="navTo('build')" style="display:none;">Newsletter builder</a>
+            <a id="navSubmit" onclick="navTo('submit')">Newsletter entry</a>
+            <a id="navDirectory" onclick="navTo('directory')">Team directory</a>
+        </div>
+        <div class="sidebar-user">
+            <div class="avatar" id="sidebarAvatar"></div>
+            <div class="who">
+                <div class="nm" id="sidebarUserName"></div>
+                <div class="rl" id="sidebarUserRole"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <!-- =============== HEADER =============== -->
         <div class="header">
@@ -2831,6 +3224,56 @@
         </div>
     </div>
 
+    <!-- =============== FEED =============== -->
+    <div class="feed-section" id="feedSection" style="display:none;">
+        <div class="feed-heading">Feed
+            <small>Share wins, updates, questions, and fun — newsletter-worthy posts flow straight into the next issue.</small>
+        </div>
+
+        <!-- Composer -->
+        <div class="feed-card composer">
+            <div class="composer-top">
+                <div class="post-avatar" id="composerAvatar"></div>
+                <div class="composer-fields">
+                    <input type="text" class="composer-title" id="composerTitle" maxlength="150" placeholder="Add a headline (optional)">
+                    <textarea id="composerBody" maxlength="4000" placeholder="Share something with BriteCo..." oninput="composerChanged()"></textarea>
+                </div>
+            </div>
+            <div class="chip-row" id="composerChips">
+                <button class="chip active" data-cat="team_update" onclick="pickChip(this)">Team update</button>
+                <button class="chip" data-cat="shout_out" onclick="pickChip(this)">Shout-out</button>
+                <button class="chip" data-cat="fun_media" onclick="pickChip(this)">Fun &amp; media</button>
+                <button class="chip" data-cat="question" onclick="pickChip(this)">Question</button>
+            </div>
+            <div class="chip-hint" id="chipHint"></div>
+            <div class="composer-media-strip" id="composerMediaStrip"></div>
+            <div class="link-input-row" id="linkInputRow">
+                <input type="url" id="linkInput" placeholder="Paste a link (https://...)" onkeydown="if(event.key==='Enter'){fetchLinkCard();}">
+                <button class="composer-tool" onclick="fetchLinkCard()">Add</button>
+            </div>
+            <div id="composerLinkCard"></div>
+            <div class="composer-actions">
+                <input type="file" id="composerFileInput" accept="image/*,video/*" multiple style="display:none;" onchange="composerFilesPicked(this)">
+                <button class="composer-tool" onclick="document.getElementById('composerFileInput').click()">&#128247; Photo / video</button>
+                <button class="composer-tool" onclick="toggleLinkInput()">&#128279; Link</button>
+                <button class="composer-tool" onclick="toggleComposerTitle()">&#9998; Headline</button>
+                <button class="composer-post-btn" id="composerPostBtn" onclick="submitPost()">Post</button>
+            </div>
+        </div>
+
+        <div id="feedList"></div>
+        <div class="feed-empty" id="feedEmpty" style="display:none;">Nothing here yet — be the first to post!</div>
+        <button class="feed-loadmore" id="feedLoadMore" style="display:none;" onclick="loadFeed(false)">Show more</button>
+    </div>
+
+    <!-- =============== TEAM DIRECTORY =============== -->
+    <div class="dir-section" id="directorySection" style="display:none;">
+        <div class="dir-heading">Team directory</div>
+        <input type="text" class="dir-search" id="dirSearch" placeholder="Search by name, title, or department..." oninput="renderDirectory()">
+        <div class="dir-count" id="dirCount"></div>
+        <div class="dir-grid" id="dirGrid"></div>
+    </div>
+
     <!-- ====================================================
          JAVASCRIPT
          ==================================================== -->
@@ -3077,17 +3520,18 @@
                 id: window.AUTH_USER.email
             });
         }
-        // Routing: '/' is the builder for editors; '/entry' (SUBMIT_ENTRY_MODE)
-        // and any non-editor get the submission form.
+        // Routing: the feed is home for everyone; '/entry' (SUBMIT_ENTRY_MODE)
+        // still lands on the submission form so old links keep working. The
+        // builder is one sidebar click away for editors.
         var isEditor = !!(window.AUTH_USER && window.AUTH_USER.is_editor);
         var entryMode = !!window.SUBMIT_ENTRY_MODE;
-        if (entryMode || !isEditor) {
-            showAppView('submit');
-        } else {
-            showAppView('build');
-        }
+        var navBuild = document.getElementById('navBuild');
+        if (navBuild) navBuild.style.display = isEditor ? '' : 'none';
+        showAppView(entryMode ? 'submit' : 'feed');
+        // The sidebar replaces the old header entry link.
         var entryLink = document.getElementById('entryLink');
-        if (entryLink) entryLink.style.display = (isEditor && !entryMode) ? '' : 'none';
+        if (entryLink) entryLink.style.display = 'none';
+        initSidebarUser();
         var startBtn = document.getElementById('startOverBtn');
         if (startBtn && !isEditor) startBtn.style.display = 'none';
     }
@@ -6470,20 +6914,58 @@
     var _correctionFiles = [];
 
     function showAppView(view) {
-        var isSubmit = (view === 'submit');
-        var buildEls = [document.querySelector('.container'),
-                        document.getElementById('draftsSection'),
-                        document.getElementById('publishedSection'),
-                        document.getElementById('teamSection')];
-        buildEls.forEach(function(el) { if (el) el.style.display = isSubmit ? 'none' : ''; });
-        var submitEl = document.getElementById('submitSection');
-        if (submitEl) submitEl.style.display = isSubmit ? 'block' : 'none';
+        // Four views hang off the sidebar: feed (default for everyone),
+        // build (editors only), submit (newsletter entry), directory.
+        // Non-editors asking for build get bounced to the feed.
+        var isEditor = !!(window.AUTH_USER && window.AUTH_USER.is_editor);
+        if (view === 'build' && !isEditor) view = 'feed';
+
+        var groups = {
+            build: [document.querySelector('.container'),
+                    document.getElementById('draftsSection'),
+                    document.getElementById('publishedSection'),
+                    document.getElementById('teamSection')],
+            submit: [document.getElementById('submitSection')],
+            feed: [document.getElementById('feedSection')],
+            directory: [document.getElementById('directorySection')]
+        };
+        Object.keys(groups).forEach(function(key) {
+            groups[key].forEach(function(el) {
+                if (el) el.style.display = (key === view) ? '' : 'none';
+            });
+        });
+
+        var navIds = { feed: 'navFeed', build: 'navBuild', submit: 'navSubmit', directory: 'navDirectory' };
+        Object.keys(navIds).forEach(function(key) {
+            var el = document.getElementById(navIds[key]);
+            if (el) el.classList.toggle('active', key === view);
+        });
+
         window._appView = view;
-        if (!isSubmit && !window._inboxLoaded && window.AUTH_USER && window.AUTH_USER.is_editor) {
+
+        // Lazy loads per view. The feed refreshes on every visit (no polling
+        // by design — load/nav is the refresh).
+        if (view === 'build' && !window._inboxLoaded && isEditor) {
             window._inboxLoaded = true;
             loadAllSubmissions();
         }
+        if (view === 'feed') loadFeed(true);
+        if (view === 'directory') loadDirectory();
         window.scrollTo(0, 0);
+    }
+
+    function navTo(view) {
+        showAppView(view);
+        toggleSidebar(false);
+    }
+
+    function toggleSidebar(force) {
+        var sb = document.getElementById('appSidebar');
+        var bd = document.getElementById('sidebarBackdrop');
+        if (!sb) return;
+        var open = (typeof force === 'boolean') ? force : !sb.classList.contains('open');
+        sb.classList.toggle('open', open);
+        if (bd) bd.classList.toggle('show', open);
     }
 
     function showSubmitFlow(which) {
@@ -6859,7 +7341,9 @@
     function _entryMeta(s, extra) {
         var who = s.submitted_by || s.email || 'Unknown';
         var when = s.submitted_at ? (' · ' + String(s.submitted_at).slice(0, 10)) : '';
-        return escapeHtml(who + when) + (extra ? ' · ' + escapeHtml(extra) : '');
+        // Posts dual-written from the BriteSide feed carry source='feed'.
+        var badge = (s.source === 'feed') ? '<span class="feed-badge">from the feed</span>' : '';
+        return badge + escapeHtml(who + when) + (extra ? ' · ' + escapeHtml(extra) : '');
     }
     function _subRefreshLink() {
         return ' <a href="javascript:void(0)" onclick="loadAllSubmissions()">&#8635; refresh</a>';
@@ -6940,6 +7424,520 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(function() { showToast('Copied to clipboard'); }, function() { window.prompt('Copy:', text); });
         } else { window.prompt('Copy:', text); }
+    }
+
+    /* ============================================================
+       FEED (BriteSide social feed)
+       ============================================================ */
+    var _feedPosts = [];
+    var _feedViewer = { email: '', is_editor: false };
+    var _feedCursor = null;
+    var _feedLoading = false;
+    var _dirCache = null;      // email -> directory row (for avatars/titles)
+    var _dirList = [];
+    var _dirIsEditor = false;
+    var _composer = { category: 'team_update', media: [], link_card: null };
+
+    var REACTIONS = [
+        { key: 'heart', emoji: '❤️' },
+        { key: 'celebrate', emoji: '🎉' },
+        { key: 'clap', emoji: '👏' },
+        { key: 'laugh', emoji: '😂' }
+    ];
+    var CATEGORY_LABELS = {
+        team_update: 'Team update', shout_out: 'Shout-out', fun_media: 'Fun & media',
+        question: 'Question', birthday: 'Birthday', anniversary: 'Anniversary'
+    };
+    var CHIP_HINTS = {
+        team_update: 'Also lands in the newsletter’s Company updates queue.',
+        shout_out: 'Also lands in the newsletter’s Fun & Media queue as a shout-out.',
+        fun_media: 'Also lands in the newsletter’s Fun & Media queue.',
+        question: 'Feed only — questions don’t go into the newsletter.'
+    };
+
+    function ensureDirectory(force) {
+        if (_dirCache && !force) return Promise.resolve(_dirCache);
+        return fetch(API_BASE + '/api/directory')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                _dirCache = {};
+                _dirList = (d && d.success && d.employees) || [];
+                _dirIsEditor = !!(d && d.is_editor);
+                _dirList.forEach(function(e) { _dirCache[(e.email || '').toLowerCase()] = e; });
+                initSidebarUser();
+                return _dirCache;
+            })
+            .catch(function() { _dirCache = _dirCache || {}; return _dirCache; });
+    }
+
+    function initialsOf(name, email) {
+        var src = (name || email || '?').trim();
+        var parts = src.split(/\s+/);
+        var ini = (parts[0] ? parts[0][0] : '') + (parts.length > 1 ? parts[parts.length - 1][0] : '');
+        return (ini || '?').toUpperCase();
+    }
+
+    function avatarHtmlInner(email, name) {
+        var rec = _dirCache && _dirCache[(email || '').toLowerCase()];
+        if (rec && rec.photo_url) {
+            return '<img src="' + escapeAttr(rec.photo_url) + '" alt="">';
+        }
+        return escapeHtml(initialsOf(name, email));
+    }
+
+    function initSidebarUser() {
+        var user = window.AUTH_USER || {};
+        var nm = document.getElementById('sidebarUserName');
+        var rl = document.getElementById('sidebarUserRole');
+        var av = document.getElementById('sidebarAvatar');
+        if (nm) nm.textContent = user.name || user.email || '';
+        if (rl) rl.textContent = user.is_editor ? 'Editor' : 'Contributor';
+        if (av) av.innerHTML = avatarHtmlInner(user.email, user.name);
+    }
+
+    function timeAgo(iso) {
+        if (!iso) return '';
+        var then = new Date(iso).getTime();
+        if (isNaN(then)) return String(iso).slice(0, 10);
+        var s = Math.floor((Date.now() - then) / 1000);
+        if (s < 60) return 'just now';
+        var m = Math.floor(s / 60); if (m < 60) return m + 'm';
+        var h = Math.floor(m / 60); if (h < 24) return h + 'h';
+        var d = Math.floor(h / 24); if (d < 7) return d + 'd';
+        return String(iso).slice(0, 10);
+    }
+
+    function loadFeed(reset) {
+        if (_feedLoading) return;
+        _feedLoading = true;
+        if (reset) { _feedPosts = []; _feedCursor = null; }
+        var url = API_BASE + '/api/feed/posts?limit=20' +
+            (_feedCursor ? '&before=' + encodeURIComponent(_feedCursor) : '');
+        Promise.all([ensureDirectory(), fetch(url).then(function(r) { return r.json(); })])
+            .then(function(res) {
+                var d = res[1];
+                _feedLoading = false;
+                if (!d || !d.success) return;
+                if (d.viewer) _feedViewer = d.viewer;
+                _feedPosts = _feedPosts.concat(d.posts || []);
+                if (d.posts && d.posts.length) _feedCursor = d.posts[d.posts.length - 1].created_at;
+                var more = document.getElementById('feedLoadMore');
+                if (more) more.style.display = d.has_more ? 'block' : 'none';
+                renderFeed();
+                var meAv = document.getElementById('composerAvatar');
+                if (meAv && window.AUTH_USER) meAv.innerHTML = avatarHtmlInner(window.AUTH_USER.email, window.AUTH_USER.name);
+                var hint = document.getElementById('chipHint');
+                if (hint && !hint.textContent) hint.textContent = CHIP_HINTS[_composer.category] || '';
+            })
+            .catch(function() { _feedLoading = false; });
+    }
+
+    function renderFeed() {
+        var list = document.getElementById('feedList');
+        if (!list) return;
+        list.innerHTML = _feedPosts.map(renderPost).join('');
+        var empty = document.getElementById('feedEmpty');
+        if (empty) empty.style.display = _feedPosts.length ? 'none' : 'block';
+    }
+
+    function renderPost(p) {
+        var isAuto = (p.category === 'birthday' || p.category === 'anniversary');
+        var mine = _feedViewer.email && p.author_email === _feedViewer.email;
+        var canDelete = mine || _feedViewer.is_editor;
+        var rec = _dirCache && _dirCache[(p.author_email || '').toLowerCase()];
+        var metaBits = [];
+        if (rec && rec.title && !isAuto) metaBits.push(rec.title);
+        metaBits.push(timeAgo(p.created_at));
+        var edited = (p.updated_at && p.updated_at !== p.created_at && !isAuto);
+
+        var h = '<div class="feed-card" id="post-' + escapeAttr(p.id) + '">';
+        h += '<div class="post-head">';
+        h += '<div class="post-avatar' + (isAuto ? ' system' : '') + '">' +
+            (isAuto ? '&#10022;' : avatarHtmlInner(p.author_email, p.author_name)) + '</div>';
+        h += '<div class="post-who"><div class="nm">' + escapeHtml(p.author_name || p.author_email) + '</div>';
+        h += '<div class="meta">' + escapeHtml(metaBits.join(' · ')) + (edited ? ' · edited' : '') + '</div></div>';
+        h += '<span class="post-cat' + (isAuto ? ' auto' : '') + '">' +
+            escapeHtml(CATEGORY_LABELS[p.category] || p.category) + '</span>';
+        if (mine && !isAuto) h += '<button class="post-menu-btn" title="Edit" onclick="startEditPost(\'' + escapeAttr(p.id) + '\')">&#9998;</button>';
+        if (canDelete) h += '<button class="post-menu-btn" title="Delete" onclick="deletePost(\'' + escapeAttr(p.id) + '\')">&#128465;</button>';
+        h += '</div>';
+
+        h += '<div id="postContent-' + escapeAttr(p.id) + '">';
+        if (p.title) h += '<div class="post-title">' + escapeHtml(p.title) + '</div>';
+        if (p.body) h += '<div class="post-body">' + escapeHtml(p.body) + '</div>';
+        h += '</div>';
+
+        if (p.media && p.media.length) {
+            h += '<div class="post-media">';
+            p.media.forEach(function(u) {
+                if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) h += '<video src="' + escapeAttr(u) + '" controls></video>';
+                else h += '<img src="' + escapeAttr(u) + '" alt="" loading="lazy">';
+            });
+            h += '</div>';
+        }
+        if (p.link_card && p.link_card.url) {
+            var lc = p.link_card;
+            h += '<a class="link-card" href="' + escapeAttr(lc.url) + '" target="_blank" rel="noopener noreferrer">';
+            if (lc.image) h += '<img src="' + escapeAttr(lc.image) + '" alt="">';
+            h += '<div>' + (lc.title ? '<div class="lc-title">' + escapeHtml(lc.title) + '</div>' : '') +
+                (lc.description ? '<div class="lc-desc">' + escapeHtml(lc.description) + '</div>' : '') +
+                '<div class="lc-url">' + escapeHtml(lc.url) + '</div></div></a>';
+        }
+
+        h += '<div class="post-foot">';
+        REACTIONS.forEach(function(r) {
+            var who = (p.reactions && p.reactions[r.key]) || [];
+            var mineR = _feedViewer.email && who.indexOf(_feedViewer.email) !== -1;
+            h += '<button class="react-btn' + (mineR ? ' mine' : '') + '" onclick="toggleReaction(\'' +
+                escapeAttr(p.id) + '\',\'' + r.key + '\')">' + r.emoji + (who.length ? ' ' + who.length : '') + '</button>';
+        });
+        var cc = p.comment_count || 0;
+        h += '<button class="comment-toggle-btn" onclick="toggleComments(\'' + escapeAttr(p.id) + '\')">&#128172; ' +
+            cc + ' comment' + (cc === 1 ? '' : 's') + '</button>';
+        if (p.used_in_issue) h += '<span class="newsletter-badge">&#128278; In the newsletter</span>';
+        h += '</div>';
+
+        h += '<div class="comments-wrap" id="comments-' + escapeAttr(p.id) + '">' +
+            '<div id="commentList-' + escapeAttr(p.id) + '"></div>' +
+            '<div class="comment-input-row">' +
+            '<input type="text" id="commentInput-' + escapeAttr(p.id) + '" maxlength="1000" placeholder="Write a comment..." ' +
+            'onkeydown="if(event.key===\'Enter\'){addComment(\'' + escapeAttr(p.id) + '\');}">' +
+            '<button onclick="addComment(\'' + escapeAttr(p.id) + '\')">Send</button></div></div>';
+        h += '</div>';
+        return h;
+    }
+
+    function _findPost(id) {
+        for (var i = 0; i < _feedPosts.length; i++) if (_feedPosts[i].id === id) return _feedPosts[i];
+        return null;
+    }
+
+    function refreshPostCard(p) {
+        var el = document.getElementById('post-' + p.id);
+        if (!el) { renderFeed(); return; }
+        var commentsEl = el.querySelector('.comments-wrap');
+        var wasOpen = commentsEl && commentsEl.style.display === 'block';
+        var wrap = document.createElement('div');
+        wrap.innerHTML = renderPost(p);
+        el.parentNode.replaceChild(wrap.firstChild, el);
+        if (wasOpen) toggleComments(p.id, true);
+    }
+
+    function refreshPostCardById(postId) {
+        var p = _findPost(postId);
+        if (p) refreshPostCard(p);
+    }
+
+    function toggleReaction(postId, key) {
+        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId) + '/react', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reaction: key })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                var p = _findPost(postId);
+                if (p) { p.reactions = d.reactions || {}; refreshPostCard(p); }
+            }
+        }).catch(function() {});
+    }
+
+    function toggleComments(postId, forceOpen) {
+        var wrap = document.getElementById('comments-' + postId);
+        if (!wrap) return;
+        var open = (forceOpen === true) || wrap.style.display !== 'block';
+        wrap.style.display = open ? 'block' : 'none';
+        if (open) loadComments(postId);
+    }
+
+    function loadComments(postId) {
+        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId) + '/comments')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d || !d.success) return;
+                var el = document.getElementById('commentList-' + postId);
+                if (el) el.innerHTML = (d.comments || []).map(function(c) { return renderComment(postId, c); }).join('');
+            })
+            .catch(function() {});
+    }
+
+    function renderComment(postId, c) {
+        var mine = _feedViewer.email && c.author_email === _feedViewer.email;
+        var canDel = mine || _feedViewer.is_editor;
+        return '<div class="comment-row">' +
+            '<div class="post-avatar">' + avatarHtmlInner(c.author_email, c.author_name) + '</div>' +
+            '<div class="comment-bubble"><span class="cnm">' + escapeHtml(c.author_name || c.author_email) + '</span>' +
+            '<div class="cbody">' + escapeHtml(c.body || '') + '</div>' +
+            '<div class="cmeta">' + escapeHtml(timeAgo(c.created_at)) + '</div></div>' +
+            (canDel ? '<button class="comment-del" title="Delete" onclick="deleteComment(\'' + escapeAttr(postId) +
+                '\',\'' + escapeAttr(c.id) + '\')">&#10005;</button>' : '') +
+            '</div>';
+    }
+
+    function addComment(postId) {
+        var input = document.getElementById('commentInput-' + postId);
+        if (!input) return;
+        var body = input.value.trim();
+        if (!body) return;
+        input.disabled = true;
+        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId) + '/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ body: body })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            input.disabled = false;
+            if (d && d.success) {
+                var p = _findPost(postId);
+                if (p) { p.comment_count = (p.comment_count || 0) + 1; refreshPostCard(p); }
+                else { loadComments(postId); }
+            } else {
+                alert('Comment failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) {
+            input.disabled = false;
+            alert('Comment failed: ' + err.message);
+        });
+    }
+
+    function deleteComment(postId, commentId) {
+        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId) + '/comments/' + encodeURIComponent(commentId), {
+            method: 'DELETE'
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                var p = _findPost(postId);
+                if (p) { p.comment_count = Math.max((p.comment_count || 1) - 1, 0); refreshPostCard(p); }
+                else { loadComments(postId); }
+            }
+        }).catch(function() {});
+    }
+
+    function deletePost(postId) {
+        if (!confirm('Delete this post?')) return;
+        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId), { method: 'DELETE' })
+            .then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.success) {
+                    _feedPosts = _feedPosts.filter(function(p) { return p.id !== postId; });
+                    renderFeed();
+                    showToast('Post deleted');
+                } else {
+                    alert('Delete failed: ' + ((d && d.error) || 'Unknown error'));
+                }
+            }).catch(function(err) { alert('Delete failed: ' + err.message); });
+    }
+
+    function startEditPost(postId) {
+        var p = _findPost(postId);
+        var box = document.getElementById('postContent-' + postId);
+        if (!p || !box) return;
+        box.innerHTML = '<div class="post-edit-area">' +
+            '<input type="text" id="editTitle-' + escapeAttr(postId) + '" maxlength="150" placeholder="Headline (optional)" value="' + escapeAttr(p.title || '') + '">' +
+            '<textarea id="editBody-' + escapeAttr(postId) + '" maxlength="4000" rows="4">' + escapeHtml(p.body || '') + '</textarea>' +
+            '<div class="post-edit-actions">' +
+            '<button class="composer-post-btn" style="margin-left:0;" onclick="saveEditPost(\'' + escapeAttr(postId) + '\')">Save</button>' +
+            '<button class="composer-tool" onclick="refreshPostCardById(\'' + escapeAttr(postId) + '\')">Cancel</button>' +
+            '</div></div>';
+    }
+
+    function saveEditPost(postId) {
+        var titleEl = document.getElementById('editTitle-' + postId);
+        var bodyEl = document.getElementById('editBody-' + postId);
+        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: (titleEl ? titleEl.value : '').trim(),
+                body: (bodyEl ? bodyEl.value : '').trim()
+            })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success && d.post) {
+                for (var i = 0; i < _feedPosts.length; i++) {
+                    if (_feedPosts[i].id === postId) {
+                        d.post.used_in_issue = _feedPosts[i].used_in_issue;
+                        d.post.id = postId;
+                        _feedPosts[i] = d.post;
+                        break;
+                    }
+                }
+                refreshPostCardById(postId);
+                showToast('Post updated');
+            } else {
+                alert('Update failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) { alert('Update failed: ' + err.message); });
+    }
+
+    /* ---- Composer ---- */
+
+    function pickChip(btn) {
+        var chips = document.querySelectorAll('#composerChips .chip');
+        for (var i = 0; i < chips.length; i++) chips[i].classList.remove('active');
+        btn.classList.add('active');
+        _composer.category = btn.getAttribute('data-cat');
+        var hint = document.getElementById('chipHint');
+        if (hint) hint.textContent = CHIP_HINTS[_composer.category] || '';
+    }
+
+    function composerChanged() { /* reserved for draft autosave later */ }
+
+    function toggleComposerTitle() {
+        var el = document.getElementById('composerTitle');
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+        if (el.style.display === 'block') el.focus();
+    }
+
+    function toggleLinkInput() {
+        var row = document.getElementById('linkInputRow');
+        row.style.display = (row.style.display === 'flex') ? 'none' : 'flex';
+        if (row.style.display === 'flex') document.getElementById('linkInput').focus();
+    }
+
+    function composerFilesPicked(input) {
+        Array.prototype.forEach.call(input.files || [], function(file) {
+            if (_composer.media.length >= 8) { alert('Max 8 photos/videos per post.'); return; }
+            uploadMediaFile(file, function(url) {
+                _composer.media.push(url);
+                renderComposerMedia();
+            });
+        });
+        input.value = '';
+    }
+
+    function renderComposerMedia() {
+        var strip = document.getElementById('composerMediaStrip');
+        strip.innerHTML = _composer.media.map(function(u, i) {
+            var inner = /\.(mp4|webm|mov)(\?|$)/i.test(u)
+                ? '<video src="' + escapeAttr(u) + '"></video>'
+                : '<img src="' + escapeAttr(u) + '" alt="">';
+            return '<div class="thumb">' + inner + '<button class="rm" onclick="removeComposerMedia(' + i + ')">&#10005;</button></div>';
+        }).join('');
+    }
+
+    function removeComposerMedia(i) {
+        _composer.media.splice(i, 1);
+        renderComposerMedia();
+    }
+
+    function fetchLinkCard() {
+        var input = document.getElementById('linkInput');
+        var url = (input.value || '').trim();
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) { alert('Links must start with http:// or https://'); return; }
+        input.disabled = true;
+        function done(og) {
+            input.disabled = false;
+            _composer.link_card = {
+                url: url,
+                title: (og && og.title) || '',
+                description: (og && og.description) || '',
+                image: (og && og.image) || ''
+            };
+            input.value = '';
+            document.getElementById('linkInputRow').style.display = 'none';
+            renderComposerLinkCard();
+        }
+        fetch(API_BASE + '/api/media/og-preview?url=' + encodeURIComponent(url))
+            .then(function(r) { return r.json(); })
+            .then(function(d) { done((d && d.success && d.og) || null); })
+            .catch(function() { done(null); });
+    }
+
+    function renderComposerLinkCard() {
+        var box = document.getElementById('composerLinkCard');
+        var lc = _composer.link_card;
+        if (!lc) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div class="link-card">' +
+            (lc.image ? '<img src="' + escapeAttr(lc.image) + '" alt="">' : '') +
+            '<div>' + (lc.title ? '<div class="lc-title">' + escapeHtml(lc.title) + '</div>' : '') +
+            '<div class="lc-url">' + escapeHtml(lc.url) + '</div></div>' +
+            '<button class="rm" onclick="removeComposerLink()">&#10005;</button></div>';
+    }
+
+    function removeComposerLink() {
+        _composer.link_card = null;
+        renderComposerLinkCard();
+    }
+
+    function submitPost() {
+        var bodyEl = document.getElementById('composerBody');
+        var titleEl = document.getElementById('composerTitle');
+        var body = bodyEl.value.trim();
+        var title = (titleEl.style.display === 'block') ? titleEl.value.trim() : '';
+        if (!body && !_composer.media.length && !_composer.link_card) {
+            alert('Write something (or add a photo/link) first.');
+            return;
+        }
+        var btn = document.getElementById('composerPostBtn');
+        btn.disabled = true; btn.textContent = 'Posting...';
+        fetch(API_BASE + '/api/feed/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                category: _composer.category,
+                title: title,
+                body: body,
+                media: _composer.media,
+                link_card: _composer.link_card
+            })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            btn.disabled = false; btn.textContent = 'Post';
+            if (d && d.success && d.post) {
+                bodyEl.value = '';
+                titleEl.value = ''; titleEl.style.display = 'none';
+                _composer.media = []; _composer.link_card = null;
+                renderComposerMedia(); renderComposerLinkCard();
+                _feedPosts.unshift(d.post);
+                renderFeed();
+                showToast('Posted to the feed');
+            } else {
+                alert('Post failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) {
+            btn.disabled = false; btn.textContent = 'Post';
+            alert('Post failed: ' + err.message);
+        });
+    }
+
+    /* ============================================================
+       TEAM DIRECTORY
+       ============================================================ */
+    var DIR_MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    function loadDirectory() {
+        ensureDirectory().then(function() { renderDirectory(); });
+    }
+
+    function renderDirectory() {
+        var grid = document.getElementById('dirGrid');
+        if (!grid) return;
+        var q = (document.getElementById('dirSearch').value || '').trim().toLowerCase();
+        var rows = _dirList.filter(function(e) {
+            if (!q) return true;
+            return ((e.name || '') + ' ' + (e.title || '') + ' ' + (e.department || '')).toLowerCase().indexOf(q) !== -1;
+        });
+        var count = document.getElementById('dirCount');
+        if (count) count.textContent = rows.length + ' of ' + _dirList.length + ' people';
+        grid.innerHTML = rows.map(function(e) {
+            var av = e.photo_url
+                ? '<img src="' + escapeAttr(e.photo_url) + '" alt="">'
+                : escapeHtml(initialsOf(e.name, e.email));
+            var h = '<div class="dir-card">' +
+                '<div class="post-avatar">' + av + '</div>' +
+                '<div class="dnm">' + escapeHtml(e.name || '') + '</div>' +
+                '<div class="dtl">' + escapeHtml(e.title || '') + '</div>' +
+                (e.department ? '<div class="ddp">' + escapeHtml(e.department) + '</div>' : '') +
+                '<a class="dml" href="mailto:' + escapeAttr(e.email || '') + '">' + escapeHtml(e.email || '') + '</a>';
+            if (_dirIsEditor) {
+                var bits = [];
+                if (e.birthday_month && e.birthday_day) {
+                    bits.push('🎂 ' + DIR_MONTHS[e.birthday_month] + ' ' + e.birthday_day);
+                }
+                if (e.anniversary_month && e.anniversary_day) {
+                    bits.push('🎉 ' + DIR_MONTHS[e.anniversary_month] + ' ' + e.anniversary_day +
+                        (e.anniversary_year ? ' · ' + e.anniversary_year : ''));
+                }
+                if (bits.length) h += '<div class="ddates">' + bits.join(' &nbsp; ') + '</div>';
+            }
+            return h + '</div>';
+        }).join('');
     }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>

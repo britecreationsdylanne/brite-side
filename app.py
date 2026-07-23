@@ -480,9 +480,14 @@ def _auth_gate():
 
     if path.startswith('/api/'):
         # Contributor-accessible surface: any signed-in @brite.co user.
-        # (upload-media is shared so contributors can attach files to submissions.)
+        # (upload-media is shared so contributors can attach files to
+        # submissions and feed posts; og-preview powers feed link cards and is
+        # SSRF-guarded by _safe_fetch; /api/feed/* and /api/directory do their
+        # own editor checks internally where needed.)
         if (path == '/api/me' or path.startswith('/api/me/')
-                or path.startswith('/api/submit') or path == '/api/upload-media'):
+                or path.startswith('/api/submit') or path == '/api/upload-media'
+                or path.startswith('/api/feed/') or path == '/api/directory'
+                or path == '/api/media/og-preview'):
             return
         # Editor-only for everything else (roster, AI, render, send, drafts, ...).
         if not is_editor(user):
@@ -2364,6 +2369,17 @@ _QUEUE_COLLECTIONS = {
 }
 
 
+def _queue_collection(sub_type):
+    """Resolve a queue collection from the URL segment, accepting the singular
+    forms the frontend actually sends ('update', 'correction') alongside the
+    plural keys above. Before this, /api/submissions/update 404'd and the
+    builder's updates/corrections panels silently showed empty."""
+    key = (sub_type or '').strip().lower()
+    if key not in _QUEUE_COLLECTIONS and not key.endswith('s'):
+        key += 's'
+    return _QUEUE_COLLECTIONS.get(key)
+
+
 def _now_iso():
     return datetime.now(CHICAGO_TZ).isoformat()
 
@@ -2376,6 +2392,26 @@ def _pick(data, keys):
 
 def _current_email():
     return ((get_current_user() or {}).get('email') or '').strip().lower()
+
+
+# ============================================================================
+# FEED (BriteSide social feed — see backend/feed.py)
+# ============================================================================
+# The feed lives in its own blueprint so app.py stays the composition root and
+# the feed is a teachable, self-contained module. It never imports app.py;
+# everything it needs is handed over here.
+
+from backend.feed import register_feed
+
+register_feed(app, {
+    'firestore_client': firestore_client,
+    'get_current_user': get_current_user,
+    'is_editor': is_editor,
+    'now_iso': _now_iso,
+    'now': lambda: datetime.now(CHICAGO_TZ),
+    'safe_print': safe_print,
+    'list_employees': list_employees,
+})
 
 
 def _add_submission(collection, doc):
@@ -2547,7 +2583,7 @@ def get_spotlight_submission(email):
 @app.route('/api/submissions/<sub_type>', methods=['GET'])
 def list_queue_submissions(sub_type):
     """List a curated queue (updates / culture / corrections / nominations)."""
-    collection = _QUEUE_COLLECTIONS.get(sub_type)
+    collection = _queue_collection(sub_type)
     if not collection:
         return jsonify({'success': False, 'error': 'Unknown submission type'}), 404
     return jsonify({'success': True, 'submissions': _list_collection(collection)})
@@ -2556,7 +2592,7 @@ def list_queue_submissions(sub_type):
 @app.route('/api/submissions/<sub_type>/<sub_id>/status', methods=['POST'])
 def set_submission_status(sub_type, sub_id):
     """Mark a queued submission used/archived so it drops out of the picker."""
-    collection = _QUEUE_COLLECTIONS.get(sub_type)
+    collection = _queue_collection(sub_type)
     if not collection:
         return jsonify({'success': False, 'error': 'Unknown submission type'}), 404
     if not firestore_client:
