@@ -1936,7 +1936,7 @@
         /* ============================================
            FEED
            ============================================ */
-        .feed-section { max-width: 640px; margin: 0 auto; }
+        .feed-section { max-width: 832px; margin: 0 auto; }
         .feed-heading { color: #fff; font-size: 22px; font-weight: 800; margin: 6px 0 16px; }
         .feed-heading small { display: block; font-weight: 400; font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 3px; }
         .feed-card {
@@ -2216,6 +2216,63 @@
         .dir-card .dml:hover { color: #018181; text-decoration: underline; }
         .dir-card .ddates { font-size: 11px; color: #b45309; margin-top: 7px; }
         .dir-count { color: rgba(255,255,255,0.55); font-size: 12.5px; margin: -8px 0 14px; }
+
+        /* Directory admin controls (editors only) */
+        .dir-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+        .dir-toolbar .dir-search { margin-bottom: 0; }
+        .dir-sync-btn {
+            border: none;
+            background: #FE8916;
+            color: #fff;
+            border-radius: 999px;
+            padding: 11px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        }
+        .dir-sync-btn:hover { background: #e57a0c; }
+        .dir-sync-btn:disabled { opacity: 0.6; cursor: default; }
+        .dir-card.inactive { opacity: 0.55; }
+        .dir-badges { margin-top: 6px; min-height: 16px; }
+        .dir-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: 2px 9px;
+            margin: 0 2px;
+        }
+        .dir-badge.editor { color: #016a6a; background: #d9f2ef; }
+        .dir-badge.off { color: #991b1b; background: #fee2e2; }
+        .dir-admin-row { display: flex; justify-content: center; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+        .dir-admin-btn {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            color: #4b5563;
+            border-radius: 8px;
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dir-admin-btn:hover { border-color: #018181; color: #018181; }
+        .dir-admin-btn.danger:hover { border-color: #ef4444; color: #ef4444; }
+        .dir-edit-form { text-align: left; margin-top: 10px; }
+        .dir-edit-form label { display: block; font-size: 10.5px; font-weight: 700; color: #6b7280; margin: 7px 0 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .dir-edit-form input {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 7px;
+            padding: 6px 9px;
+            font-size: 12.5px;
+            font-family: inherit;
+        }
+        .dir-edit-form input:focus { outline: none; border-color: #018181; }
+        .dir-edit-form .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .dir-edit-form .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        .dir-edit-actions { display: flex; gap: 6px; margin-top: 10px; }
+        .dir-edit-actions button { flex: 1; }
     </style>
 </head>
 <body>
@@ -3269,9 +3326,13 @@
     <!-- =============== TEAM DIRECTORY =============== -->
     <div class="dir-section" id="directorySection" style="display:none;">
         <div class="dir-heading">Team directory</div>
-        <input type="text" class="dir-search" id="dirSearch" placeholder="Search by name, title, or department..." oninput="renderDirectory()">
+        <div class="dir-toolbar">
+            <input type="text" class="dir-search" id="dirSearch" placeholder="Search by name, title, or department..." oninput="renderDirectory()">
+            <button class="dir-sync-btn" id="dirSyncBtn" style="display:none;" onclick="runBigQuerySync()">&#8635; Sync from BigQuery</button>
+        </div>
         <div class="dir-count" id="dirCount"></div>
         <div class="dir-grid" id="dirGrid"></div>
+        <input type="file" id="dirPhotoInput" accept="image/*" style="display:none;" onchange="dirPhotoPicked(this)">
     </div>
 
     <!-- ====================================================
@@ -7318,6 +7379,14 @@
 
     // ---- Submitted Entries inbox (editor: browse & pick) ----
     var _allSubs = { spotlight: [], update: [], culture: [], correction: [] };
+    // Used/archived submissions drop out of the panels (matching the status
+    // endpoint's contract) instead of lingering forever. Filtered at fetch
+    // time so the panels' index-based handlers stay aligned with _allSubs.
+    function _openSubs(list) {
+        return (list || []).filter(function(s) {
+            return ['used', 'archived', 'approved'].indexOf(s.status || 'new') === -1;
+        });
+    }
     function loadAllSubmissions() {
         Promise.all([
             _fetchSubs('/api/submissions/spotlight'),
@@ -7325,8 +7394,8 @@
             _fetchSubs('/api/submissions/culture'),
             _fetchSubs('/api/submissions/correction')
         ]).then(function(res) {
-            _allSubs.spotlight = res[0]; _allSubs.update = res[1];
-            _allSubs.culture = res[2]; _allSubs.correction = res[3];
+            _allSubs.spotlight = res[0]; _allSubs.update = _openSubs(res[1]);
+            _allSubs.culture = _openSubs(res[2]); _allSubs.correction = _openSubs(res[3]);
             // Spotlight submissions are surfaced by the picker on the spotlight
             // step (loadSpotlightSubmissions); these panels handle the rest.
             renderUpdateSubs(); renderCultureSubs(); renderCorrectionSubs();
@@ -7901,13 +7970,44 @@
        ============================================================ */
     var DIR_MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+    var _dirEditors = {};      // email -> {locked: bool}, editors only
+    var _dirEditing = null;    // email of the card in edit mode
+    var _dirPhotoTarget = null;
+
     function loadDirectory() {
-        ensureDirectory().then(function() { renderDirectory(); });
+        var jobs = [ensureDirectory()];
+        // Editors also manage editor access; grab the current editor list.
+        if (window.AUTH_USER && window.AUTH_USER.is_editor) {
+            jobs.push(fetch(API_BASE + '/api/editors')
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    _dirEditors = {};
+                    ((d && d.editors) || []).forEach(function(ed) {
+                        _dirEditors[(ed.email || '').toLowerCase()] = { locked: !!ed.locked };
+                    });
+                })
+                .catch(function() {}));
+        }
+        Promise.all(jobs).then(function() { renderDirectory(); });
+    }
+
+    function _dirRefresh() {
+        return ensureDirectory(true).then(function() { return loadDirectory(); });
+    }
+
+    function _dirByEmail(email) {
+        email = (email || '').toLowerCase();
+        for (var i = 0; i < _dirList.length; i++) {
+            if ((_dirList[i].email || '').toLowerCase() === email) return _dirList[i];
+        }
+        return null;
     }
 
     function renderDirectory() {
         var grid = document.getElementById('dirGrid');
         if (!grid) return;
+        var syncBtn = document.getElementById('dirSyncBtn');
+        if (syncBtn) syncBtn.style.display = _dirIsEditor ? '' : 'none';
         var q = (document.getElementById('dirSearch').value || '').trim().toLowerCase();
         var rows = _dirList.filter(function(e) {
             if (!q) return true;
@@ -7915,29 +8015,219 @@
         });
         var count = document.getElementById('dirCount');
         if (count) count.textContent = rows.length + ' of ' + _dirList.length + ' people';
-        grid.innerHTML = rows.map(function(e) {
-            var av = e.photo_url
-                ? '<img src="' + escapeAttr(e.photo_url) + '" alt="">'
-                : escapeHtml(initialsOf(e.name, e.email));
-            var h = '<div class="dir-card">' +
-                '<div class="post-avatar">' + av + '</div>' +
-                '<div class="dnm">' + escapeHtml(e.name || '') + '</div>' +
-                '<div class="dtl">' + escapeHtml(e.title || '') + '</div>' +
-                (e.department ? '<div class="ddp">' + escapeHtml(e.department) + '</div>' : '') +
-                '<a class="dml" href="mailto:' + escapeAttr(e.email || '') + '">' + escapeHtml(e.email || '') + '</a>';
-            if (_dirIsEditor) {
-                var bits = [];
-                if (e.birthday_month && e.birthday_day) {
-                    bits.push('🎂 ' + DIR_MONTHS[e.birthday_month] + ' ' + e.birthday_day);
-                }
-                if (e.anniversary_month && e.anniversary_day) {
-                    bits.push('🎉 ' + DIR_MONTHS[e.anniversary_month] + ' ' + e.anniversary_day +
-                        (e.anniversary_year ? ' · ' + e.anniversary_year : ''));
-                }
-                if (bits.length) h += '<div class="ddates">' + bits.join(' &nbsp; ') + '</div>';
+        grid.innerHTML = rows.map(renderDirCard).join('');
+    }
+
+    function renderDirCard(e) {
+        var email = (e.email || '').toLowerCase();
+        var inactive = _dirIsEditor && e.active === false;
+        var av = e.photo_url
+            ? '<img src="' + escapeAttr(e.photo_url) + '" alt="">'
+            : escapeHtml(initialsOf(e.name, e.email));
+        var h = '<div class="dir-card' + (inactive ? ' inactive' : '') + '" id="dir-' + escapeAttr(email) + '">';
+
+        if (_dirIsEditor && _dirEditing === email) {
+            return h + renderDirEditForm(e) + '</div>';
+        }
+
+        h += '<div class="post-avatar">' + av + '</div>' +
+            '<div class="dnm">' + escapeHtml(e.name || '') + '</div>' +
+            '<div class="dtl">' + escapeHtml(e.title || '') + '</div>' +
+            (e.department ? '<div class="ddp">' + escapeHtml(e.department) + '</div>' : '') +
+            '<a class="dml" href="mailto:' + escapeAttr(e.email || '') + '">' + escapeHtml(e.email || '') + '</a>';
+
+        if (_dirIsEditor) {
+            var badges = '';
+            if (_dirEditors[email]) badges += '<span class="dir-badge editor">Editor' + (_dirEditors[email].locked ? ' &#128274;' : '') + '</span>';
+            if (inactive) badges += '<span class="dir-badge off">Inactive</span>';
+            if (badges) h += '<div class="dir-badges">' + badges + '</div>';
+
+            var bits = [];
+            if (e.birthday_month && e.birthday_day) {
+                bits.push('🎂 ' + DIR_MONTHS[e.birthday_month] + ' ' + e.birthday_day);
             }
-            return h + '</div>';
-        }).join('');
+            if (e.anniversary_month && e.anniversary_day) {
+                bits.push('🎉 ' + DIR_MONTHS[e.anniversary_month] + ' ' + e.anniversary_day +
+                    (e.anniversary_year ? ' · ' + e.anniversary_year : ''));
+            }
+            if (bits.length) h += '<div class="ddates">' + bits.join(' &nbsp; ') + '</div>';
+
+            h += '<div class="dir-admin-row">' +
+                '<button class="dir-admin-btn" onclick="startDirEdit(\'' + escapeAttr(email) + '\')">&#9998; Edit</button>' +
+                '<button class="dir-admin-btn" onclick="dirPickPhoto(\'' + escapeAttr(email) + '\')">&#128247; Photo</button>' +
+                (inactive
+                    ? '<button class="dir-admin-btn" onclick="dirSetActive(\'' + escapeAttr(email) + '\', true)">Reactivate</button>'
+                    : '<button class="dir-admin-btn danger" onclick="dirSetActive(\'' + escapeAttr(email) + '\', false)">Deactivate</button>') +
+                (_dirEditors[email]
+                    ? (_dirEditors[email].locked ? '' :
+                        '<button class="dir-admin-btn danger" onclick="dirToggleEditor(\'' + escapeAttr(email) + '\', false)">&#9733; Remove editor</button>')
+                    : '<button class="dir-admin-btn" onclick="dirToggleEditor(\'' + escapeAttr(email) + '\', true)">&#9734; Make editor</button>') +
+                '<button class="dir-admin-btn danger" onclick="dirRemove(\'' + escapeAttr(email) + '\')">&#128465; Remove</button>' +
+                '</div>';
+        }
+        return h + '</div>';
+    }
+
+    function renderDirEditForm(e) {
+        function v(x) { return escapeAttr(String(x == null ? '' : x)); }
+        return '<div class="dir-edit-form">' +
+            '<label>Name</label><input id="de-name" value="' + v(e.name) + '">' +
+            '<label>Title</label><input id="de-title" value="' + v(e.title) + '">' +
+            '<label>Department</label><input id="de-dept" value="' + v(e.department) + '">' +
+            '<label>Birthday (month / day)</label><div class="two-col">' +
+            '<input id="de-bmonth" type="number" min="0" max="12" value="' + v(e.birthday_month || '') + '" placeholder="MM">' +
+            '<input id="de-bday" type="number" min="0" max="31" value="' + v(e.birthday_day || '') + '" placeholder="DD"></div>' +
+            '<label>Anniversary (month / day / year)</label><div class="three-col">' +
+            '<input id="de-amonth" type="number" min="0" max="12" value="' + v(e.anniversary_month || '') + '" placeholder="MM">' +
+            '<input id="de-aday" type="number" min="0" max="31" value="' + v(e.anniversary_day || '') + '" placeholder="DD">' +
+            '<input id="de-ayear" type="number" min="0" max="2100" value="' + v(e.anniversary_year || '') + '" placeholder="YYYY"></div>' +
+            '<div class="dir-edit-actions">' +
+            '<button class="dir-admin-btn" onclick="saveDirEdit(\'' + escapeAttr((e.email || '').toLowerCase()) + '\')">Save</button>' +
+            '<button class="dir-admin-btn" onclick="cancelDirEdit()">Cancel</button>' +
+            '</div></div>';
+    }
+
+    function startDirEdit(email) {
+        _dirEditing = email;
+        renderDirectory();
+    }
+
+    function cancelDirEdit() {
+        _dirEditing = null;
+        renderDirectory();
+    }
+
+    function saveDirEdit(email) {
+        var payload = {
+            email: email,
+            name: (document.getElementById('de-name') || {}).value || '',
+            title: (document.getElementById('de-title') || {}).value || '',
+            department: (document.getElementById('de-dept') || {}).value || '',
+            birthday_month: (document.getElementById('de-bmonth') || {}).value || 0,
+            birthday_day: (document.getElementById('de-bday') || {}).value || 0,
+            anniversary_month: (document.getElementById('de-amonth') || {}).value || 0,
+            anniversary_day: (document.getElementById('de-aday') || {}).value || 0,
+            anniversary_year: (document.getElementById('de-ayear') || {}).value || 0
+        };
+        fetch(API_BASE + '/api/employees/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                _dirEditing = null;
+                showToast('Saved ' + (payload.name || email));
+                _dirRefresh();
+            } else {
+                alert('Save failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) { alert('Save failed: ' + err.message); });
+    }
+
+    function dirSetActive(email, active) {
+        var person = _dirByEmail(email) || {};
+        if (!active && !confirm('Deactivate ' + (person.name || email) + '? They drop out of the newsletter audience and birthdays, and the sync will not re-add them.')) return;
+        fetch(API_BASE + '/api/employees/set-active', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, active: active })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                showToast((active ? 'Reactivated ' : 'Deactivated ') + (person.name || email));
+                _dirRefresh();
+            } else {
+                alert('Failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) { alert('Failed: ' + err.message); });
+    }
+
+    function dirRemove(email) {
+        var person = _dirByEmail(email) || {};
+        if (!confirm('Remove ' + (person.name || email) + ' from the roster entirely? The next BigQuery sync may re-add them if they are still in user_master — use Deactivate for people who left.')) return;
+        fetch(API_BASE + '/api/employees/remove', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                showToast('Removed ' + (person.name || email));
+                _dirRefresh();
+            } else {
+                alert('Remove failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) { alert('Remove failed: ' + err.message); });
+    }
+
+    function dirToggleEditor(email, grant) {
+        var person = _dirByEmail(email) || {};
+        var label = person.name || email;
+        if (grant && !confirm('Make ' + label + ' an editor? They get the Newsletter builder, roster management, and curation access.')) return;
+        if (!grant && !confirm('Remove editor access from ' + label + '?')) return;
+        fetch(API_BASE + '/api/editors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, editor: grant })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                showToast((grant ? 'Editor access granted to ' : 'Editor access removed from ') + label);
+                loadDirectory();
+            } else {
+                alert('Failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) { alert('Failed: ' + err.message); });
+    }
+
+    function dirPickPhoto(email) {
+        _dirPhotoTarget = email;
+        document.getElementById('dirPhotoInput').click();
+    }
+
+    function dirPhotoPicked(input) {
+        var file = input.files && input.files[0];
+        input.value = '';
+        if (!file || !_dirPhotoTarget) return;
+        var email = _dirPhotoTarget;
+        _dirPhotoTarget = null;
+        showToast('Uploading photo...');
+        uploadMediaFile(file, function(url) {
+            fetch(API_BASE + '/api/employees/update', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, photo_url: url })
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.success) {
+                    showToast('Photo updated');
+                    _dirRefresh();
+                } else {
+                    alert('Photo save failed: ' + ((d && d.error) || 'Unknown error'));
+                }
+            }).catch(function(err) { alert('Photo save failed: ' + err.message); });
+        });
+    }
+
+    function runBigQuerySync() {
+        var btn = document.getElementById('dirSyncBtn');
+        btn.disabled = true;
+        btn.textContent = 'Syncing...';
+        fetch(API_BASE + '/api/sync-users', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                btn.disabled = false;
+                btn.innerHTML = '&#8635; Sync from BigQuery';
+                if (d && d.success) {
+                    var s = d.summary || {};
+                    showToast('Sync done: ' + (s.created || 0) + ' added, ' + (s.updated || 0) +
+                        ' updated' + (s.photos ? ', ' + s.photos + ' photos' : ''));
+                    _dirRefresh();
+                } else {
+                    alert('Sync failed: ' + ((d && d.error) || 'Unknown error'));
+                }
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                btn.innerHTML = '&#8635; Sync from BigQuery';
+                alert('Sync failed: ' + err.message);
+            });
     }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>

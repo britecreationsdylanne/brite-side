@@ -8,6 +8,7 @@ import sys
 import json
 import html as html_mod
 import secrets
+import time
 import traceback
 import requests as http_requests
 import uuid
@@ -139,15 +140,68 @@ def get_current_user():
     if user:
         return user
     if DEV_AUTH_MODE:
-        return {'email': 'dylanne.crugnale@brite.co', 'name': 'Local Developer (dev)', 'picture': ''}
+        # DEV_AUTH_NAME lets local work (e.g. seeding feed content) carry a
+        # real display name instead of the stand-in marker.
+        return {'email': 'dylanne.crugnale@brite.co',
+                'name': os.environ.get('DEV_AUTH_NAME') or 'Local Developer (dev)',
+                'picture': ''}
     return None
 
 
+# Editors granted from the app UI live in Firestore (app_config/extra_editors)
+# on top of the env allow-list, so Dylanne/Dove can promote someone (e.g.
+# Allison) without a Cloud Build substitution change. Env-list editors are
+# "locked": they can never be demoted from the UI. The extra list is cached
+# in-process briefly so is_editor() doesn't cost a Firestore read per request.
+_EXTRA_EDITORS_DOC = ('app_config', 'extra_editors')
+_EXTRA_EDITORS_TTL = 60  # seconds
+_extra_editors_cache = {'emails': set(), 'fetched_at': 0.0}
+
+
+def _extra_editors(force=False):
+    """Return the Firestore-managed editor set. On any error, fall back to the
+    last cached value (and ultimately to the env allow-list alone)."""
+    now = time.time()
+    if not force and (now - _extra_editors_cache['fetched_at']) < _EXTRA_EDITORS_TTL:
+        return _extra_editors_cache['emails']
+    if not firestore_client:
+        return _extra_editors_cache['emails']
+    try:
+        snap = firestore_client.collection(_EXTRA_EDITORS_DOC[0]).document(_EXTRA_EDITORS_DOC[1]).get()
+        emails = {
+            (e or '').strip().lower()
+            for e in ((snap.to_dict() or {}).get('emails') or [])
+            if (e or '').strip()
+        } if snap.exists else set()
+        _extra_editors_cache['emails'] = emails
+        _extra_editors_cache['fetched_at'] = now
+    except Exception as e:
+        print(f"[WARNING] extra editors read failed (using cache): {e}")
+    return _extra_editors_cache['emails']
+
+
+def _set_extra_editor(email, grant):
+    """Add/remove an email on the Firestore editor list. Returns the new set."""
+    email = (email or '').strip().lower()
+    current = set(_extra_editors(force=True))
+    if grant:
+        current.add(email)
+    else:
+        current.discard(email)
+    firestore_client.collection(_EXTRA_EDITORS_DOC[0]).document(_EXTRA_EDITORS_DOC[1]).set(
+        {'emails': sorted(current)})
+    _extra_editors_cache['emails'] = current
+    _extra_editors_cache['fetched_at'] = time.time()
+    return current
+
+
 def is_editor(user):
-    """True when the user is on the newsletter-team allow-list."""
+    """True when the user is on the newsletter-team allow-list (env) or has
+    been granted editor access from the app (Firestore)."""
     if not user:
         return False
-    return (user.get('email') or '').strip().lower() in EDITOR_EMAILS
+    email = (user.get('email') or '').strip().lower()
+    return email in EDITOR_EMAILS or email in _extra_editors()
 
 
 # ============================================================================
@@ -850,6 +904,17 @@ def update_employee():
             emp['birthday_month'] = _as_bday_int(data.get('birthday_month'))
         if 'birthday_day' in data:
             emp['birthday_day'] = _as_bday_int(data.get('birthday_day'))
+        if 'anniversary_month' in data:
+            emp['anniversary_month'] = _as_bday_int(data.get('anniversary_month'))
+        if 'anniversary_day' in data:
+            emp['anniversary_day'] = _as_bday_int(data.get('anniversary_day'))
+        if 'anniversary_year' in data:
+            emp['anniversary_year'] = _as_bday_int(data.get('anniversary_year'))
+        if 'photo_url' in data:
+            emp['photo_url'] = (data.get('photo_url') or '').strip()
+            # A manually chosen photo wins: photo_cached=True stops the BigQuery
+            # sync from overwriting it with the Google thumbnail.
+            emp['photo_cached'] = True
 
         if new_email and new_email != email:
             # Write the NEW record first, then remove the old key. A failure
@@ -899,6 +964,38 @@ def set_employee_active():
     except Exception as e:
         safe_print(f"[API] Error setting active: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/editors', methods=['GET'])
+def list_editors():
+    """All current editors: env allow-list entries are locked (not demotable
+    from the UI), Firestore-granted ones can be toggled. Editor-only via gate."""
+    extras = _extra_editors(force=True)
+    editors = ([{'email': e, 'locked': True} for e in sorted(EDITOR_EMAILS)] +
+               [{'email': e, 'locked': False} for e in sorted(extras - EDITOR_EMAILS)])
+    return jsonify({'success': True, 'editors': editors})
+
+
+@app.route('/api/editors', methods=['POST'])
+def set_editor():
+    """Grant or revoke editor access for a @brite.co address (Firestore list).
+    Env allow-list editors can never be demoted here."""
+    if not firestore_client:
+        return jsonify({'success': False, 'error': 'Firestore not available'}), 503
+    data = request.json or {}
+    email = (data.get('email') or '').strip().lower()
+    grant = bool(data.get('editor'))
+    if not email or not email.endswith('@' + ALLOWED_DOMAIN):
+        return jsonify({'success': False, 'error': f'A @{ALLOWED_DOMAIN} email is required'}), 400
+    if not grant and email in EDITOR_EMAILS:
+        return jsonify({'success': False, 'error': 'This editor is locked (set via EDITOR_EMAILS)'}), 400
+    try:
+        _set_extra_editor(email, grant)
+        safe_print(f"[API] Editor {'granted to' if grant else 'revoked from'} {email} by {_current_email()}")
+        return jsonify({'success': True, 'email': email, 'editor': grant or email in EDITOR_EMAILS})
+    except Exception as e:
+        safe_print(f"[API] Error setting editor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================

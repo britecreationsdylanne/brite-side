@@ -670,9 +670,11 @@ def manual_seed():
 
 @feed_bp.route('/api/directory', methods=['GET'])
 def directory():
-    """Role-filtered roster for the Team directory tab (active employees).
-    Everyone: name/email/title/department/photo. Editors also see birthday
-    and anniversary fields. /api/employees stays editor-only and untouched."""
+    """Role-filtered roster for the Team directory tab.
+    Everyone: active people only — name/email/title/department/photo.
+    Editors: also birthday/anniversary fields, plus INACTIVE people (with the
+    active flag) so they can be reactivated from the admin controls.
+    /api/employees stays editor-only and untouched."""
     try:
         employees = _deps['list_employees']()
     except Exception as e:
@@ -682,7 +684,8 @@ def directory():
     editor = _is_editor()
     out = []
     for emp in employees:
-        if emp.get('active') is False:
+        active = emp.get('active') is not False
+        if not active and not editor:
             continue
         row = {
             'name': emp.get('name', ''),
@@ -692,6 +695,7 @@ def directory():
             'photo_url': emp.get('photo_url', ''),
         }
         if editor:
+            row['active'] = active
             row['birthday_month'] = _as_int(emp.get('birthday_month'))
             row['birthday_day'] = _as_int(emp.get('birthday_day'))
             row['anniversary_month'] = _as_int(emp.get('anniversary_month'))
