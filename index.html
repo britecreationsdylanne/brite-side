@@ -2406,8 +2406,6 @@
             <h2>Intro Joke</h2>
             <p class="step-description">Every BriteSide needs a good opener. Pick a theme and generate some jokes, or write your own.</p>
 
-            <div id="cultureSubsPanel" class="subs-panel"></div>
-
             <div class="theme-selector">
                 <div class="form-group">
                     <label>Joke Theme</label>
@@ -2968,8 +2966,31 @@
              STEP 8: SPECIAL SECTION (was 6)
              ================================================ -->
         <div id="step8" class="step">
-            <h2>Special Section</h2>
-            <p class="step-description">Got something extra to share? Add an optional special section.</p>
+            <h2>Shout-outs &amp; Special Section</h2>
+            <p class="step-description">Celebrate people first — then add anything extra this month needs.</p>
+
+            <div class="toggle-row">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="shoutoutsToggle" checked onchange="toggleShoutouts(this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="toggle-label">Include shout-outs? &#128079;</div>
+                    <div class="toggle-helper">On by default — shout-outs posted on the feed land here ready to go.</div>
+                </div>
+            </div>
+
+            <div id="shoutoutsArea">
+                <div id="shoutoutsList" style="margin: 4px 0 10px;"></div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 6px;">
+                    <input type="text" id="shoutoutText" placeholder="Add a shout-out... (e.g. Huge thanks to Sam for the quarter-close push)" style="flex: 1 1 260px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13.5px; font-family: inherit;">
+                    <input type="text" id="shoutoutFrom" placeholder="From (optional)" style="flex: 0 1 150px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13.5px; font-family: inherit;">
+                    <button class="btn btn-secondary" style="font-size:12.5px; padding: 8px 16px;" onclick="addManualShoutout()">+ Add</button>
+                </div>
+                <div id="cultureSubsPanel" class="subs-panel"></div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 26px 0;">
 
             <div class="toggle-row">
                 <label class="toggle-switch">
@@ -3472,7 +3493,7 @@
         'Employee Spotlight',     // 5
         'Company Updates',        // 6
         'Monthly Game',           // 7 (NEW)
-        'Special Section',        // 8
+        'Shout-outs & Special',   // 8
         'Preview Newsletter',     // 9
         'Send Newsletter'         // 10
     ];
@@ -3557,6 +3578,8 @@
     let updates = _emptyUpdates();
     let updatesEnabled = true;
     let showUpdate2 = true;
+    let shoutouts = [];          // [{text, from}] — rendered as its own section
+    let shoutoutsEnabled = true; // on by default
     let specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
     let specialSections = [];
     let showSpecialSection2 = false;
@@ -3859,6 +3882,8 @@
         updates = _emptyUpdates();
         updatesEnabled = true;
         showUpdate2 = true;
+        shoutouts = [];
+        shoutoutsEnabled = true;
         specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
         specialSections = [];
         showSpecialSection2 = false;
@@ -3903,6 +3928,11 @@
         _syncAddUpdateLink();
         document.getElementById('gameToggle').checked = false;
         document.getElementById('gameFieldsArea').style.display = 'none';
+        var _soTglReset = document.getElementById('shoutoutsToggle');
+        if (_soTglReset) _soTglReset.checked = true;
+        var _soAreaReset = document.getElementById('shoutoutsArea');
+        if (_soAreaReset) _soAreaReset.style.display = '';
+        renderShoutouts();
         document.getElementById('specialSectionToggle').checked = false;
         document.getElementById('specialSectionFields').classList.remove('visible');
         document.getElementById('specialSectionTitle').value = '';
@@ -5519,6 +5549,8 @@
             spotlight: spotlightData,
             spotlights: spotlightsData,
             updates: activeUpdates,
+            shoutouts: shoutoutsEnabled ? shoutouts.filter(function(so) { return so && (so.text || '').trim(); }) : [],
+            shoutouts_enabled: shoutoutsEnabled,
             updates_enabled: updatesEnabled,
             welcome_hires: welcomeEnabled ? welcomeHires.filter(function(h) { return h.name; }) : [],
             welcome_enabled: welcomeEnabled,
@@ -5829,6 +5861,8 @@
                 spotlights: spotlights,
                 updates: updates,
                 updatesEnabled: updatesEnabled,
+                shoutouts: shoutouts,
+                shoutoutsEnabled: shoutoutsEnabled,
                 welcomeHires: welcomeHires,
                 welcomeEnabled: welcomeEnabled,
                 anniversaries: anniversaries,
@@ -5921,9 +5955,10 @@
             window.currentDraftFilename = filename;
             window.viewingPublished = false;
 
-            // Restore state
-            selectedMonth = d.month || '';
-            selectedMonthNum = MONTH_NAMES.indexOf(selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1));
+            // Restore state. Drafts store the month lowercased — capitalize on
+            // the way back in so headings ("September Birthdays") render right.
+            selectedMonth = d.month ? (d.month.charAt(0).toUpperCase() + d.month.slice(1)) : '';
+            selectedMonthNum = MONTH_NAMES.indexOf(selectedMonth);
             joke = d.joke || '';
             jokeOptions = d.jokeOptions || [];
             selectedJokeIndex = d.selectedJokeIndex != null ? d.selectedJokeIndex : -1;
@@ -5968,6 +6003,15 @@
 
             // Updates enabled
             updatesEnabled = d.updatesEnabled !== undefined ? d.updatesEnabled : true;
+
+            // Shout-outs
+            shoutouts = d.shoutouts || [];
+            shoutoutsEnabled = d.shoutoutsEnabled !== undefined ? !!d.shoutoutsEnabled : true;
+            var _soTgl = document.getElementById('shoutoutsToggle');
+            if (_soTgl) _soTgl.checked = shoutoutsEnabled;
+            var _soArea = document.getElementById('shoutoutsArea');
+            if (_soArea) _soArea.style.display = shoutoutsEnabled ? '' : 'none';
+            renderShoutouts();
 
             // Game
             if (d.game) {
@@ -7570,16 +7614,72 @@
         var el = document.getElementById('cultureSubsPanel');
         if (!el) return;
         var subs = _allSubs.culture || [];
-        var h = '<div class="entry-group-title">Submitted Fun &amp; Media (' + subs.length + ')' + _subRefreshLink() + '</div>';
-        if (!subs.length) { el.innerHTML = h + '<p class="entry-empty">Nothing submitted yet — jokes, memes and links your team sends in will show up here to pull in.</p>'; return; }
+        var h = '<div class="entry-group-title">Submitted Shout-outs, Fun &amp; Media (' + subs.length + ')' + _subRefreshLink() + '</div>';
+        if (!subs.length) { el.innerHTML = h + '<p class="entry-empty">Nothing waiting — shout-outs and fun posts from the feed (and submitted entries) will show up here to pull in.</p>'; return; }
         subs.forEach(function(s, i) {
             var types = Array.isArray(s.content_types) ? s.content_types.join(', ') : '';
+            var isShout = Array.isArray(s.content_types) && s.content_types.indexOf('Shout-out') !== -1;
             h += '<div class="entry-card"><div class="entry-meta">' + _entryMeta(s, types) + '</div>'
               + '<div class="entry-body">' + escapeHtml(s.content || '') + '</div>'
               + (s.why_fits ? '<div class="entry-meta">Why it fits: ' + escapeHtml(s.why_fits) + '</div>' : '')
-              + '<div class="entry-actions"><button class="btn btn-secondary" onclick="copyEntryText(\'culture\',' + i + ')">Copy content</button></div></div>';
+              + '<div class="entry-actions">'
+              + (isShout ? '<button class="btn" onclick="useCultureShoutout(' + i + ')">&#128079; Add to shout-outs</button>' : '')
+              + '<button class="btn btn-secondary" onclick="copyEntryText(\'culture\',' + i + ')">Copy content</button></div></div>';
         });
         el.innerHTML = h;
+    }
+
+    // ---- Shout-outs section (step 8) ----
+    function renderShoutouts() {
+        var el = document.getElementById('shoutoutsList');
+        if (!el) return;
+        if (!shoutouts.length) {
+            el.innerHTML = '<p class="entry-empty" style="color:#9ca3af;font-size:13px;font-style:italic;">No shout-outs yet — pull them in below or add your own.</p>';
+            return;
+        }
+        el.innerHTML = shoutouts.map(function(so, i) {
+            return '<div style="display:flex;align-items:flex-start;gap:10px;border-left:4px solid #FE8916;background:#fffaf3;border-radius:8px;padding:10px 14px;margin-bottom:8px;">' +
+                '<div style="flex:1;min-width:0;"><div style="font-size:13.5px;color:#374151;">&#128079; ' + escapeHtml(so.text || '') + '</div>' +
+                (so.from ? '<div style="font-size:11.5px;color:#9ca3af;margin-top:3px;">&mdash; ' + escapeHtml(so.from) + '</div>' : '') + '</div>' +
+                '<button onclick="removeShoutout(' + i + ')" style="border:none;background:none;color:#d1d5db;cursor:pointer;font-size:14px;" title="Remove">&#10005;</button></div>';
+        }).join('');
+    }
+
+    function addManualShoutout() {
+        var t = document.getElementById('shoutoutText');
+        var f = document.getElementById('shoutoutFrom');
+        var text = (t.value || '').trim();
+        if (!text) return;
+        shoutouts.push({ text: text, from: (f.value || '').trim() });
+        t.value = ''; f.value = '';
+        renderShoutouts();
+    }
+
+    function removeShoutout(i) {
+        shoutouts.splice(i, 1);
+        renderShoutouts();
+    }
+
+    function toggleShoutouts(on) {
+        shoutoutsEnabled = !!on;
+        var area = document.getElementById('shoutoutsArea');
+        if (area) area.style.display = on ? '' : 'none';
+    }
+
+    function useCultureShoutout(i) {
+        var s = (_allSubs.culture || [])[i];
+        if (!s) return;
+        shoutouts.push({ text: (s.content || '').trim(), from: s.submitter_name || s.submitted_by || '' });
+        renderShoutouts();
+        showToast('Added to shout-outs');
+        // Mark it used so it drops out of the panel (and counts as sourced).
+        if (s.id) {
+            fetch(API_BASE + '/api/submissions/culture/' + encodeURIComponent(s.id) + '/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'used' })
+            }).then(function() { loadAllSubmissions(); }).catch(function() {});
+        }
     }
     function renderCorrectionSubs() {
         var el = document.getElementById('correctionSubsPanel');
@@ -8530,7 +8630,7 @@
             if (d && d.success && d.file) {
                 var s = d.summary || {};
                 showToast('Built: ' + (s.birthdays || 0) + ' birthdays, ' + (s.anniversaries || 0) +
-                    ' anniversaries, ' + (s.updates || 0) + ' updates' +
+                    ' anniversaries, ' + (s.updates || 0) + ' updates, ' + (s.shoutouts || 0) + ' shout-outs' +
                     (s.spotlight ? ', spotlight' : '') + '. Loading preview...');
                 resumeDraft(d.file);
             } else {

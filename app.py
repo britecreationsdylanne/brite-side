@@ -1750,6 +1750,8 @@ def render_email():
         spotlights = data.get('spotlights', [])
         updates = data.get('updates', [])
         updates_enabled = data.get('updates_enabled', True)
+        shoutouts = data.get('shoutouts', []) or []
+        shoutouts_enabled = data.get('shoutouts_enabled', True)
         special_section = data.get('special_section', {})
         welcome_hires = data.get('welcome_hires', [])
         welcome_enabled = data.get('welcome_enabled', False)
@@ -2119,6 +2121,34 @@ def render_email():
                     update_5_body = body
                     update_5_photos_html = photos_html
 
+        # Build shout-outs section (fed by feed shout-out posts + manual adds)
+        shoutout_items_html = ''
+        for so in shoutouts:
+            if not isinstance(so, dict):
+                continue
+            so_text = esc((so.get('text') or '').strip())
+            so_from = esc((so.get('from') or '').strip())
+            if not so_text:
+                continue
+            shoutout_items_html += (
+                f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" '
+                f'style="border-radius: 10px; overflow: hidden; margin-bottom: 10px;">'
+                f'<tr><td style="border-left: 4px solid #FE8916; padding: 14px 20px; background-color: #fffaf3;" class="card-padding">'
+                f'<p style="margin: 0; font-family: {FONT}; font-size: 15px; line-height: 23px; color: #4b4b4b;">'
+                f'&#128079; {so_text}</p>'
+                + (f'<p style="margin: 6px 0 0 0; font-family: {FONT}; font-size: 12.5px; color: #9ca3af;">&mdash; {so_from}</p>' if so_from else '')
+                + '</td></tr></table>'
+            )
+        shoutouts_display = 'table-row' if (shoutouts_enabled and shoutout_items_html) else 'none'
+        shoutouts_section_html = ''
+        if shoutouts_enabled and shoutout_items_html:
+            # Only ship the markup when enabled — some email clients (Outlook)
+            # ignore display:none, so a hidden row must also be empty.
+            shoutouts_section_html = (
+                f'<p style="margin: 0 0 14px 0; font-family: {FONT}; font-size: 20px; font-weight: 800; color: #272D3F;">'
+                f'Shout-outs &#128079;</p>' + shoutout_items_html
+            )
+
         # Build special section HTML (frontend sends null if disabled)
         if not special_section:
             special_section = {}
@@ -2250,6 +2280,8 @@ def render_email():
             'UPDATE_5_BODY': str(update_5_body),
             'UPDATE_5_PHOTOS': update_5_photos_html,
             'UPDATE_5_DISPLAY': update_5_display,
+            'SHOUTOUTS_DISPLAY': shoutouts_display,
+            'SHOUTOUTS_SECTION': shoutouts_section_html,
             'SPECIAL_TITLE': str(special_title),
             'SPECIAL_BODY': str(special_body),
             'SPECIAL_SECTION_DISPLAY': special_display,
@@ -2872,6 +2904,21 @@ def auto_build_newsletter():
             if len(updates) >= 5:
                 break
 
+        # Shout-outs: unused culture-queue entries tagged Shout-out (feed posts
+        # made with the Shout-out chip land here via dual-write).
+        shoutouts = []
+        for sub in _list_collection(CULTURE_SUBMISSIONS):
+            if (sub.get('status') or 'new') != 'new':
+                continue
+            types = sub.get('content_types') or []
+            if 'Shout-out' not in types:
+                continue
+            text = (sub.get('content') or '').strip()
+            if text:
+                shoutouts.append({'text': text, 'from': sub.get('submitter_name') or sub.get('submitted_by') or ''})
+            if len(shoutouts) >= 8:
+                break
+
         # Spotlight: the most recently updated submitted profile, if any.
         spotlights = []
         try:
@@ -2951,6 +2998,8 @@ def auto_build_newsletter():
             'spotlights': spotlights,
             'updates': updates,
             'updatesEnabled': bool(updates),
+            'shoutouts': shoutouts,
+            'shoutoutsEnabled': True,
             'welcomeHires': [],
             'welcomeEnabled': False,
             'anniversaries': anniversaries,
@@ -2973,6 +3022,7 @@ def auto_build_newsletter():
             json.dumps(draft), content_type='application/json')
         safe_print(f"[AUTO-BUILD] {blob_name}: {len(birthdays)} bdays, "
                    f"{len(anniversaries)} annivs, {len(updates)} updates, "
+                   f"{len(shoutouts)} shoutouts, "
                    f"spotlight={bool(spotlights[0].get('employee'))}, ai_joke={joke_is_ai}")
         return jsonify({
             'success': True,
@@ -2981,6 +3031,7 @@ def auto_build_newsletter():
                 'birthdays': len(birthdays),
                 'anniversaries': len(anniversaries),
                 'updates': len(updates),
+                'shoutouts': len(shoutouts),
                 'spotlight': bool(spotlights[0].get('employee')),
                 'ai_joke': joke_is_ai,
             },
