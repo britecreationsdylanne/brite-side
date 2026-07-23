@@ -2273,6 +2273,37 @@
         .dir-edit-form .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
         .dir-edit-actions { display: flex; gap: 6px; margin-top: 10px; }
         .dir-edit-actions button { flex: 1; }
+
+        /* Inline confirmation popover (replaces browser confirm dialogs) */
+        .inline-confirm {
+            position: absolute;
+            z-index: 1200;
+            width: 260px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+            border: 1px solid #e5e7eb;
+            padding: 13px 14px;
+            animation: fadeIn 0.12s ease;
+        }
+        .inline-confirm .ic-msg { font-size: 13px; color: #272d3f; line-height: 1.45; }
+        .inline-confirm .ic-actions { display: flex; gap: 7px; margin-top: 10px; }
+        .inline-confirm .ic-actions button {
+            flex: 1;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .inline-confirm .ic-yes { background: #018181; color: #fff; }
+        .inline-confirm .ic-yes:hover { background: #016a6a; }
+        .inline-confirm.danger .ic-yes { background: #ef4444; }
+        .inline-confirm.danger .ic-yes:hover { background: #dc2626; }
+        .inline-confirm .ic-no { background: #f3f4f6; color: #4b5563; }
+        .inline-confirm .ic-no:hover { background: #e5e7eb; }
     </style>
 </head>
 <body>
@@ -2356,9 +2387,16 @@
                 <span class="birthday-count-badge" id="birthdayCountBadge"></span>
             </div>
 
-            <div class="buttons">
+            <div class="buttons" style="flex-wrap: wrap; gap: 10px;">
+                <button id="autoBuildBtn" class="btn" disabled onclick="autoBuild(this)"
+                        style="background: #FE8916;" title="Claude assembles the whole issue — birthdays, anniversaries, updates from the feed, spotlight, and a joke — and drops you on the preview. Everything stays editable.">
+                    &#10024; Build it for me
+                </button>
                 <button id="step1NextBtn" class="btn" disabled onclick="goToStep(2)">Next &rarr;</button>
             </div>
+            <p style="text-align:center; font-size:12px; color:#9ca3af; margin-top:10px;">
+                &#10024; builds the full issue from the roster and this month's feed posts &mdash; you land on the preview and can still edit any section.
+            </p>
         </div>
 
         <!-- ================================================
@@ -2748,6 +2786,82 @@
                 </div>
             </div>
 
+            <div class="update-block" id="updateBlock4" style="display: none;">
+                <div class="update-block-header">
+                    <h3>Update #4</h3>
+                    <button class="remove-update-btn" onclick="toggleUpdateN(4, false)">Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="update4Title" placeholder="Update title...">
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate4Title">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteInput('update4Title', 'toneUpdate4Title')">AI Rewrite</button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Body</label>
+                    <textarea id="update4Body" rows="4" placeholder="What's the update?..."></textarea>
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate4Body">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update4Body', 'toneUpdate4Body')">AI Rewrite</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
+                    <div class="update-photos" id="update4Photos"></div>
+                    <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(3)">+ Upload Photo</button>
+                </div>
+            </div>
+
+            <div class="update-block" id="updateBlock5" style="display: none;">
+                <div class="update-block-header">
+                    <h3>Update #5</h3>
+                    <button class="remove-update-btn" onclick="toggleUpdateN(5, false)">Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="update5Title" placeholder="Update title...">
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate5Title">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteInput('update5Title', 'toneUpdate5Title')">AI Rewrite</button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Body</label>
+                    <textarea id="update5Body" rows="4" placeholder="What's the update?..."></textarea>
+                    <div class="tone-rewrite-row">
+                        <select class="tone-select" id="toneUpdate5Body">
+                            <option value="fun and punny">Fun & Punny</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="warm and engaging">Warm & Engaging</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                        <button class="tone-rewrite-btn" onclick="aiRewriteWithTone('update5Body', 'toneUpdate5Body')">AI Rewrite</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Photos <span style="color:#6b7280;font-weight:400">(up to 3)</span></label>
+                    <div class="update-photos" id="update5Photos"></div>
+                    <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;margin-top:6px;" onclick="handleUpdatePhotoUpload(4)">+ Upload Photo</button>
+                </div>
+            </div>
+
             <div id="addUpdateLink" class="add-update-link" style="display: none;" onclick="addNextUpdate()">
                 + Add Another Update
             </div>
@@ -3110,7 +3224,9 @@
     <!-- ============================================
          MANAGE TEAM SECTION
          ============================================ -->
-    <div class="team-section" id="teamSection">
+    <!-- Retired from the builder: roster management moved to the Team directory
+         tab. Kept in the DOM (hidden) so legacy team-management JS stays safe. -->
+    <div class="team-section" id="teamSection" style="display:none !important;">
         <h2>Manage Team</h2>
         <p class="section-subtitle">Add new hires or remove departing team members. Or pull the latest roster from BigQuery.</p>
 
@@ -3329,6 +3445,7 @@
         <div class="dir-toolbar">
             <input type="text" class="dir-search" id="dirSearch" placeholder="Search by name, title, or department..." oninput="renderDirectory()">
             <button class="dir-sync-btn" id="dirSyncBtn" style="display:none;" onclick="runBigQuerySync()">&#8635; Sync from BigQuery</button>
+            <button class="dir-sync-btn" id="dirAddBtn" style="display:none; background:#018181;" onclick="dirShowAdd()">+ Add person</button>
         </div>
         <div class="dir-count" id="dirCount"></div>
         <div class="dir-grid" id="dirGrid"></div>
@@ -3430,11 +3547,14 @@
     // Legacy single spotlight (for backward compat)
     let spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
 
-    let updates = [
-        { title: '', body: '', photos: [] },
-        { title: '', body: '', photos: [] },
-        { title: '', body: '', photos: [] }
-    ];
+    const MAX_UPDATES = 5;
+    function _emptyUpdate() { return { title: '', body: '', photos: [], photo_positions: [] }; }
+    function _emptyUpdates() {
+        var arr = [];
+        for (var i = 0; i < MAX_UPDATES; i++) arr.push(_emptyUpdate());
+        return arr;
+    }
+    let updates = _emptyUpdates();
     let updatesEnabled = true;
     let showUpdate2 = true;
     let specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
@@ -3539,24 +3659,41 @@
     }
 
     function addNextUpdate() {
-        var block2 = document.getElementById('updateBlock2');
-        var block3 = document.getElementById('updateBlock3');
-        if (block2.style.display === 'none') {
-            toggleUpdate2(true);
-        } else if (block3.style.display === 'none') {
-            block3.style.display = 'block';
-            document.getElementById('addUpdateLink').style.display = 'none';
+        for (var n = 2; n <= MAX_UPDATES; n++) {
+            var block = document.getElementById('updateBlock' + n);
+            if (block && block.style.display === 'none') {
+                toggleUpdateN(n, true);
+                break;
+            }
         }
     }
 
-    function toggleUpdate3(show) {
-        document.getElementById('updateBlock3').style.display = show ? 'block' : 'none';
+    function toggleUpdateN(n, show) {
+        var block = document.getElementById('updateBlock' + n);
+        if (!block) return;
+        block.style.display = show ? 'block' : 'none';
+        if (n === 2) showUpdate2 = show;
         if (!show) {
-            document.getElementById('update3Title').value = '';
-            document.getElementById('update3Body').value = '';
-            document.getElementById('addUpdateLink').style.display = 'block';
+            document.getElementById('update' + n + 'Title').value = '';
+            document.getElementById('update' + n + 'Body').value = '';
+            updates[n - 1] = _emptyUpdate();
+            renderUpdatePhotos(n - 1);
+            // Hide any higher blocks too so the visible set stays contiguous.
+            for (var m = n + 1; m <= MAX_UPDATES; m++) {
+                var b = document.getElementById('updateBlock' + m);
+                if (b && b.style.display !== 'none') { toggleUpdateN(m, false); break; }
+            }
         }
+        _syncAddUpdateLink();
     }
+
+    function _syncAddUpdateLink() {
+        var last = document.getElementById('updateBlock' + MAX_UPDATES);
+        var link = document.getElementById('addUpdateLink');
+        if (link) link.style.display = (last && last.style.display !== 'none') ? 'none' : 'inline-flex';
+    }
+
+    function toggleUpdate3(show) { toggleUpdateN(3, show); }
 
     /* ============================================================
        INITIALIZATION
@@ -3719,7 +3856,7 @@
         welcomeHires = [];
         spotlights = [{ employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '', display_title: '', qa: [{q:'',a:''},{q:'',a:''},{q:'',a:''}] }];
         spotlight = { employee: null, fun_facts: '', blurb: '', image_url: '', video_url: '' };
-        updates = [{ title: '', body: '', photos: [], photo_positions: [] }, { title: '', body: '', photos: [], photo_positions: [] }, { title: '', body: '', photos: [], photo_positions: [] }];
+        updates = _emptyUpdates();
         updatesEnabled = true;
         showUpdate2 = true;
         specialSection = { enabled: false, title: '', body: '', image_url: '', placement: 'after-updates' };
@@ -3737,6 +3874,8 @@
 
         // Reset UI elements
         document.getElementById('step1NextBtn').disabled = true;
+        var _abReset = document.getElementById('autoBuildBtn');
+        if (_abReset) _abReset.disabled = true;
         document.getElementById('step2NextBtn').disabled = true;
         document.getElementById('birthdayCountArea').style.display = 'none';
         document.getElementById('jokeCardsArea').style.display = 'none';
@@ -3752,12 +3891,16 @@
         document.getElementById('spotlightsContainer').innerHTML = '';
         document.getElementById('updatesToggle').checked = true;
         document.getElementById('updatesFieldsArea').style.display = 'block';
-        document.getElementById('update1Title').value = '';
-        document.getElementById('update1Body').value = '';
-        document.getElementById('update2Title').value = '';
-        document.getElementById('update2Body').value = '';
-        document.getElementById('updateBlock2').style.display = 'block';
-        document.getElementById('addUpdateLink').style.display = 'none';
+        for (var _un = 1; _un <= MAX_UPDATES; _un++) {
+            var _ut = document.getElementById('update' + _un + 'Title');
+            var _ub = document.getElementById('update' + _un + 'Body');
+            if (_ut) _ut.value = '';
+            if (_ub) _ub.value = '';
+            var _ublock = document.getElementById('updateBlock' + _un);
+            if (_ublock) _ublock.style.display = (_un <= 2) ? 'block' : 'none';
+            renderUpdatePhotos(_un - 1);
+        }
+        _syncAddUpdateLink();
         document.getElementById('gameToggle').checked = false;
         document.getElementById('gameFieldsArea').style.display = 'none';
         document.getElementById('specialSectionToggle').checked = false;
@@ -3812,6 +3955,8 @@
 
         // Enable next button
         document.getElementById('step1NextBtn').disabled = false;
+        var _abBtn = document.getElementById('autoBuildBtn');
+        if (_abBtn) _abBtn.disabled = false;
 
         // Set subject line default
         var year = new Date().getFullYear();
@@ -5087,20 +5232,7 @@
     /* ============================================================
        STEP 5: COMPANY UPDATES
        ============================================================ */
-    function toggleUpdate2(show) {
-        showUpdate2 = show;
-        document.getElementById('updateBlock2').style.display = show ? 'block' : 'none';
-        if (!show) {
-            document.getElementById('update2Title').value = '';
-            document.getElementById('update2Body').value = '';
-            toggleUpdate3(false);
-            document.getElementById('addUpdateLink').style.display = 'inline-flex';
-        } else {
-            // Show add link for update 3 if update 3 is not visible
-            var block3 = document.getElementById('updateBlock3');
-            document.getElementById('addUpdateLink').style.display = (block3.style.display === 'none') ? 'inline-flex' : 'none';
-        }
-    }
+    function toggleUpdate2(show) { toggleUpdateN(2, show); }
 
     function handleUpdatePhotoUpload(updateIndex) {
         var photosEl = document.getElementById('update' + (updateIndex + 1) + 'Photos');
@@ -5166,20 +5298,16 @@
     function collectUpdatesData() {
         updates[0].title = document.getElementById('update1Title').value.trim();
         updates[0].body = document.getElementById('update1Body').value.trim();
-        var block2 = document.getElementById('updateBlock2');
-        if (showUpdate2 || (block2 && block2.style.display !== 'none')) {
-            if (!updates[1]) updates[1] = { title: '', body: '', photos: [], photo_positions: [] };
-            updates[1].title = document.getElementById('update2Title').value.trim();
-            updates[1].body = document.getElementById('update2Body').value.trim();
-        }
-        // Update 3 — only overwrite from the DOM when the block is actually
+        // Updates 2..N — only overwrite from the DOM when the block is actually
         // shown. When it's hidden, PRESERVE any loaded content instead of wiping
-        // it (a resumed 3-update draft used to lose update 3 here).
-        var block3 = document.getElementById('updateBlock3');
-        if (block3 && block3.style.display !== 'none') {
-            if (!updates[2]) updates[2] = { title: '', body: '', photos: [], photo_positions: [] };
-            updates[2].title = document.getElementById('update3Title').value.trim();
-            updates[2].body = document.getElementById('update3Body').value.trim();
+        // it (a resumed multi-update draft used to lose hidden updates here).
+        for (var n = 2; n <= MAX_UPDATES; n++) {
+            var block = document.getElementById('updateBlock' + n);
+            if (block && block.style.display !== 'none') {
+                if (!updates[n - 1]) updates[n - 1] = _emptyUpdate();
+                updates[n - 1].title = document.getElementById('update' + n + 'Title').value.trim();
+                updates[n - 1].body = document.getElementById('update' + n + 'Body').value.trim();
+            }
         }
     }
 
@@ -5302,11 +5430,11 @@
         // Build the updates array, filtering empty ones
         var activeUpdates = [];
         if (updatesEnabled) {
-            if (updates[0].title || updates[0].body) activeUpdates.push(updates[0]);
-            if (updates[1] && (updates[1].title || updates[1].body)) activeUpdates.push(updates[1]);
-            // Include update 3 whenever it has content, regardless of whether the
+            // Include every update that has content, regardless of whether its
             // DOM block happens to be visible (fixes loss on resumed drafts).
-            if (updates[2] && (updates[2].title || updates[2].body)) activeUpdates.push(updates[2]);
+            for (var ui = 0; ui < MAX_UPDATES; ui++) {
+                if (updates[ui] && (updates[ui].title || updates[ui].body)) activeUpdates.push(updates[ui]);
+            }
         }
 
         // Build birthday data
@@ -5864,6 +5992,8 @@
                 }
             }
             document.getElementById('step1NextBtn').disabled = !selectedMonth;
+            var _abResume = document.getElementById('autoBuildBtn');
+            if (_abResume) _abResume.disabled = !selectedMonth;
 
             // Restore secondary month UI
             var _secondaryArea = document.getElementById('secondaryMonthArea');
@@ -5895,27 +6025,28 @@
                 document.getElementById('updatesFieldsArea').style.display = 'none';
             }
 
-            // Restore update fields, revealing blocks 2/3 whenever they have
+            // Restore update fields, revealing blocks 2..N whenever they have
             // content so collect/build don't treat them as absent (and wipe them).
+            while (updates.length < MAX_UPDATES) updates.push(_emptyUpdate());
             if (updates[0]) {
                 document.getElementById('update1Title').value = updates[0].title || '';
                 document.getElementById('update1Body').value = updates[0].body || '';
+                renderUpdatePhotos(0);
             }
-            if (updates[1] && (updates[1].title || updates[1].body)) {
-                showUpdate2 = true;
-                var _ub2 = document.getElementById('updateBlock2');
-                if (_ub2) _ub2.style.display = 'block';
-                document.getElementById('update2Title').value = updates[1].title || '';
-                document.getElementById('update2Body').value = updates[1].body || '';
+            for (var _rn = 2; _rn <= MAX_UPDATES; _rn++) {
+                var _ru = updates[_rn - 1];
+                if (_ru && (_ru.title || _ru.body)) {
+                    if (_rn === 2) showUpdate2 = true;
+                    var _rblock = document.getElementById('updateBlock' + _rn);
+                    if (_rblock) _rblock.style.display = 'block';
+                    var _rt = document.getElementById('update' + _rn + 'Title');
+                    var _rb = document.getElementById('update' + _rn + 'Body');
+                    if (_rt) _rt.value = _ru.title || '';
+                    if (_rb) _rb.value = _ru.body || '';
+                    renderUpdatePhotos(_rn - 1);
+                }
             }
-            if (updates[2] && (updates[2].title || updates[2].body)) {
-                var _ub3 = document.getElementById('updateBlock3');
-                if (_ub3) _ub3.style.display = 'block';
-                var _u3t = document.getElementById('update3Title');
-                var _u3b = document.getElementById('update3Body');
-                if (_u3t) _u3t.value = updates[2].title || '';
-                if (_u3b) _u3b.value = updates[2].body || '';
-            }
+            _syncAddUpdateLink();
 
             // Restore game UI
             if (gameEnabled) {
@@ -6981,11 +7112,12 @@
         var isEditor = !!(window.AUTH_USER && window.AUTH_USER.is_editor);
         if (view === 'build' && !isEditor) view = 'feed';
 
+        // teamSection is retired from the builder — roster management lives in
+        // the Team directory tab now (the hidden DOM stays so legacy JS is safe).
         var groups = {
             build: [document.querySelector('.container'),
                     document.getElementById('draftsSection'),
-                    document.getElementById('publishedSection'),
-                    document.getElementById('teamSection')],
+                    document.getElementById('publishedSection')],
             submit: [document.getElementById('submitSection')],
             feed: [document.getElementById('feedSection')],
             directory: [document.getElementById('directorySection')]
@@ -7468,22 +7600,51 @@
         var sub = _allSubs.update[i];
         if (!sub) return;
         var slot = -1;
-        for (var k = 0; k < 3; k++) {
+        for (var k = 0; k < MAX_UPDATES; k++) {
             if (!(updates[k] && (updates[k].title || updates[k].body))) { slot = k; break; }
         }
-        if (slot === -1) { alert('All 3 update slots are filled. Clear one first.'); return; }
-        if (!updates[slot]) updates[slot] = { title: '', body: '', photos: [], photo_positions: [] };
-        updates[slot].title = updates[slot].title || 'Company Update';
-        updates[slot].body = sub.summary || '';
+        if (slot === -1) { alert('All ' + MAX_UPDATES + ' update slots are filled. Clear one first.'); return; }
+        if (!updates[slot]) updates[slot] = _emptyUpdate();
+        // Feed twins arrive as "title\n\nbody" in summary — split them back so
+        // the title lands in the title field instead of the body.
+        var summary = (sub.summary || '').trim();
+        var title = 'Company Update';
+        var body = summary;
+        var sep = summary.indexOf('\n\n');
+        if (sep > 0) {
+            var first = summary.slice(0, sep).trim();
+            if (first && first.length <= 120 && first.indexOf('\n') === -1) {
+                title = first;
+                body = summary.slice(sep + 2).trim();
+            }
+        }
+        updates[slot].title = title;
+        updates[slot].body = body;
+        // Carry photos from the submission (feed posts attach them as files).
+        var photos = [];
+        (sub.files || []).forEach(function(f) {
+            if (typeof f === 'string' && /\.(jpe?g|png|gif|webp)(\?|$)/i.test(f) && photos.length < 3) photos.push(f);
+        });
+        updates[slot].photos = photos;
+        updates[slot].photo_positions = photos.map(function() { return 50; });
         updatesEnabled = true;
         var n = slot + 1;
+        // Reveal the block the entry landed in — previously a pick into a
+        // hidden block 3+ "disappeared" until the preview.
+        if (n >= 2) {
+            var block = document.getElementById('updateBlock' + n);
+            if (block) block.style.display = 'block';
+            if (n === 2) showUpdate2 = true;
+            _syncAddUpdateLink();
+        }
         var tt = document.getElementById('update' + n + 'Title');
         var bb = document.getElementById('update' + n + 'Body');
         if (tt) tt.value = updates[slot].title;
         if (bb) bb.value = updates[slot].body;
+        renderUpdatePhotos(slot);
         var tgl = document.getElementById('updatesToggle'); if (tgl) tgl.checked = true;
         var area = document.getElementById('updatesFieldsArea'); if (area) area.style.display = 'block';
-        showToast('Added to Update ' + n + '. Open the Company Updates step to review.');
+        showToast('Added to Update ' + n + (photos.length ? ' with ' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. Open the Company Updates step to review.');
     }
     function copyEntryText(type, i) {
         var s = (_allSubs[type] || [])[i];
@@ -7628,7 +7789,7 @@
         h += '<span class="post-cat' + (isAuto ? ' auto' : '') + '">' +
             escapeHtml(CATEGORY_LABELS[p.category] || p.category) + '</span>';
         if (mine && !isAuto) h += '<button class="post-menu-btn" title="Edit" onclick="startEditPost(\'' + escapeAttr(p.id) + '\')">&#9998;</button>';
-        if (canDelete) h += '<button class="post-menu-btn" title="Delete" onclick="deletePost(\'' + escapeAttr(p.id) + '\')">&#128465;</button>';
+        if (canDelete) h += '<button class="post-menu-btn" title="Delete" onclick="deletePost(this, \'' + escapeAttr(p.id) + '\')">&#128465;</button>';
         h += '</div>';
 
         h += '<div id="postContent-' + escapeAttr(p.id) + '">';
@@ -7779,18 +7940,19 @@
         }).catch(function() {});
     }
 
-    function deletePost(postId) {
-        if (!confirm('Delete this post?')) return;
-        fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId), { method: 'DELETE' })
-            .then(function(r) { return r.json(); }).then(function(d) {
-                if (d && d.success) {
-                    _feedPosts = _feedPosts.filter(function(p) { return p.id !== postId; });
-                    renderFeed();
-                    showToast('Post deleted');
-                } else {
-                    alert('Delete failed: ' + ((d && d.error) || 'Unknown error'));
-                }
-            }).catch(function(err) { alert('Delete failed: ' + err.message); });
+    function deletePost(btn, postId) {
+        inlineConfirm(btn, 'Delete this post?', function() {
+            fetch(API_BASE + '/api/feed/posts/' + encodeURIComponent(postId), { method: 'DELETE' })
+                .then(function(r) { return r.json(); }).then(function(d) {
+                    if (d && d.success) {
+                        _feedPosts = _feedPosts.filter(function(p) { return p.id !== postId; });
+                        renderFeed();
+                        showToast('Post deleted');
+                    } else {
+                        alert('Delete failed: ' + ((d && d.error) || 'Unknown error'));
+                    }
+                }).catch(function(err) { alert('Delete failed: ' + err.message); });
+        }, { yes: 'Delete', danger: true });
     }
 
     function startEditPost(postId) {
@@ -7973,6 +8135,7 @@
     var _dirEditors = {};      // email -> {locked: bool}, editors only
     var _dirEditing = null;    // email of the card in edit mode
     var _dirPhotoTarget = null;
+    var _dirAdding = false;    // add-person form open
 
     function loadDirectory() {
         var jobs = [ensureDirectory()];
@@ -8008,6 +8171,8 @@
         if (!grid) return;
         var syncBtn = document.getElementById('dirSyncBtn');
         if (syncBtn) syncBtn.style.display = _dirIsEditor ? '' : 'none';
+        var addBtn = document.getElementById('dirAddBtn');
+        if (addBtn) addBtn.style.display = _dirIsEditor ? '' : 'none';
         var q = (document.getElementById('dirSearch').value || '').trim().toLowerCase();
         var rows = _dirList.filter(function(e) {
             if (!q) return true;
@@ -8015,7 +8180,54 @@
         });
         var count = document.getElementById('dirCount');
         if (count) count.textContent = rows.length + ' of ' + _dirList.length + ' people';
-        grid.innerHTML = rows.map(renderDirCard).join('');
+        var addForm = (_dirIsEditor && _dirAdding) ? renderDirAddForm() : '';
+        grid.innerHTML = addForm + rows.map(renderDirCard).join('');
+        if (_dirAdding) {
+            var first = document.getElementById('da-name');
+            if (first) first.focus();
+        }
+    }
+
+    function renderDirAddForm() {
+        return '<div class="dir-card"><div class="dir-edit-form">' +
+            '<div style="font-weight:800;font-size:14px;color:#272d3f;text-align:center;">Add a person</div>' +
+            '<label>Name</label><input id="da-name" placeholder="Full name">' +
+            '<label>Email</label><input id="da-email" placeholder="name@brite.co">' +
+            '<label>Title</label><input id="da-title" placeholder="Job title">' +
+            '<label>Department</label><input id="da-dept" placeholder="Department">' +
+            '<div class="dir-edit-actions">' +
+            '<button class="dir-admin-btn" onclick="saveDirAdd()">Add</button>' +
+            '<button class="dir-admin-btn" onclick="dirShowAdd(false)">Cancel</button>' +
+            '</div></div></div>';
+    }
+
+    function dirShowAdd(show) {
+        _dirAdding = (show === undefined) ? !_dirAdding : !!show;
+        renderDirectory();
+    }
+
+    function saveDirAdd() {
+        var name = (document.getElementById('da-name') || {}).value || '';
+        var email = ((document.getElementById('da-email') || {}).value || '').trim().toLowerCase();
+        if (!name.trim() || !email) { alert('Name and email are required.'); return; }
+        fetch(API_BASE + '/api/employees/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name.trim(),
+                email: email,
+                title: ((document.getElementById('da-title') || {}).value || '').trim(),
+                department: ((document.getElementById('da-dept') || {}).value || '').trim()
+            })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                _dirAdding = false;
+                showToast('Added ' + name.trim());
+                _dirRefresh();
+            } else {
+                alert('Add failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) { alert('Add failed: ' + err.message); });
     }
 
     function renderDirCard(e) {
@@ -8056,13 +8268,13 @@
                 '<button class="dir-admin-btn" onclick="startDirEdit(\'' + escapeAttr(email) + '\')">&#9998; Edit</button>' +
                 '<button class="dir-admin-btn" onclick="dirPickPhoto(\'' + escapeAttr(email) + '\')">&#128247; Photo</button>' +
                 (inactive
-                    ? '<button class="dir-admin-btn" onclick="dirSetActive(\'' + escapeAttr(email) + '\', true)">Reactivate</button>'
-                    : '<button class="dir-admin-btn danger" onclick="dirSetActive(\'' + escapeAttr(email) + '\', false)">Deactivate</button>') +
+                    ? '<button class="dir-admin-btn" onclick="dirSetActive(this, \'' + escapeAttr(email) + '\', true)">Reactivate</button>'
+                    : '<button class="dir-admin-btn danger" onclick="dirSetActive(this, \'' + escapeAttr(email) + '\', false)">Deactivate</button>') +
                 (_dirEditors[email]
                     ? (_dirEditors[email].locked ? '' :
-                        '<button class="dir-admin-btn danger" onclick="dirToggleEditor(\'' + escapeAttr(email) + '\', false)">&#9733; Remove editor</button>')
-                    : '<button class="dir-admin-btn" onclick="dirToggleEditor(\'' + escapeAttr(email) + '\', true)">&#9734; Make editor</button>') +
-                '<button class="dir-admin-btn danger" onclick="dirRemove(\'' + escapeAttr(email) + '\')">&#128465; Remove</button>' +
+                        '<button class="dir-admin-btn danger" onclick="dirToggleEditor(this, \'' + escapeAttr(email) + '\', false)">&#9733; Remove editor</button>')
+                    : '<button class="dir-admin-btn" onclick="dirToggleEditor(this, \'' + escapeAttr(email) + '\', true)">&#9734; Make editor</button>') +
+                '<button class="dir-admin-btn danger" onclick="dirRemove(this, \'' + escapeAttr(email) + '\')">&#128465; Remove</button>' +
                 '</div>';
         }
         return h + '</div>';
@@ -8124,57 +8336,69 @@
         }).catch(function(err) { alert('Save failed: ' + err.message); });
     }
 
-    function dirSetActive(email, active) {
+    function dirSetActive(btn, email, active) {
         var person = _dirByEmail(email) || {};
-        if (!active && !confirm('Deactivate ' + (person.name || email) + '? They drop out of the newsletter audience and birthdays, and the sync will not re-add them.')) return;
-        fetch(API_BASE + '/api/employees/set-active', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email, active: active })
-        }).then(function(r) { return r.json(); }).then(function(d) {
-            if (d && d.success) {
-                showToast((active ? 'Reactivated ' : 'Deactivated ') + (person.name || email));
-                _dirRefresh();
-            } else {
-                alert('Failed: ' + ((d && d.error) || 'Unknown error'));
-            }
-        }).catch(function(err) { alert('Failed: ' + err.message); });
+        var go = function() {
+            fetch(API_BASE + '/api/employees/set-active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, active: active })
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.success) {
+                    showToast((active ? 'Reactivated ' : 'Deactivated ') + (person.name || email));
+                    _dirRefresh();
+                } else {
+                    alert('Failed: ' + ((d && d.error) || 'Unknown error'));
+                }
+            }).catch(function(err) { alert('Failed: ' + err.message); });
+        };
+        if (active) { go(); return; }
+        inlineConfirm(btn,
+            'Deactivate ' + (person.name || email) + '? They drop out of the directory, newsletter, and birthdays — and the sync won’t re-add them.',
+            go, { yes: 'Deactivate', danger: true });
     }
 
-    function dirRemove(email) {
+    function dirRemove(btn, email) {
         var person = _dirByEmail(email) || {};
-        if (!confirm('Remove ' + (person.name || email) + ' from the roster entirely? The next BigQuery sync may re-add them if they are still in user_master — use Deactivate for people who left.')) return;
-        fetch(API_BASE + '/api/employees/remove', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email })
-        }).then(function(r) { return r.json(); }).then(function(d) {
-            if (d && d.success) {
-                showToast('Removed ' + (person.name || email));
-                _dirRefresh();
-            } else {
-                alert('Remove failed: ' + ((d && d.error) || 'Unknown error'));
-            }
-        }).catch(function(err) { alert('Remove failed: ' + err.message); });
+        inlineConfirm(btn,
+            'Remove ' + (person.name || email) + ' from the roster entirely? If they’re still in BigQuery, the next sync re-adds them — use Deactivate for people who left.',
+            function() {
+                fetch(API_BASE + '/api/employees/remove', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                }).then(function(r) { return r.json(); }).then(function(d) {
+                    if (d && d.success) {
+                        showToast('Removed ' + (person.name || email));
+                        _dirRefresh();
+                    } else {
+                        alert('Remove failed: ' + ((d && d.error) || 'Unknown error'));
+                    }
+                }).catch(function(err) { alert('Remove failed: ' + err.message); });
+            }, { yes: 'Remove', danger: true });
     }
 
-    function dirToggleEditor(email, grant) {
+    function dirToggleEditor(btn, email, grant) {
         var person = _dirByEmail(email) || {};
         var label = person.name || email;
-        if (grant && !confirm('Make ' + label + ' an editor? They get the Newsletter builder, roster management, and curation access.')) return;
-        if (!grant && !confirm('Remove editor access from ' + label + '?')) return;
-        fetch(API_BASE + '/api/editors', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email, editor: grant })
-        }).then(function(r) { return r.json(); }).then(function(d) {
-            if (d && d.success) {
-                showToast((grant ? 'Editor access granted to ' : 'Editor access removed from ') + label);
-                loadDirectory();
-            } else {
-                alert('Failed: ' + ((d && d.error) || 'Unknown error'));
-            }
-        }).catch(function(err) { alert('Failed: ' + err.message); });
+        var go = function() {
+            fetch(API_BASE + '/api/editors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, editor: grant })
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.success) {
+                    showToast((grant ? 'Editor access granted to ' : 'Editor access removed from ') + label);
+                    loadDirectory();
+                } else {
+                    alert('Failed: ' + ((d && d.error) || 'Unknown error'));
+                }
+            }).catch(function(err) { alert('Failed: ' + err.message); });
+        };
+        inlineConfirm(btn,
+            grant ? ('Make ' + label + ' an editor? They get the Newsletter builder, roster management, and curation.')
+                  : ('Remove editor access from ' + label + '?'),
+            go, grant ? { yes: 'Make editor' } : { yes: 'Remove access', danger: true });
     }
 
     function dirPickPhoto(email) {
@@ -8228,6 +8452,94 @@
                 btn.innerHTML = '&#8635; Sync from BigQuery';
                 alert('Sync failed: ' + err.message);
             });
+    }
+
+    /* ============================================================
+       INLINE CONFIRMATIONS (replaces browser confirm dialogs)
+       ============================================================ */
+    function inlineConfirm(anchor, message, onYes, opts) {
+        opts = opts || {};
+        var existing = document.getElementById('inlineConfirmPop');
+        if (existing) existing.remove();
+        var pop = document.createElement('div');
+        pop.id = 'inlineConfirmPop';
+        pop.className = 'inline-confirm' + (opts.danger ? ' danger' : '');
+        pop.innerHTML = '<div class="ic-msg">' + escapeHtml(message) + '</div>' +
+            '<div class="ic-actions">' +
+            '<button class="ic-yes">' + escapeHtml(opts.yes || 'Confirm') + '</button>' +
+            '<button class="ic-no">Cancel</button></div>';
+        document.body.appendChild(pop);
+        var r = anchor.getBoundingClientRect();
+        var popW = 260;
+        var left = Math.min(
+            Math.max(8, r.left + window.scrollX - 40),
+            window.scrollX + document.documentElement.clientWidth - popW - 8);
+        pop.style.left = left + 'px';
+        pop.style.top = (r.bottom + window.scrollY + 8) + 'px';
+        pop.querySelector('.ic-yes').onclick = function() { pop.remove(); onYes(); };
+        pop.querySelector('.ic-no').onclick = function() { pop.remove(); };
+        setTimeout(function() {
+            document.addEventListener('click', function dismiss(e) {
+                if (!document.body.contains(pop)) { document.removeEventListener('click', dismiss); return; }
+                if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', dismiss); }
+            });
+        }, 0);
+    }
+
+    /* ============================================================
+       ONE-SHOT AI NEWSLETTER BUILD
+       ============================================================ */
+    function autoBuild(btn) {
+        if (!selectedMonth || !selectedMonthNum) return;
+        var year = new Date().getFullYear();
+        // Replacing an existing draft for this month deserves a heads-up.
+        fetch(API_BASE + '/api/list-drafts')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var mine = ((window.AUTH_USER && window.AUTH_USER.email) || '').split('@')[0].replace(/\./g, '-');
+                var clash = ((d && d.drafts) || []).some(function(dr) {
+                    return (dr.month || '').toLowerCase() === selectedMonth.toLowerCase() &&
+                        String(dr.year) === String(year) &&
+                        (dr.filename || '').indexOf('-' + mine + '.json') !== -1;
+                });
+                if (clash) {
+                    inlineConfirm(btn,
+                        'You already have a ' + selectedMonth + ' draft — replace it with the AI build?',
+                        function() { _runAutoBuild(btn); }, { yes: 'Replace it', danger: true });
+                } else {
+                    _runAutoBuild(btn);
+                }
+            })
+            .catch(function() { _runAutoBuild(btn); });
+    }
+
+    function _runAutoBuild(btn) {
+        btn.disabled = true;
+        var orig = btn.innerHTML;
+        btn.innerHTML = '&#10024; Building...';
+        fetch(API_BASE + '/api/auto-build', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                month: selectedMonth,
+                month_num: selectedMonthNum,
+                year: new Date().getFullYear()
+            })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            btn.disabled = false; btn.innerHTML = orig;
+            if (d && d.success && d.file) {
+                var s = d.summary || {};
+                showToast('Built: ' + (s.birthdays || 0) + ' birthdays, ' + (s.anniversaries || 0) +
+                    ' anniversaries, ' + (s.updates || 0) + ' updates' +
+                    (s.spotlight ? ', spotlight' : '') + '. Loading preview...');
+                resumeDraft(d.file);
+            } else {
+                alert('Auto-build failed: ' + ((d && d.error) || 'Unknown error'));
+            }
+        }).catch(function(err) {
+            btn.disabled = false; btn.innerHTML = orig;
+            alert('Auto-build failed: ' + err.message);
+        });
     }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>

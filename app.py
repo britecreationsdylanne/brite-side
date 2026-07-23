@@ -2051,8 +2051,14 @@ def render_email():
         update_3_title = ''
         update_3_body = ''
         update_3_photos_html = ''
+        update_4_title = ''
+        update_4_body = ''
+        update_4_photos_html = ''
+        update_5_title = ''
+        update_5_body = ''
+        update_5_photos_html = ''
         if updates:
-            for i, u in enumerate(updates[:3]):
+            for i, u in enumerate(updates[:5]):
                 if not isinstance(u, dict):
                     continue
                 title = esc(u.get('title', ''))
@@ -2104,6 +2110,14 @@ def render_email():
                     update_3_title = title
                     update_3_body = body
                     update_3_photos_html = photos_html
+                elif i == 3:
+                    update_4_title = title
+                    update_4_body = body
+                    update_4_photos_html = photos_html
+                elif i == 4:
+                    update_5_title = title
+                    update_5_body = body
+                    update_5_photos_html = photos_html
 
         # Build special section HTML (frontend sends null if disabled)
         if not special_section:
@@ -2167,6 +2181,8 @@ def render_email():
         welcome_display = 'table-row' if (welcome_enabled and welcome_hires) else 'none'
         update_2_display = 'table-row' if (update_2_title or update_2_body) else 'none'
         update_3_display = 'table-row' if (update_3_title or update_3_body) else 'none'
+        update_4_display = 'table-row' if (update_4_title or update_4_body) else 'none'
+        update_5_display = 'table-row' if (update_5_title or update_5_body) else 'none'
         updates_display = 'table-row' if updates_enabled and updates else 'none'
         special_display = 'table-row' if (special_title or special_body) else 'none'
         game_display = 'table-row' if game_section_html else 'none'
@@ -2226,6 +2242,14 @@ def render_email():
             'UPDATE_3_BODY': str(update_3_body),
             'UPDATE_3_PHOTOS': update_3_photos_html,
             'UPDATE_3_DISPLAY': update_3_display,
+            'UPDATE_4_TITLE': str(update_4_title),
+            'UPDATE_4_BODY': str(update_4_body),
+            'UPDATE_4_PHOTOS': update_4_photos_html,
+            'UPDATE_4_DISPLAY': update_4_display,
+            'UPDATE_5_TITLE': str(update_5_title),
+            'UPDATE_5_BODY': str(update_5_body),
+            'UPDATE_5_PHOTOS': update_5_photos_html,
+            'UPDATE_5_DISPLAY': update_5_display,
             'SPECIAL_TITLE': str(special_title),
             'SPECIAL_BODY': str(special_body),
             'SPECIAL_SECTION_DISPLAY': special_display,
@@ -2740,6 +2764,229 @@ def save_draft():
 
     except Exception as e:
         safe_print(f"[DRAFT SAVE ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# One-shot AI newsletter build
+# ---------------------------------------------------------------------------
+
+_AUTO_IMG_RE = re.compile(r'\.(jpe?g|png|gif|webp)(\?|$)', re.IGNORECASE)
+
+_AUTO_FALLBACK_JOKES = [
+    "Why did the diamond go to school?|To get a little more brilliant.",
+    "What did the ring say to the finger?|I've got you covered.",
+    "Why don't gems ever get lost?|They always know their setting.",
+]
+
+
+def _auto_split_update(summary):
+    """Turn a queue summary into (title, body). Feed twins arrive as
+    'title\\n\\nbody'; plain entries become body under a generic title."""
+    text = (summary or '').strip()
+    if '\n\n' in text:
+        first, rest = text.split('\n\n', 1)
+        first = first.strip()
+        if first and len(first) <= 120 and '\n' not in first:
+            return first, rest.strip()
+    return 'Company Update', text
+
+
+@app.route('/api/auto-build', methods=['POST'])
+def auto_build_newsletter():
+    """Compose a complete draft for a month in one shot: birthdays and
+    anniversaries from the roster, up to 5 company updates pulled from the
+    submission queue (feed posts included, photos carried over), the latest
+    spotlight profile, and a Claude-written joke. The result is saved as the
+    caller's draft for that month (same file the builder auto-saves to) and
+    returned so the frontend can resume it straight into the preview step.
+    Queue statuses are NOT touched — nothing is marked used until the editor
+    actually keeps it."""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    data = request.json or {}
+    month_name = (data.get('month') or '').strip()
+    month_num = data.get('month_num')
+    year = data.get('year') or datetime.now(CHICAGO_TZ).year
+    try:
+        month_num = int(month_num)
+    except (TypeError, ValueError):
+        month_num = 0
+    if not month_name or not (1 <= month_num <= 12):
+        return jsonify({'success': False, 'error': 'month and month_num (1-12) are required'}), 400
+
+    try:
+        current_year = int(year)
+        employees = list_employees()
+
+        # Birthdays / anniversaries — same shapes the step-3 endpoints return.
+        birthdays = sorted([
+            {
+                'name': emp.get('name', ''),
+                'email': emp.get('email', ''),
+                'department': emp.get('department', ''),
+                'title': emp.get('title', ''),
+                'birthday_day': _as_bday_int(emp.get('birthday_day')),
+                'birthday_month': _as_bday_int(emp.get('birthday_month')),
+                'image_url': emp.get('photo_url', ''),
+            }
+            for emp in employees
+            if _as_bday_int(emp.get('birthday_month')) == month_num and emp.get('active', True)
+        ], key=lambda x: x['birthday_day'])
+
+        anniversaries = []
+        for emp in employees:
+            if _as_bday_int(emp.get('anniversary_month')) != month_num or not emp.get('active', True):
+                continue
+            yr = _as_bday_int(emp.get('anniversary_year'))
+            anniversaries.append({
+                'name': emp.get('name', ''),
+                'email': emp.get('email', ''),
+                'department': emp.get('department', ''),
+                'title': emp.get('title', ''),
+                'anniversary_day': _as_bday_int(emp.get('anniversary_day')),
+                'anniversary_month': _as_bday_int(emp.get('anniversary_month')),
+                'anniversary_year': yr,
+                'years': (current_year - yr) if yr else 0,
+                'image_url': emp.get('photo_url', ''),
+            })
+        anniversaries.sort(key=lambda x: x['anniversary_day'])
+
+        # Company updates: newest unused queue entries (feed twins included),
+        # up to the 5 slots the builder now has. Photos carry over (images only).
+        updates = []
+        for sub in _list_collection(UPDATE_SUBMISSIONS):
+            if (sub.get('status') or 'new') != 'new':
+                continue
+            title, body = _auto_split_update(sub.get('summary'))
+            if not body and not title:
+                continue
+            photos = [f for f in (sub.get('files') or [])
+                      if isinstance(f, str) and _AUTO_IMG_RE.search(f)][:3]
+            updates.append({
+                'title': title,
+                'body': body,
+                'photos': photos,
+                'photo_positions': [50] * len(photos),
+            })
+            if len(updates) >= 5:
+                break
+
+        # Spotlight: the most recently updated submitted profile, if any.
+        spotlights = []
+        try:
+            if firestore_client:
+                subs = []
+                for d in firestore_client.collection(SPOTLIGHT_COLLECTION).stream():
+                    s = d.to_dict() or {}
+                    if s.get('status') in ('submitted', None, ''):
+                        subs.append(s)
+                subs.sort(key=lambda s: s.get('updated_at', ''), reverse=True)
+                if subs:
+                    s = subs[0]
+                    qa = [q for q in (s.get('qa') or []) if isinstance(q, dict)][:3]
+                    while len(qa) < 3:
+                        qa.append({'q': '', 'a': ''})
+                    emp_match = get_employee((s.get('email') or '').strip().lower()) or {}
+                    spotlights = [{
+                        'employee': {
+                            'name': s.get('name') or emp_match.get('name', ''),
+                            'title': s.get('job_title') or emp_match.get('title', ''),
+                            'department': emp_match.get('department', ''),
+                            'email': s.get('email', ''),
+                        },
+                        'display_title': s.get('job_title') or emp_match.get('title', ''),
+                        'blurb': s.get('describe_work', ''),
+                        'fun_facts': s.get('work_with_others', ''),
+                        'image_url': s.get('photo_url') or emp_match.get('photo_url', ''),
+                        'video_url': '',
+                        'qa': qa,
+                    }]
+        except Exception as spot_err:
+            safe_print(f"[AUTO-BUILD] Spotlight pick failed (continuing without): {spot_err}")
+        if not spotlights:
+            spotlights = [{'employee': None, 'fun_facts': '', 'blurb': '', 'image_url': '',
+                           'video_url': '', 'display_title': '',
+                           'qa': [{'q': '', 'a': ''}, {'q': '', 'a': ''}, {'q': '', 'a': ''}]}]
+
+        # Joke: one Claude pun in setup|punchline form, canned fallback offline.
+        joke = _AUTO_FALLBACK_JOKES[month_num % len(_AUTO_FALLBACK_JOKES)]
+        joke_is_ai = False
+        if claude_client:
+            try:
+                resp = claude_client.generate_content(
+                    prompt=(f"Write one short, wholesome, workplace-safe pun for a company "
+                            f"newsletter opener for the month of {month_name}. Theme: jewelry "
+                            f"and insurance. Return EXACTLY this format with no other text: "
+                            f"setup|punchline"),
+                    system_prompt=BRITESIDE_SYSTEM_PROMPT,
+                    max_tokens=120,
+                    temperature=0.9,
+                )
+                text = (resp.get('content') or '').strip().strip('"')
+                if '|' in text and 10 < len(text) < 300 and '\n' not in text:
+                    joke = text
+                    joke_is_ai = True
+            except Exception as joke_err:
+                safe_print(f"[AUTO-BUILD] Joke generation failed (using fallback): {joke_err}")
+
+        user = get_current_user() or {}
+        saved_by = user.get('email', 'unknown')
+        prefix = saved_by.split('@')[0].replace('.', '-')
+        blob_name = f"drafts/{month_name.lower()}-{current_year}-{prefix}.json"
+
+        draft = {
+            'month': month_name.lower(),
+            'year': current_year,
+            'currentStep': 9,  # land on the preview
+            'joke': joke,
+            'jokeOptions': [joke],
+            'selectedJokeIndex': 0,
+            'birthdays': birthdays,
+            'secondary_month_num': 0,
+            'extra_month_nums': [],
+            'birthday_primary_heading': '',
+            'birthday_secondary_heading': '',
+            'spotlight': spotlights[0],
+            'spotlights': spotlights,
+            'updates': updates,
+            'updatesEnabled': bool(updates),
+            'welcomeHires': [],
+            'welcomeEnabled': False,
+            'anniversaries': anniversaries,
+            'anniversariesEnabled': bool(anniversaries),
+            'game': {'enabled': False, 'type': '', 'data': None,
+                     'imageUrl': '', 'answer': '', 'previousAnswer': ''},
+            'specialSection': {'enabled': False, 'title': '', 'body': '',
+                               'image_url': '', 'placement': 'after-updates'},
+            'specialSections': [],
+            'media': {},
+            'subject': f"The BriteSide · {month_name} {current_year}",
+            'savedBy': saved_by,
+            'lastSavedBy': saved_by,
+            'lastSavedAt': datetime.now(CHICAGO_TZ).isoformat(),
+            'autoBuilt': True,
+        }
+
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        bucket.blob(blob_name).upload_from_string(
+            json.dumps(draft), content_type='application/json')
+        safe_print(f"[AUTO-BUILD] {blob_name}: {len(birthdays)} bdays, "
+                   f"{len(anniversaries)} annivs, {len(updates)} updates, "
+                   f"spotlight={bool(spotlights[0].get('employee'))}, ai_joke={joke_is_ai}")
+        return jsonify({
+            'success': True,
+            'file': blob_name,
+            'summary': {
+                'birthdays': len(birthdays),
+                'anniversaries': len(anniversaries),
+                'updates': len(updates),
+                'spotlight': bool(spotlights[0].get('employee')),
+                'ai_joke': joke_is_ai,
+            },
+        })
+    except Exception as e:
+        safe_print(f"[AUTO-BUILD ERROR] {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
